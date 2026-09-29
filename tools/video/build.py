@@ -5,6 +5,8 @@ import subprocess
 import sys
 
 RAW = os.environ.get("RAW_DIR", "raw")  # folder with the downloaded release assets
+STRESS = "\u0301"  # combining acute accent used in voice texts to force stress
+DISPLAY = {"Ватсап": "WhatsApp"}  # spoken spelling -> subtitle spelling
 W, H, FPS = 1080, 1920, 30
 FONT = "Liberation Sans"
 
@@ -48,6 +50,8 @@ def words_of(part):
     a = json.load(open(part + ".json"))
     words, cur, s, e = [], "", 0.0, 0.0
     for c, t0, t1 in zip(a["characters"], a["character_start_times_seconds"], a["character_end_times_seconds"]):
+        if c == STRESS:
+            continue
         if c == " ":
             if cur:
                 words.append([cur, s, e]); cur = ""
@@ -57,6 +61,9 @@ def words_of(part):
         cur += c; e = t1
     if cur:
         words.append([cur, s, e])
+    for w in words:
+        for k, v in DISPLAY.items():
+            w[0] = w[0].replace(k, v)
     merged = []
     for w in words:  # attach a lone dash to the previous word
         if w[0] in ("—", "-") and merged:
@@ -125,6 +132,8 @@ def build(name, spec):
     vparts = spec.get("voice", [])
     for k, (part, start) in enumerate(vparts):
         limit = vparts[k + 1][1] - 0.05 if k + 1 < len(vparts) else total
+        if not spec.get("subs", True):
+            break
         cs = chunks(words_of(part))
         for j, c in enumerate(cs):
             t0 = start + c[0][1]

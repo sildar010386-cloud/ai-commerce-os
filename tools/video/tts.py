@@ -1,8 +1,8 @@
 import base64, json, os, sys, urllib.request
 VOICE = os.environ["ELEVENLABS_VOICE_ID"]
 def tts(text, out):
-    body = json.dumps({"text": text, "model_id": "eleven_multilingual_v2",
-        "voice_settings": {"stability": 0.5, "similarity_boost": 0.8, "style": 0.2, "use_speaker_boost": True}}).encode()
+    body = json.dumps({"text": text, "model_id": os.environ.get("TTS_MODEL", "eleven_v3"),
+        "voice_settings": {"stability": 0.5, "similarity_boost": 0.8}}).encode()
     req = urllib.request.Request(f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE}/with-timestamps?output_format=mp3_44100_128",
         data=body, headers={"Content-Type": "application/json", "xi-api-key": os.environ.get("ELEVENLABS_API_KEY", "")})
     d = json.load(urllib.request.urlopen(req, timeout=120))
