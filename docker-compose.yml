@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aicos
+      POSTGRES_USER: aicos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aicos -d aicos"]
+      interval: 5s
+      retries: 10
+
+  # Local Telegram Bot API server: files up to 2 GB instead of 20 MB.
+  telegram-bot-api:
+    image: aiogram/telegram-bot-api:latest
+    restart: unless-stopped
+    environment:
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID:?set in .env}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH:?set in .env}
+      TELEGRAM_LOCAL: "1"
+    volumes:
+      - tgapi:/var/lib/telegram-bot-api
+
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://aicos:${POSTGRES_PASSWORD}@db:5432/aicos
+      BOT_API_URL: http://telegram-bot-api:8081
+      BOT_API_LOCAL: "true"
+      MEDIA_DIR: /data/media
+      STATE_DIR: /data/state
+    depends_on:
+      db:
+        condition: service_healthy
+      telegram-bot-api:
+        condition: service_started
+    volumes:
+      # Same path as inside the Bot API container, so local file paths resolve here too.
+      - tgapi:/var/lib/telegram-bot-api
+      - ./data/media:/data/media
+      - ./data/state:/data/state
+
+volumes:
+  pgdata:
+  tgapi:

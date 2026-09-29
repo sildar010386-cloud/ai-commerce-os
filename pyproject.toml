@@ -1,0 +1,30 @@
+[project]
+name = "ai-commerce-os"
+version = "0.1.0"
+description = "AI Commerce OS: content intake bot and automation backend"
+requires-python = ">=3.11"
+dependencies = [
+    "aiogram>=3.13,<4",
+    "sqlalchemy[asyncio]>=2.0,<3",
+    "asyncpg>=0.29",
+    "pydantic-settings>=2.4",
+    "aiofiles>=23.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "aiosqlite>=0.20",
+]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
