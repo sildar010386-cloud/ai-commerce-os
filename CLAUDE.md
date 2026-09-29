@@ -8,8 +8,9 @@ Owner-facing docs are in Russian; code, comments and commit messages are in Engl
 - `docs/ARCHITECTURE_V1.md` — architecture principles: economics first, code before LLM, one PostgreSQL, Telegram as UI only, no business logic in the bot, LLM provider abstraction, kill switches.
 
 ## Current state
-- Phase 1a: Telegram intake bot (`app/`) — owner sends raw clips, they are stored under `MEDIA_DIR/<PRODUCT>/<date>/` and recorded in `clips`.
-- Next: Phase 1b — automatic editing (ffmpeg) from the clip library by scripts in `docs/CONTENT_PLAYBOOK.md`, approval in Telegram.
+- Content workflow (owner-approved, free): owner uploads raw clips as assets of a GitHub Release (tag `raw-NN`) in this repo; Claude downloads them in the session, reviews frames (contact sheets to save usage), edits 9:16 videos with ffmpeg, voices them with ElevenLabs (env `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`; host `api.elevenlabs.io` must be allowed), burns subtitles from the script, and sends finished MP4s to the owner in chat. Scripts: `docs/CONTENT_PLAYBOOK.md`.
+- `app/` (Telegram intake bot for a VPS) is parked: the owner did not approve a paid server. Do not deploy or extend it without explicit approval.
+- Never add paid services or servers without the owner's explicit approval (see DECISIONS.md).
 
 ## Stack and conventions
 - Python 3.11+, aiogram 3, SQLAlchemy 2 async (asyncpg in prod), Docker Compose on one VPS in Kazakhstan (personal data localization).
