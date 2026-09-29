@@ -5,3 +5,4 @@ AI-first система управления B2C интернет-магазин
 Текущий статус: **этап архитектуры (Phase 0)**. Кода нет, ресурсы не созданы, API не подключены.
 
 - [docs/ARCHITECTURE_V1.md](docs/ARCHITECTURE_V1.md) — AI COMMERCE OS — SYSTEM ARCHITECTURE V1: риски, экономика, 3 варианта архитектуры, MVP, Telegram-слой, roadmap с gate, cost simulation, break-even, kill switches.
+- [docs/PLAN_V2_KZ.md](docs/PLAN_V2_KZ.md) — план V2 под фактическую ситуацию: Казахстан, органика с нуля, без менеджеров. Новый порядок фаз, юнит-экономика в тенге, выбор товара, контент-конвейер, кто разрабатывает, риски и вопросы к владельцу.
