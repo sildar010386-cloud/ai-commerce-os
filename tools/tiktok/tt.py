@@ -1,0 +1,119 @@
+"""TikTok (sandbox app "Bikas Home Publisher") helper: OAuth, token storage, stats, posting.
+
+Owner decision 2026-09-30: TikTok tokens and one-time auth codes are kept in the owner's
+PRIVATE repo sildar010386-cloud/bikas-music (clone at $BIKAS_MUSIC, default /home/user/bikas-music;
+the session needs add_repo access=push). Never print tokens.
+
+  tt.py url        authorization link for the owner (redirect -> docs/tiktok/callback.html)
+  tt.py exchange   newest bikas-music/tiktok/code-*.txt -> tokens (secrets/tiktok_token.json), code deleted
+  tt.py refresh    refresh the access token (24 h); refresh token lives 365 days
+  tt.py me         profile + stats
+  tt.py videos     own videos with views/likes/comments/shares
+  tt.py creator    creator_info (privacy options, limits) required before a direct post
+"""
+import glob, json, os, subprocess, sys, time, urllib.parse, urllib.request
+
+API = "https://open.tiktokapis.com/v2"
+REDIRECT = "https://sildar010386-cloud.github.io/ai-commerce-os/tiktok/callback.html"
+SCOPES = "user.info.basic,user.info.profile,user.info.stats,video.list,video.upload,video.publish"
+REPO = os.environ.get("BIKAS_MUSIC", "/home/user/bikas-music")
+TOKEN_FILE = os.path.join(REPO, "secrets", "tiktok_token.json")
+
+
+def git(*args):
+    subprocess.run(["git", "-C", REPO, *args], check=True, capture_output=True)
+
+
+def push(msg):
+    git("add", "-A")
+    git("commit", "-m", msg)
+    git("push", "origin", "HEAD:main")
+
+
+def post_form(url, data):
+    req = urllib.request.Request(url, data=urllib.parse.urlencode(data).encode(),
+                                 headers={"Content-Type": "application/x-www-form-urlencoded"})
+    try:
+        return json.load(urllib.request.urlopen(req, timeout=60))
+    except urllib.error.HTTPError as e:
+        sys.exit(f"{url}: HTTP {e.code} {e.read().decode()[:300]}")
+
+
+def keys():
+    return {"client_key": os.environ["TIKTOK_CLIENT_KEY"], "client_secret": os.environ["TIKTOK_CLIENT_SECRET"]}
+
+
+def save_tokens(tok, msg):
+    tok["saved_at"] = int(time.time())
+    os.makedirs(os.path.dirname(TOKEN_FILE), exist_ok=True)
+    with open(TOKEN_FILE, "w") as f:
+        json.dump(tok, f, indent=1)
+    push(msg)
+
+
+def refresh():
+    old = json.load(open(TOKEN_FILE))
+    tok = post_form(f"{API}/oauth/token/", {**keys(), "grant_type": "refresh_token",
+                                             "refresh_token": old["refresh_token"]})
+    if "access_token" not in tok:
+        sys.exit(f"refresh failed: {tok.get('error')} {tok.get('error_description')}")
+    save_tokens(tok, "Refresh TikTok token")
+    return tok
+
+
+def access_token():
+    git("pull", "-q", "origin", "main")
+    tok = json.load(open(TOKEN_FILE))
+    if time.time() > tok["saved_at"] + tok.get("expires_in", 86400) - 1800:
+        tok = refresh()
+    return tok["access_token"]
+
+
+def api(method, path, params=None, body=None):
+    url = f"{API}/{path}" + ("?" + urllib.parse.urlencode(params) if params else "")
+    req = urllib.request.Request(url, method=method,
+                                 data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Authorization": f"Bearer {access_token()}",
+                                          "Content-Type": "application/json; charset=UTF-8"})
+    try:
+        return json.load(urllib.request.urlopen(req, timeout=60))
+    except urllib.error.HTTPError as e:
+        sys.exit(f"{path}: HTTP {e.code} {e.read().decode()[:300]}")
+
+
+def main(cmd):
+    if cmd == "url":
+        q = {"client_key": os.environ["TIKTOK_CLIENT_KEY"], "scope": SCOPES, "response_type": "code",
+             "redirect_uri": REDIRECT, "state": str(int(time.time()))}
+        print("https://www.tiktok.com/v2/auth/authorize/?" + urllib.parse.urlencode(q))
+    elif cmd == "exchange":
+        git("pull", "-q", "origin", "main")
+        codes = sorted(glob.glob(os.path.join(REPO, "tiktok", "code-*.txt")))
+        if not codes:
+            sys.exit("no code file in bikas-music/tiktok/ yet")
+        code = open(codes[-1]).read().strip()
+        tok = post_form(f"{API}/oauth/token/", {**keys(), "code": code,
+                                                 "grant_type": "authorization_code", "redirect_uri": REDIRECT})
+        for c in codes:
+            os.remove(c)
+        if "access_token" not in tok:
+            push("Remove used TikTok auth code")
+            sys.exit(f"exchange failed: {tok.get('error')} {tok.get('error_description')}")
+        save_tokens(tok, "Store TikTok tokens; remove used auth code")
+        print("ok; scopes:", tok.get("scope"), "| refresh valid (s):", tok.get("refresh_expires_in"))
+    elif cmd == "refresh":
+        print("ok; expires_in", refresh().get("expires_in"))
+    elif cmd == "me":
+        print(json.dumps(api("GET", "user/info/", {"fields": "open_id,display_name,username,profile_deep_link,"
+              "follower_count,following_count,likes_count,video_count"}), ensure_ascii=False, indent=1))
+    elif cmd == "videos":
+        print(json.dumps(api("POST", "video/list/", {"fields": "id,title,create_time,duration,share_url,"
+              "view_count,like_count,comment_count,share_count"}, {"max_count": 20}), ensure_ascii=False, indent=1))
+    elif cmd == "creator":
+        print(json.dumps(api("POST", "post/publish/creator_info/query/", body={}), ensure_ascii=False, indent=1))
+    else:
+        sys.exit(__doc__)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1] if len(sys.argv) > 1 else "")

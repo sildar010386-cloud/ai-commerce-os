@@ -69,7 +69,9 @@ open.tiktokapis.com
 4. **Продукты:** добавить Login Kit (Redirect URI = `.../tiktok/callback.html`) и Content Posting API. Права (scopes): `user.info.basic`, `user.info.profile`, `user.info.stats`, `video.list`, `video.upload` (добавляется сам с Content Posting API), `video.publish` (появляется при включении **Direct Post** — владелец включил: цель — полная автопубликация).
 5. **Sandbox** (вкладка рядом с Production; «Submit for review» не нажимать): → создать → Target users → добавить свой аккаунт TikTok. В песочнице проверка TikTok не нужна.
 6. **Ключи в среду (не в чат):** Client key и Client secret — из вкладки **Sandbox** → Edit → Environment variables: `TIKTOK_CLIENT_KEY=...`, `TIKTOK_CLIENT_SECRET=...`.
-7. **Вход:** Claude присылает ссылку входа → владелец разрешает доступ → страница `callback.html` показывает код → код в среду как `TIKTOK_AUTH_CODE` → Claude обменивает его на токены.
+7. **Вход (код живёт 5 минут):** сессия подключает `bikas-music` с правом push (`add_repo`, access=push; clone в `/home/user/bikas-music`), запускает `python3 tools/tiktok/tt.py url` и присылает ссылку → владелец входит аккаунтом-тестировщиком и разрешает доступ → `callback.html` → зелёная кнопка «Сохранить код в GitHub» → Commit → «код TikTok сохранён» → `tt.py exchange` (токены в `bikas-music/secrets/tiktok_token.json`, код удаляется) → проверка `tt.py me`, `tt.py videos`, `tt.py creator`.
+8. Токены: access 24 ч (скрипт обновляет сам), refresh 365 дней; хранятся только в закрытом `bikas-music` (решение владельца 2026-09-30). Не печатать токены в чат.
+9. **Submit for review — только после** рабочего подключения в песочнице и записи настоящего демо-видео (вход → выбор ролика → публикация). Временный ролик в поле демо заменить.
 
 Сохранение черновика Production требует всех обязательных полей: иконка (`https://sildar010386-cloud.github.io/ai-commerce-os/assets/app-icon.png`), текст для App review (готовый текст — `docs/tiktok/app_review_text.txt`), демо-видео. Настоящее демо-видео снимается после того, как песочница заработает; до этого для сохранения черновика можно временно загрузить любой ролик и заменить перед «Submit for review».
 
