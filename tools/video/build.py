@@ -1,5 +1,6 @@
 """Assemble 9:16 videos from raw clips, voice parts and burned ASS subtitles."""
 import json
+import math
 import os
 import subprocess
 import sys
@@ -112,6 +113,36 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
 
 
+def envelope(path, hop=0.1):
+    """RMS level in dB per `hop` seconds of the file's audio."""
+    raw = subprocess.run(["ffmpeg", "-loglevel", "error", "-i", path, "-vn", "-f", "s16le", "-ac", "1",
+                          "-ar", "16000", "-"], capture_output=True).stdout
+    n = int(16000 * hop)
+    out = []
+    for i in range(0, len(raw) // 2 - n, n):
+        chunk = memoryview(raw)[i * 2:(i + n) * 2].cast("h")
+        rms = (sum(v * v for v in chunk) / n) ** 0.5 / 32768
+        out.append(20 * math.log10(rms + 1e-9))
+    return out
+
+
+def verify_audio(track, video, voice):
+    """Fail if the video lost voice (dropouts) or has sound where the voice track is silent (overlaps)."""
+    a, b = envelope(track), envelope(video)
+    if abs(len(a) - len(b)) > 2:
+        sys.exit(f"audio length mismatch: track {len(a)} vs video {len(b)} frames")
+    lost = [i for i, (x, y) in enumerate(zip(a, b)) if x > -35 and y < -50]
+    extra = [i for i, (x, y) in enumerate(zip(a, b)) if x < -60 and y > -35]
+    if lost or extra:
+        sys.exit(f"audio check failed: lost voice at {[i / 10 for i in lost[:5]]}s, extra sound at {[i / 10 for i in extra[:5]]}s")
+    for part, st in voice:
+        end = st + json.load(open(part + ".json"))["character_end_times_seconds"][-1]
+        tail = b[int(end * 10) - 5:int(end * 10) - 1]
+        if not tail or max(tail) < -45:
+            sys.exit(f"audio check failed: end of voice part {part} (~{end:.1f}s) is silent in the video")
+    print("audio check ok")
+
+
 def build(name, spec):
     os.makedirs(f"seg_{name}", exist_ok=True)
     segs = spec["segments"]
@@ -156,23 +187,33 @@ def build(name, spec):
             ev.append(f"Dialogue: 2,{ts(tm['note_from'])},{ts(tm['until'])},Small,,0,0,0,,{tm['note']}")
     open(f"{name}.ass", "w").write(HEADER + "\n".join(ev) + "\n")
 
-    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", f"seg_{name}/list.txt"]
+    # Voice track is rendered on its own first (amix once dropped a trailing part silently),
+    # then muxed, then the muxed audio is checked against it.
     voice = spec.get("voice", [])
-    for part, _ in voice:
-        cmd += ["-i", part + ".mp3"]
+    track = f"voice_{name}.wav"
     if voice:
-        fa = "".join(f"[{k + 1}:a]adelay={int(st * 1000)}:all=1[v{k}];" for k, (_, st) in enumerate(voice))
-        fa += "".join(f"[v{k}]" for k in range(len(voice)))
-        fa += f"amix=inputs={len(voice)}:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11,apad[aout]"
+        vcmd = ["ffmpeg", "-y", "-loglevel", "error"]
+        for part, _ in voice:
+            vcmd += ["-i", part + ".mp3"]
+        fa = "".join(f"[{k}:a]adelay={int(st * 1000)}:all=1,apad=whole_dur={total:.3f}[v{k}];"
+                     for k, (_, st) in enumerate(voice))
+        mix = "".join(f"[v{k}]" for k in range(len(voice)))
+        mix += f"amix=inputs={len(voice)}:normalize=0:duration=longest," if len(voice) > 1 else "anull,"
+        vcmd += ["-filter_complex", fa + mix + "loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100[a]",
+                 "-map", "[a]", "-t", f"{total:.3f}", "-ac", "1", track]
     else:
-        cmd += ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]
-        fa = "[1:a]anull[aout]"
-    cmd += ["-filter_complex", f"[0:v]ass={name}.ass[vout];{fa}", "-map", "[vout]", "-map", "[aout]",
-            "-t", f"{total:.3f}", "-r", str(FPS), "-c:v", "libx264", "-crf", "19", "-maxrate", "7000k", "-bufsize", "12000k", "-preset", "medium",
-            "-profile:v", "high", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-ar", "44100",
-            "-movflags", "+faststart", f"out/{spec['file']}"]
+        vcmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
+                "-t", f"{total:.3f}", track]
+    run(vcmd)
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", f"seg_{name}/list.txt",
+           "-i", track, "-filter_complex", f"[0:v]ass={name}.ass[vout]", "-map", "[vout]", "-map", "1:a",
+           "-t", f"{total:.3f}", "-r", str(FPS), "-c:v", "libx264", "-crf", "19", "-maxrate", "7000k",
+           "-bufsize", "12000k", "-preset", "medium", "-profile:v", "high", "-pix_fmt", "yuv420p",
+           "-c:a", "aac", "-b:a", "160k", "-ar", "44100", "-movflags", "+faststart", f"out/{spec['file']}"]
     os.makedirs("out", exist_ok=True)
     run(cmd)
+    if voice:
+        verify_audio(track, f"out/{spec['file']}", voice)
     print(name, f"{total:.1f}s", spec["file"])
 
 
