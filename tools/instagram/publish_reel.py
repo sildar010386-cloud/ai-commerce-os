@@ -1,6 +1,9 @@
-"""Publish an owner-approved Reel via the Instagram API (resumable upload, no public URL needed).
+"""Publish an owner-approved Reel via the Instagram API.
 
-Usage: publish_reel.py VIDEO.mp4 CAPTION.txt OUT.json
+Instagram Login tokens need a public video_url (resumable upload is rejected), so commit the
+approved MP4 and pass its raw.githubusercontent.com URL pinned to the commit SHA.
+
+Usage: publish_reel.py VIDEO_URL CAPTION.txt OUT.json
 """
 import json, os, sys, time, urllib.parse, urllib.request
 
@@ -27,13 +30,9 @@ def api(method, path, **params):
 def main(video, caption_file, out):
     caption = open(caption_file).read().strip()
     me = api("GET", "me", fields="user_id,username")
-    c = api("POST", f"{me['user_id']}/media", media_type="REELS", upload_type="resumable",
-            caption=caption, share_to_feed="true")
-    cid, uri = c["id"], c["uri"]
-    body = open(video, "rb").read()
-    up = req("POST", uri, data=body, headers={"Authorization": f"OAuth {TOKEN}", "offset": "0",
-                                             "file_size": str(len(body))})
-    print("uploaded", up)
+    cid = api("POST", f"{me['user_id']}/media", media_type="REELS", video_url=video,
+              caption=caption, share_to_feed="true")["id"]
+    print("container", cid)
     for _ in range(60):
         st = api("GET", cid, fields="status_code,status")
         print("status", st.get("status_code"), flush=True)
