@@ -9,6 +9,9 @@ Owner-facing docs are in Russian; code, comments and commit messages are in Engl
 
 ## Current state
 - Content workflow (owner-approved, free): owner uploads raw clips as assets of a GitHub Release (tag `raw-NN`) in this repo; Claude downloads them in the session, reviews frames (contact sheets to save usage), edits 9:16 videos with ffmpeg, voices them with ElevenLabs (env `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`; host `api.elevenlabs.io` must be allowed), burns subtitles from the script, and sends finished MP4s to the owner in chat. Scripts: `docs/CONTENT_PLAYBOOK.md`.
+- Voice: owner-approved ElevenLabs settings and stress rules in `content/voice/VOICE.md` (model `eleven_multilingual_v2`, never `eleven_v3`). Video builder: `tools/video/`.
+- Instagram `@bikas.home` (business) is connected through the official Instagram API: token in env `IG_ACCESS_TOKEN`, host `graph.instagram.com` (`https://graph.instagram.com/v23.0/me?...`). Use it for profile, media and insights (`views, reach, saved, shares, ig_reels_avg_watch_time`). Do not look for Instagram in Make/Buffer; the Buffer channels `jansaya_sauda*` belong to an old account the owner does not want touched. Setup and next platforms (Threads, TikTok): `docs/SOCIAL_SETUP.md`.
+- Publishing: one video at a time, only after the owner approves it.
 - `app/` (Telegram intake bot for a VPS) is parked: the owner did not approve a paid server. Do not deploy or extend it without explicit approval.
 - Never add paid services or servers without the owner's explicit approval (see DECISIONS.md).
 
