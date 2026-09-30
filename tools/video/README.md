@@ -14,5 +14,5 @@ python3 tools/video/tts.py content/raw-NN/voice.json
 SPECS=content/raw-NN/specs.json python3 tools/video/build.py [A B ...]
 ```
 
-Output goes to `out/`; bitrate is capped so files stay under the 30 MB chat upload limit.
+Voice settings: `content/voice/VOICE.md`. Output goes to `out/`; bitrate is capped so files stay under the 30 MB chat upload limit.
 Rendered videos and raw clips are not committed.
