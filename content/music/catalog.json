@@ -1,0 +1,202 @@
+[
+ {
+  "file": "alex-morgan-background-background-music-578479.mp3",
+  "duration": 98.4,
+  "bpm": 92.3,
+  "lufs": -10.0,
+  "brightness_hz": 988,
+  "intro_3s_db": -16.4,
+  "avg_db": -14.6,
+  "quiet_seconds": 0
+ },
+ {
+  "file": "alex-morgan-no-copyright-music-578487.mp3",
+  "duration": 132.7,
+  "bpm": 73.8,
+  "lufs": -10.6,
+  "brightness_hz": 1931,
+  "intro_3s_db": -17.7,
+  "avg_db": -15.1,
+  "quiet_seconds": 1
+ },
+ {
+  "file": "andriig-background-music-background-604062.mp3",
+  "duration": 128.2,
+  "bpm": 89.1,
+  "lufs": -13.3,
+  "brightness_hz": 915,
+  "intro_3s_db": -20.3,
+  "avg_db": -18.2,
+  "quiet_seconds": 0
+ },
+ {
+  "file": "andriig-no-copyright-music-568209.mp3",
+  "duration": 144.0,
+  "bpm": 99.4,
+  "lufs": -14.7,
+  "brightness_hz": 1066,
+  "intro_3s_db": -16.1,
+  "avg_db": -21.3,
+  "quiet_seconds": 6
+ },
+ {
+  "file": "atlasaudio-music-background-594872.mp3",
+  "duration": 156.0,
+  "bpm": 76.0,
+  "lufs": -9.0,
+  "brightness_hz": 1457,
+  "intro_3s_db": -12.4,
+  "avg_db": -12.4,
+  "quiet_seconds": 4
+ },
+ {
+  "file": "kiravale-intense-background-music-598114.mp3",
+  "duration": 153.2,
+  "bpm": 92.3,
+  "lufs": -10.0,
+  "brightness_hz": 982,
+  "intro_3s_db": -34.0,
+  "avg_db": -15.6,
+  "quiet_seconds": 1
+ },
+ {
+  "file": "kiravale-vlog-music-background-598100.mp3",
+  "duration": 43.7,
+  "bpm": 117.5,
+  "lufs": -10.4,
+  "brightness_hz": 1776,
+  "intro_3s_db": -16.5,
+  "avg_db": -13.5,
+  "quiet_seconds": 0
+ },
+ {
+  "file": "lnplusmusic-background-background-music-597024 (1).mp3",
+  "duration": 150.6,
+  "bpm": 73.8,
+  "lufs": -8.7,
+  "brightness_hz": 1161,
+  "intro_3s_db": -16.0,
+  "avg_db": -13.0,
+  "quiet_seconds": 4
+ },
+ {
+  "file": "lnplusmusic-background-background-music-597024.mp3",
+  "duration": 150.6,
+  "bpm": 73.8,
+  "lufs": -8.7,
+  "brightness_hz": 1161,
+  "intro_3s_db": -16.0,
+  "avg_db": -13.0,
+  "quiet_seconds": 4
+ },
+ {
+  "file": "mfcc-background-music-274290.mp3",
+  "duration": 61.6,
+  "bpm": 86.1,
+  "lufs": -11.2,
+  "brightness_hz": 2163,
+  "intro_3s_db": -21.5,
+  "avg_db": -17.6,
+  "quiet_seconds": 4
+ },
+ {
+  "file": "miromaxmusic-music-promotion-513944.mp3",
+  "duration": 136.3,
+  "bpm": 117.5,
+  "lufs": -8.0,
+  "brightness_hz": 1489,
+  "intro_3s_db": -15.1,
+  "avg_db": -11.6,
+  "quiet_seconds": 1
+ },
+ {
+  "file": "moodmode-no-copyright-music-201745.mp3",
+  "duration": 136.0,
+  "bpm": 80.7,
+  "lufs": -11.8,
+  "brightness_hz": 4069,
+  "intro_3s_db": -14.0,
+  "avg_db": -14.1,
+  "quiet_seconds": 0
+ },
+ {
+  "file": "nastelbom-no-copyright-music-602445.mp3",
+  "duration": 160.4,
+  "bpm": 112.3,
+  "lufs": -13.6,
+  "brightness_hz": 785,
+  "intro_3s_db": -20.7,
+  "avg_db": -16.8,
+  "quiet_seconds": 4
+ },
+ {
+  "file": "nastelbom-no-copyright-music-602456.mp3",
+  "duration": 133.4,
+  "bpm": 92.3,
+  "lufs": -13.0,
+  "brightness_hz": 1257,
+  "intro_3s_db": -14.3,
+  "avg_db": -16.0,
+  "quiet_seconds": 3
+ },
+ {
+  "file": "nastelbom-no-copyright-music-606703.mp3",
+  "duration": 139.4,
+  "bpm": 117.5,
+  "lufs": -13.5,
+  "brightness_hz": 934,
+  "intro_3s_db": -27.0,
+  "avg_db": -17.9,
+  "quiet_seconds": 3
+ },
+ {
+  "file": "paulyudin-background-background-music-574010.mp3",
+  "duration": 157.5,
+  "bpm": 112.3,
+  "lufs": -11.8,
+  "brightness_hz": 1479,
+  "intro_3s_db": -15.4,
+  "avg_db": -15.3,
+  "quiet_seconds": 1
+ },
+ {
+  "file": "paulyudin-background-music-478744.mp3",
+  "duration": 157.9,
+  "bpm": 76.0,
+  "lufs": -9.6,
+  "brightness_hz": 600,
+  "intro_3s_db": -23.9,
+  "avg_db": -14.3,
+  "quiet_seconds": 2
+ },
+ {
+  "file": "paulyudin-background-music-background-music-music-607592.mp3",
+  "duration": 89.1,
+  "bpm": 80.7,
+  "lufs": -15.3,
+  "brightness_hz": 1914,
+  "intro_3s_db": -20.7,
+  "avg_db": -20.9,
+  "quiet_seconds": 1
+ },
+ {
+  "file": "prettyjohn1-background-music-591305.mp3",
+  "duration": 39.5,
+  "bpm": 92.3,
+  "lufs": -8.3,
+  "brightness_hz": 2466,
+  "intro_3s_db": -17.4,
+  "avg_db": -11.2,
+  "quiet_seconds": 0
+ },
+ {
+  "file": "prettyjohn1-no-copyright-music-530633.mp3",
+  "duration": 72.7,
+  "bpm": 152.0,
+  "lufs": -8.5,
+  "brightness_hz": 2990,
+  "intro_3s_db": -14.8,
+  "avg_db": -12.3,
+  "quiet_seconds": 2
+ }
+]
