@@ -2,6 +2,7 @@
 
 Статус: **опубликовано 2026-09-30** (одобрено владельцем): https://www.instagram.com/reel/Dd6XyKtlcPU/ — `published.json`.
 Stories: версия с музыкой (`REEL-01_muzyka_pixabay.mp4`, трек miromaxmusic «Music Promotion») опубликована 2026-09-30 по просьбе владельца — `story_published.json`.
+TikTok: версия с музыкой опубликована 2026-10-01 через черновик (владелец вставил подпись и опубликовал в приложении): https://www.tiktok.com/@bikas.home/video/7691459802316295431 — `tiktok_published.json`.
 Формат: продающий (CONTENT_PLAYBOOK §2): хук → боль → решение → уникальность → CTA. Хук типа «результат».
 Кадры: raw-01 (клипы 9, 8, 4, 6, 7, 10, 5, 3, 2). Голос: VOICE.md, один дубль. Сборка: `specs.json` + `voice.json`, `tools/video/build.py`.
 
