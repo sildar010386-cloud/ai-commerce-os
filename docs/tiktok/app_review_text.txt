@@ -1,0 +1,7 @@
+Bikas Home Publisher is the internal publishing tool of the Bikas Home store (household goods, Kazakhstan). The store owner connects the store's TikTok account via Login Kit on our website.
+- user.info.basic, user.info.profile: show which account is connected (name, avatar, profile link).
+- user.info.stats: show follower, like and video counts to track the account's growth.
+- video.list: list the account's own videos with views, likes, comments and shares to compare which videos perform best.
+- video.upload: upload a finished video to the TikTok inbox as a draft, so the owner can edit it in the TikTok app and post it.
+- video.publish: after the owner approves a video in our tool, post it directly to the owner's account with the caption and privacy level the owner chooses.
+Only the store's own videos are posted, and nothing is posted without the owner's explicit approval.
