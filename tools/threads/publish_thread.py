@@ -55,7 +55,12 @@ def main(code, sha, parent=None, start=1):
         else:
             cid = call("POST", "me/threads", media_type="TEXT", text=text, **extra)["id"]
         wait_ready(cid)
-        parent = call("POST", "me/threads_publish", creation_id=cid)["id"]
+        new_id = call("POST", "me/threads_publish", creation_id=cid)["id"]
+        if parent:  # every post after the first must be a reply to the previous one
+            chk = call("GET", new_id, fields="is_reply,replied_to")
+            if not chk.get("is_reply") or chk.get("replied_to", {}).get("id") != parent:
+                sys.exit(f"post {new_id} is not a reply to {parent}: {chk}. Stopped; fix before continuing.")
+        parent = new_id
         ids.append(parent)
         print("published", parent, text.splitlines()[0][:50], flush=True)
         time.sleep(5)
