@@ -5,7 +5,7 @@ PRIVATE repo sildar010386-cloud/bikas-music (clone at $BIKAS_MUSIC, default /hom
 the session needs add_repo access=push). Never print tokens.
 
   tt.py url        authorization link for the owner (redirect -> docs/tiktok/callback.html)
-  tt.py exchange   newest bikas-music/tiktok/code-*.txt -> tokens (secrets/tiktok_token.json), code deleted
+  tt.py exchange   newest bikas-music/tiktok/code-* -> tokens (secrets/tiktok_token.json), code deleted
   tt.py refresh    refresh the access token (24 h); refresh token lives 365 days
   tt.py me         profile + stats
   tt.py videos     own videos with views/likes/comments/shares
@@ -88,7 +88,7 @@ def main(cmd):
         print("https://www.tiktok.com/v2/auth/authorize/?" + urllib.parse.urlencode(q))
     elif cmd == "exchange":
         git("pull", "-q", "origin", "main")
-        codes = sorted(glob.glob(os.path.join(REPO, "tiktok", "code-*.txt")))
+        codes = sorted(glob.glob(os.path.join(REPO, "tiktok", "code-*")))  # manual uploads may end in "."
         if not codes:
             sys.exit("no code file in bikas-music/tiktok/ yet")
         code = open(codes[-1]).read().strip()
