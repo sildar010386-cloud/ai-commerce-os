@@ -64,10 +64,11 @@ open.tiktokapis.com
 
 1. **GitHub Pages** (один раз): репозиторий `ai-commerce-os` → Settings → Pages → Source «Deploy from a branch» → ветка `claude/ai-ecommerce-automation-3n1lgz`, папка `/docs` → Save. Через 1–2 минуты сайт открывается по адресу выше.
 2. **Кабинет разработчика:** developers.tiktok.com → Log in (аккаунт TikTok bikas.home) → зарегистрироваться как разработчик.
+2a. **Подтверждение сайта:** URL properties → URL prefix `https://sildar010386-cloud.github.io/ai-commerce-os/` → TikTok даёт файл `tiktok….txt` → он лежит в `docs/` (уже добавлен: `docs/tiktokEh6dGTC288Pulsi6JD0zYQxQhbMeaxyz.txt`) → Verify.
 3. **Приложение:** Manage apps → Connect an app (тип «Individual») → название `Bikas Home Publisher`, иконка `app-icon.png`, категория, описание; Terms of Service URL = `.../terms.html`, Privacy Policy URL = `.../privacy.html`; платформа Web, Website URL = адрес сайта.
-4. **Продукты:** добавить Login Kit (Redirect URI = `.../tiktok/callback.html`) и Content Posting API. Права (scopes): `user.info.basic`, `user.info.profile`, `user.info.stats`, `video.list`, `video.upload`, `video.publish`.
-5. **Sandbox:** переключиться на Sandbox → создать → Target users → добавить свой аккаунт TikTok. В песочнице проверка TikTok не нужна.
-6. **Ключи в среду (не в чат):** Client key и Client secret → Edit → Environment variables: `TIKTOK_CLIENT_KEY=...`, `TIKTOK_CLIENT_SECRET=...`.
+4. **Продукты:** добавить Login Kit (Redirect URI = `.../tiktok/callback.html`) и Content Posting API. Права (scopes): `user.info.basic`, `user.info.profile`, `user.info.stats`, `video.list`, `video.upload` (добавляется сам вместе с Content Posting API). Direct Post не включать — `video.publish` не нужен, работаем через черновики.
+5. **Sandbox** (вкладка рядом с Production; «Submit for review» не нажимать): → создать → Target users → добавить свой аккаунт TikTok. В песочнице проверка TikTok не нужна.
+6. **Ключи в среду (не в чат):** Client key и Client secret — из вкладки **Sandbox** → Edit → Environment variables: `TIKTOK_CLIENT_KEY=...`, `TIKTOK_CLIENT_SECRET=...`.
 7. **Вход:** Claude присылает ссылку входа → владелец разрешает доступ → страница `callback.html` показывает код → код в среду как `TIKTOK_AUTH_CODE` → Claude обменивает его на токены.
 
 Ограничения: без проверки приложения TikTok (audit) прямые публикации через API только приватные. Рабочая схема — загрузка ролика в черновики TikTok (владелец в приложении добавляет звук и публикует) + статистика через API.
