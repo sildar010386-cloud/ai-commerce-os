@@ -1,0 +1,10 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TikTok подключение</title><style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:720px;margin:0 auto;padding:24px 16px;line-height:1.55;color:#1d1d1f;background:#fff}h1{font-size:26px}h2{font-size:19px;margin-top:28px}a{color:#e8631c}footer{margin-top:40px;font-size:13px;color:#666} textarea{width:100%;height:110px;font:15px monospace;padding:10px;box-sizing:border-box}button{margin-top:10px;padding:12px 18px;font-size:16px;background:#e8631c;color:#fff;border:0;border-radius:8px}</style></head><body>
+<h1>TikTok: вход выполнен</h1>
+<p id="msg">Скопируйте код ниже и вставьте его в настройки облачной среды Claude как переменную <b>TIKTOK_AUTH_CODE</b> (Edit → Environment variables → <code>TIKTOK_AUTH_CODE=код</code> → Save). Затем напишите Claude «код TikTok сохранён». Код действует несколько минут — делайте сразу.</p>
+<textarea id="code" readonly></textarea><br><button onclick="navigator.clipboard.writeText(document.getElementById('code').value);this.textContent='Скопировано'">Скопировать код</button>
+<script>
+var q=new URLSearchParams(location.search);
+if(q.get('error')){document.getElementById('msg').textContent='TikTok вернул ошибку: '+q.get('error')+' '+(q.get('error_description')||'')+'. Пришлите скриншот Claude.';}
+document.getElementById('code').value=q.get('code')||'';
+</script>
+<footer>Код в адресе страницы никуда не отправляется: страница только показывает его вам.</footer></body></html>
