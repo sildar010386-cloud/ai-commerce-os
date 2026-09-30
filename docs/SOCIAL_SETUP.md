@@ -60,4 +60,14 @@ open.tiktokapis.com
 
 ## TikTok
 
-Отдельный кабинет developers.tiktok.com. Для публикации через API TikTok проверяет приложение (нужны сайт, политика конфиденциальности, демо-видео); до проверки API публикует только приватно. План: сначала статистика через API, публикует владелец вручную из приложения (так же доступны трендовые звуки). Подробные шаги — после Threads.
+Сайт приложения (GitHub Pages из папки `docs/` основной ветки): `https://sildar010386-cloud.github.io/ai-commerce-os/` — `index.html`, `privacy.html`, `terms.html`, страница возврата `tiktok/callback.html`, иконка `docs/assets/app-icon.png`.
+
+1. **GitHub Pages** (один раз): репозиторий `ai-commerce-os` → Settings → Pages → Source «Deploy from a branch» → ветка `claude/ai-ecommerce-automation-3n1lgz`, папка `/docs` → Save. Через 1–2 минуты сайт открывается по адресу выше.
+2. **Кабинет разработчика:** developers.tiktok.com → Log in (аккаунт TikTok bikas.home) → зарегистрироваться как разработчик.
+3. **Приложение:** Manage apps → Connect an app (тип «Individual») → название `Bikas Home Publisher`, иконка `app-icon.png`, категория, описание; Terms of Service URL = `.../terms.html`, Privacy Policy URL = `.../privacy.html`; платформа Web, Website URL = адрес сайта.
+4. **Продукты:** добавить Login Kit (Redirect URI = `.../tiktok/callback.html`) и Content Posting API. Права (scopes): `user.info.basic`, `user.info.profile`, `user.info.stats`, `video.list`, `video.upload`, `video.publish`.
+5. **Sandbox:** переключиться на Sandbox → создать → Target users → добавить свой аккаунт TikTok. В песочнице проверка TikTok не нужна.
+6. **Ключи в среду (не в чат):** Client key и Client secret → Edit → Environment variables: `TIKTOK_CLIENT_KEY=...`, `TIKTOK_CLIENT_SECRET=...`.
+7. **Вход:** Claude присылает ссылку входа → владелец разрешает доступ → страница `callback.html` показывает код → код в среду как `TIKTOK_AUTH_CODE` → Claude обменивает его на токены.
+
+Ограничения: без проверки приложения TikTok (audit) прямые публикации через API только приватные. Рабочая схема — загрузка ролика в черновики TikTok (владелец в приложении добавляет звук и публикует) + статистика через API.
