@@ -3,7 +3,7 @@
 Instagram Login tokens need a public video_url (resumable upload is rejected), so commit the
 approved MP4 and pass its raw.githubusercontent.com URL pinned to the commit SHA.
 
-Usage: publish_reel.py VIDEO_URL CAPTION.txt OUT.json
+Usage: publish_reel.py VIDEO_URL CAPTION.txt OUT.json [--story]
 """
 import json, os, sys, time, urllib.parse, urllib.request
 
@@ -27,11 +27,14 @@ def api(method, path, **params):
     return req("POST", f"{API}/{path}", data=q.encode())
 
 
-def main(video, caption_file, out):
-    caption = open(caption_file).read().strip()
+def main(video, caption_file, out, story=False):
     me = api("GET", "me", fields="user_id,username")
-    cid = api("POST", f"{me['user_id']}/media", media_type="REELS", video_url=video,
-              caption=caption, share_to_feed="true")["id"]
+    if story:
+        cid = api("POST", f"{me['user_id']}/media", media_type="STORIES", video_url=video)["id"]
+    else:
+        caption = open(caption_file).read().strip()
+        cid = api("POST", f"{me['user_id']}/media", media_type="REELS", video_url=video,
+                  caption=caption, share_to_feed="true")["id"]
     print("container", cid)
     for _ in range(60):
         st = api("GET", cid, fields="status_code,status")
@@ -44,10 +47,10 @@ def main(video, caption_file, out):
     else:
         sys.exit("container not ready in time")
     media = api("POST", f"{me['user_id']}/media_publish", creation_id=cid)
-    info = api("GET", media["id"], fields="id,permalink,timestamp,media_product_type")
+    info = api("GET", media["id"], fields="id,permalink,timestamp,media_product_type,media_type")
     json.dump(info, open(out, "w"), ensure_ascii=False, indent=1)
     print("published", info)
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:4])
+    main(*sys.argv[1:4], story="--story" in sys.argv[4:])
