@@ -38,10 +38,11 @@ def parse(readme):
     return posts
 
 
-def main(code, sha):
+def main(code, sha, parent=None, start=1):
+    """start/parent resume a chain: publish posts from number `start` as replies to `parent`."""
     posts = parse(f"content/threads/{code}/README.md")
-    parent, ids = None, []
-    for images, text in posts:
+    ids = [parent] if parent else []
+    for images, text in posts[start - 1:]:
         urls = [RAW.format(sha=sha, code=code, name=n) for n in images]
         extra = {"reply_to_id": parent} if parent else {}
         if len(urls) > 1:
@@ -65,4 +66,6 @@ def main(code, sha):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    # publish_thread.py CODE SHA [PARENT_ID START_NUMBER]
+    a = sys.argv[1:]
+    main(a[0], a[1], a[2] if len(a) > 2 else None, int(a[3]) if len(a) > 3 else 1)
