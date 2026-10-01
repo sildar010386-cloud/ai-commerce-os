@@ -1,6 +1,6 @@
 """Daily stats snapshot for Instagram, Threads and TikTok -> content/stats/<UTC date>.json + a printed table.
 
-  python3 tools/stats/daily.py
+  python3 tools/stats/daily.py [SUFFIX]      e.g. "am" -> content/stats/<date>-am.json (morning run)
 
 Run at the start of each work session; compare with earlier snapshots before planning new content
 (CONTENT_PLAYBOOK.md §13). Key numbers: IG average watch time (hook strength), Threads read-through
@@ -58,7 +58,8 @@ def tiktok():
 def main():
     snap = {"taken_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "instagram": instagram(), "threads": threads(), "tiktok": tiktok()}
-    path = os.path.join(ROOT, "content", "stats", time.strftime("%Y-%m-%d", time.gmtime()) + ".json")
+    suffix = f"-{sys.argv[1]}" if len(sys.argv) > 1 else ""
+    path = os.path.join(ROOT, "content", "stats", time.strftime("%Y-%m-%d", time.gmtime()) + suffix + ".json")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     json.dump(snap, open(path, "w"), ensure_ascii=False, indent=1)
 
