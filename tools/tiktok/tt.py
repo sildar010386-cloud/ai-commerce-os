@@ -12,6 +12,10 @@ the session needs add_repo access=push). Never print tokens.
   tt.py creator    creator_info (privacy options, limits) required before a direct post
   tt.py draft F    upload video file F to the TikTok inbox as a draft (owner finishes the post in the app;
                    works without app audit, max 5 pending drafts per 24 h). Only for owner-approved videos.
+  tt.py photos CODE CAPTION.txt
+                   send content/threads/CODE/carousel/*.jpg to the TikTok inbox as a photo-carousel draft with
+                   the caption (first line = title, rest = description). TikTok pulls photos only from the verified
+                   prefix PAGES (GitHub Pages, branch claude/ai-ecommerce-automation-3n1lgz, docs/tiktok/media/CODE/).
   tt.py status ID  status of an upload by publish_id
 """
 import glob, json, os, subprocess, sys, time, urllib.parse, urllib.request
@@ -21,6 +25,7 @@ REDIRECT = "https://sildar010386-cloud.github.io/ai-commerce-os/tiktok/callback.
 SCOPES = "user.info.basic,user.info.profile,user.info.stats,video.list,video.upload,video.publish"
 REPO = os.environ.get("BIKAS_MUSIC", "/home/user/bikas-music")
 TOKEN_FILE = os.path.join(REPO, "secrets", "tiktok_token.json")
+PAGES = "https://sildar010386-cloud.github.io/ai-commerce-os/tiktok/media/"
 
 
 def git(*args):
@@ -108,6 +113,19 @@ def draft(path):
     print("uploaded; publish_id:", r["data"]["publish_id"], "- owner finishes the post in the TikTok app inbox")
 
 
+def photos(code, caption_file):
+    names = sorted(n for n in os.listdir(f"content/threads/{code}/carousel") if n.endswith(".jpg"))
+    title, _, description = open(caption_file).read().strip().partition("\n")
+    r = api("POST", "post/publish/content/init/", body={
+        "post_mode": "MEDIA_UPLOAD", "media_type": "PHOTO",
+        "post_info": {"title": title[:90], "description": description.strip()},
+        "source_info": {"source": "PULL_FROM_URL", "photo_cover_index": 0,
+                        "photo_images": [f"{PAGES}{code}/{n}" for n in names]}})
+    if r.get("error", {}).get("code") != "ok":
+        sys.exit(f"photo init failed: {r.get('error')}")
+    print("sent; publish_id:", r["data"]["publish_id"], "- owner finishes the post in the TikTok app inbox")
+
+
 def main(cmd):
     if cmd == "url":
         q = {"client_key": os.environ["TIKTOK_CLIENT_KEY"], "scope": SCOPES, "response_type": "code",
@@ -140,6 +158,8 @@ def main(cmd):
         print(json.dumps(api("POST", "post/publish/creator_info/query/", body={}), ensure_ascii=False, indent=1))
     elif cmd == "draft":
         draft(sys.argv[2])
+    elif cmd == "photos":
+        photos(sys.argv[2], sys.argv[3])
     elif cmd == "status":
         print(json.dumps(api("POST", "post/publish/status/fetch/", body={"publish_id": sys.argv[2]}),
                          ensure_ascii=False, indent=1))

@@ -1,0 +1,378 @@
+{
+ "taken_at": "2026-10-01T07:03:23Z",
+ "instagram": {
+  "followers": 568,
+  "media": [
+   {
+    "id": "18164233078490223",
+    "media_product_type": "REELS",
+    "timestamp": "2026-09-30T12:49:21+0000",
+    "permalink": "https://www.instagram.com/reel/Dd6XyKtlcPU/",
+    "caption": "Мятая футболка → ровная за 45 секунд. Без доски и без утюга.",
+    "insights": {
+     "views": 164,
+     "reach": 154,
+     "saved": 1,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "ig_reels_avg_watch_time": 4276
+    }
+   },
+   {
+    "id": "18427188700194100",
+    "media_product_type": "REELS",
+    "timestamp": "2026-09-18T14:38:31+0000",
+    "permalink": "https://www.instagram.com/reel/DdbqsixueV3/",
+    "caption": "",
+    "insights": {
+     "views": 156,
+     "reach": 153,
+     "saved": 1,
+     "shares": 1,
+     "likes": 0,
+     "comments": 0,
+     "ig_reels_avg_watch_time": 4640
+    }
+   },
+   {
+    "id": "17913730263454690",
+    "media_product_type": "REELS",
+    "timestamp": "2026-09-17T15:31:58+0000",
+    "permalink": "https://www.instagram.com/reel/DdZLSBEuFPE/",
+    "caption": "Двадцать минут утром уходило на одну рубашку. Теперь минута ",
+    "insights": {
+     "views": 166,
+     "reach": 156,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "ig_reels_avg_watch_time": 3967
+    }
+   }
+  ]
+ },
+ "threads": [
+  {
+   "code": "T-01",
+   "published_at": "2026-09-30T12:24:19Z",
+   "posts": [
+    {
+     "views": 12,
+     "likes": 0,
+     "replies": 3,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "views": 2,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "views": 1,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "views": 0,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "read_through": 0.0
+  },
+  {
+   "code": "T-02",
+   "published_at": "2026-09-30T14:28:32Z",
+   "posts": [
+    {
+     "views": 5,
+     "likes": 0,
+     "replies": 3,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "views": 1,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "views": 1,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "views": 0,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "read_through": 0.0
+  },
+  {
+   "code": "T-03",
+   "published_at": "2026-09-30T22:41:58Z",
+   "posts": [
+    {
+     "views": 140,
+     "likes": 0,
+     "replies": 3,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "views": 12,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "views": 12,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "views": 12,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "read_through": 0.086
+  }
+ ],
+ "tiktok": {
+  "followers": 3,
+  "videos": [
+   {
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7691459802316295431?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": "Мятая футболка → ровная за 45 секунд. Без доски и без утюга. Ручной отпариватель: футболки, рубашки на вешалке, шторы прямо на карнизе. Доставка бесплатно по всему Казахстану. Пишите в WhatsApp — номер в шапке профиля. #отпариватель #товарыдлядома #казахстан #алматы #астана ",
+    "duration": 31,
+    "like_count": 5,
+    "share_count": 0,
+    "view_count": 156,
+    "comment_count": 0,
+    "create_time": 1790807551,
+    "id": "7691459802316295431"
+   },
+   {
+    "comment_count": 0,
+    "duration": 28,
+    "share_count": 0,
+    "view_count": 142,
+    "create_time": 1789742825,
+    "id": "7686886879949557010",
+    "like_count": 3,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7686886879949557010?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": ""
+   },
+   {
+    "view_count": 143,
+    "comment_count": 0,
+    "duration": 23,
+    "like_count": 3,
+    "share_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7686535427997568263?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "create_time": 1789660996,
+    "id": "7686535427997568263",
+    "title": ""
+   },
+   {
+    "title": "Пылесос Dyson.  Для заказа обращайтесь по номеру в шапке профиля. ",
+    "view_count": 151,
+    "comment_count": 0,
+    "create_time": 1788705002,
+    "duration": 78,
+    "share_count": 1,
+    "id": "7682429448007863560",
+    "like_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7682429448007863560?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu"
+   },
+   {
+    "comment_count": 0,
+    "create_time": 1788636320,
+    "duration": 17,
+    "id": "7682134456303586568",
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7682134456303586568?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "like_count": 0,
+    "share_count": 0,
+    "title": "",
+    "view_count": 134
+   },
+   {
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7681809331955830024?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": "",
+    "comment_count": 0,
+    "duration": 32,
+    "id": "7681809331955830024",
+    "share_count": 0,
+    "create_time": 1788560626,
+    "like_count": 3,
+    "view_count": 138
+   },
+   {
+    "title": "",
+    "view_count": 142,
+    "create_time": 1788537323,
+    "duration": 28,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7681709266528488722?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "share_count": 0,
+    "comment_count": 0,
+    "id": "7681709266528488722",
+    "like_count": 2
+   },
+   {
+    "create_time": 1788523974,
+    "like_count": 0,
+    "view_count": 374,
+    "comment_count": 0,
+    "id": "7681651952182185223",
+    "share_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7681651952182185223?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": "Расческа Выпрямитель идеальный спаситель для ваших волос в любое время суток. Особенно если вы с утра торопитесь на работу. Потратили на выпрямление пару минут, так же удобно носить с собой. Удобно в применении.",
+    "duration": 0
+   },
+   {
+    "id": "7681246880201755922",
+    "share_count": 0,
+    "title": "Выберите Лучшее для Себя",
+    "comment_count": 0,
+    "create_time": 1788429662,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7681246880201755922?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "view_count": 156,
+    "duration": 46,
+    "like_count": 6
+   },
+   {
+    "create_time": 1788422586,
+    "id": "7681216480213798151",
+    "share_count": 0,
+    "view_count": 146,
+    "comment_count": 0,
+    "duration": 19,
+    "like_count": 3,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7681216480213798151?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": "Отправки каждый день. Спасибо за доверие. "
+   },
+   {
+    "title": "Выпрямлеление волос теперь реально всего за пару минут!",
+    "view_count": 1096,
+    "comment_count": 0,
+    "duration": 0,
+    "like_count": 13,
+    "share_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7680937776069512455?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "create_time": 1788357693,
+    "id": "7680937776069512455"
+   },
+   {
+    "comment_count": 0,
+    "create_time": 1788345121,
+    "duration": 33,
+    "like_count": 6,
+    "id": "7680883775047355656",
+    "share_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7680883775047355656?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": "",
+    "view_count": 723
+   },
+   {
+    "comment_count": 0,
+    "duration": 22,
+    "id": "7680626626698251527",
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7680626626698251527?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "create_time": 1788285255,
+    "like_count": 1,
+    "share_count": 0,
+    "title": "",
+    "view_count": 257
+   },
+   {
+    "id": "7680617978563415304",
+    "share_count": 2,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7680617978563415304?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "view_count": 540,
+    "create_time": 1788283234,
+    "duration": 27,
+    "like_count": 3,
+    "title": "",
+    "comment_count": 0
+   },
+   {
+    "view_count": 194,
+    "id": "7680524652468407559",
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7680524652468407559?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "duration": 21,
+    "like_count": 0,
+    "share_count": 0,
+    "title": "",
+    "comment_count": 0,
+    "create_time": 1788261502
+   },
+   {
+    "comment_count": 0,
+    "view_count": 583,
+    "title": "",
+    "create_time": 1788253056,
+    "duration": 27,
+    "id": "7680488349240478984",
+    "like_count": 7,
+    "share_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7680488349240478984?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu"
+   },
+   {
+    "create_time": 1788248701,
+    "id": "7680469649540009234",
+    "share_count": 0,
+    "title": "",
+    "view_count": 328,
+    "comment_count": 0,
+    "duration": 22,
+    "like_count": 2,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7680469649540009234?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu"
+   },
+   {
+    "like_count": 14,
+    "title": "",
+    "duration": 34,
+    "id": "7680216911644200199",
+    "share_count": 1,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7680216911644200199?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "view_count": 597,
+    "comment_count": 0,
+    "create_time": 1788189851
+   }
+  ]
+ }
+}
