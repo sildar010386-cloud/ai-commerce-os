@@ -12,7 +12,7 @@ the session needs add_repo access=push). Never print tokens.
   tt.py creator    creator_info (privacy options, limits) required before a direct post
   tt.py draft F    upload video file F to the TikTok inbox as a draft (owner finishes the post in the app;
                    works without app audit, max 5 pending drafts per 24 h). Only for owner-approved videos.
-  tt.py photos CODE CAPTION.txt [--direct]
+  tt.py photos CODE CAPTION.txt|- [--direct]
                    send content/threads/CODE/carousel/*.jpg to the TikTok inbox as a photo-carousel draft with
                    the caption (first line = title, rest = description). TikTok pulls photos only from the verified
                    prefix PAGES (GitHub Pages, branch claude/ai-ecommerce-automation-3n1lgz, docs/tiktok/media/CODE/).
@@ -117,8 +117,9 @@ def draft(path):
 
 def photos(code, caption_file, direct=False):
     names = sorted(n for n in os.listdir(f"content/threads/{code}/carousel") if n.endswith(".jpg"))
-    title, _, description = open(caption_file).read().strip().partition("\n")
-    info = {"title": title[:90], "description": description.strip()}
+    # "-" = no caption: owner rule 2026-10-01, a carousel description covers the slides
+    title, _, description = ("", "", "") if caption_file == "-" else open(caption_file).read().strip().partition("\n")
+    info = {"title": title[:90], "description": description.strip()} if caption_file != "-" else {}
     if direct:
         info.update(privacy_level="SELF_ONLY", disable_comment=False, auto_add_music=True)
     r = api("POST", "post/publish/content/init/", body={

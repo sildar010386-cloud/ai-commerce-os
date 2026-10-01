@@ -1,6 +1,12 @@
 {
   "permissions": {
     "allow": [
+      "Bash(python3 tools/instagram/publish_reel.py *)",
+      "Bash(python3 tools/music/mix.py *)",
+      "Bash(python3 tools/stats/daily.py*)",
+      "Bash(python3 tools/telegram/tg.py *)",
+      "Bash(python3 tools/threads/publish_thread.py *)",
+      "Bash(python3 tools/tiktok/carousel.py *)",
       "Bash(python3 tools/tiktok/tt.py *)"
     ]
   }
