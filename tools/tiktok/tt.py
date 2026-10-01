@@ -16,8 +16,8 @@ the session needs add_repo access=push). Never print tokens.
                    send content/threads/CODE/carousel/*.jpg to the TikTok inbox as a photo-carousel draft with
                    the caption (first line = title, rest = description). TikTok pulls photos only from the verified
                    prefix PAGES (GitHub Pages, branch claude/ai-ecommerce-automation-3n1lgz, docs/tiktok/media/CODE/).
-                   --direct: post straight to the profile instead (unaudited app: SELF_ONLY; the owner switches it
-                   to "Everyone" in the app), with TikTok's auto-added music.
+                   --direct: DIRECT_POST as SELF_ONLY with auto music. Rejected for our unaudited app on a public
+                   account (unaudited_client_can_only_post_to_private_accounts) - kept for after an audit.
   tt.py status ID  status of an upload by publish_id
 """
 import glob, json, os, subprocess, sys, time, urllib.parse, urllib.request
