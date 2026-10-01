@@ -1,9 +1,41 @@
 [
- {"time": "after_approval", "kind": "reel", "code": "REEL-04"},
- {"time": "after_approval", "kind": "thread", "code": "T-06"},
- {"time": "20:30", "kind": "thread", "code": "T-07"},
- {"time": "21:00", "kind": "reel", "code": "REEL-05"},
- {"time": "21:30", "kind": "thread", "code": "T-08"},
- {"time": "21:55", "kind": "thread", "code": "T-09"},
- {"time": "with T-07", "kind": "carousel", "code": "T-04"}
+ {
+  "time": "after_approval",
+  "kind": "reel",
+  "code": "REEL-04",
+  "done": "2026-10-01T14:21Z",
+  "url": "https://www.instagram.com/reel/Dd9HGjYj3Ro/"
+ },
+ {
+  "time": "after_approval",
+  "kind": "thread",
+  "code": "T-06",
+  "done": "2026-10-01T14:23Z",
+  "url": "https://www.threads.com/@bikas.home/post/Dd9HWkDEe-m"
+ },
+ {
+  "time": "20:30",
+  "kind": "thread",
+  "code": "T-07"
+ },
+ {
+  "time": "21:00",
+  "kind": "reel",
+  "code": "REEL-05"
+ },
+ {
+  "time": "21:30",
+  "kind": "thread",
+  "code": "T-08"
+ },
+ {
+  "time": "21:55",
+  "kind": "thread",
+  "code": "T-09"
+ },
+ {
+  "time": "with T-07",
+  "kind": "carousel",
+  "code": "T-04"
+ }
 ]
