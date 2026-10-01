@@ -6,7 +6,9 @@ An optional line "Обложка TikTok: <5-7 words>" in the README adds a cover
 phrase in large type over the first post's photo (owner rule 2026-10-01: the first slide is intrigue, not a
 retelling of the post). Each "## Пост N" becomes one 1080x1920 slide. A post with an image gets the photo as a darkened
 background; text-only posts get a dark brand background. The trailing "↓" of a post turns into
-"листай →". Needs Pillow (pip install pillow).
+"листай →". The last slide always carries the CTA (owner rule 2026-10-01: carousels go out without a
+description, so the CTA lives on the slides): if the last post has no "WhatsApp", a CTA slide is appended.
+Needs Pillow (pip install pillow).
 """
 import os, re, sys
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -15,6 +17,7 @@ W, H = 1080, 1920
 FONT = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
 BG = (24, 24, 27)
 ACCENT = (242, 107, 30)  # steamer orange
+CTA = "Доставка бесплатно по всему Казахстану.\nПишите нам в WhatsApp — номер в шапке профиля."
 ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "content", "threads")
 
 
@@ -108,6 +111,8 @@ def main(code):
     m = re.search(r"^Обложка TikTok: (.+)$", readme, re.M)
     if m:
         posts.insert(0, ("COVER", m.group(1).strip()))
+    if "WhatsApp" not in posts[-1][1]:
+        posts.append((None, CTA))
     out = os.path.join(folder, "carousel")
     os.makedirs(out, exist_ok=True)
     first_image = next((img for img, _ in posts if img and img != "COVER"), None)
