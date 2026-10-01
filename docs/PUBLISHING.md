@@ -43,3 +43,5 @@
 1. `python3 tools/tiktok/carousel.py T-NN` → слайды в `content/threads/T-NN/carousel/`; подпись `content/threads/T-NN/tiktok_caption.txt` (1-я строка — заголовок до 90 символов, дальше — описание).
 2. Слайды скопировать в ветку сайта `claude/ai-ecommerce-automation-3n1lgz`, папка `docs/tiktok/media/T-NN/` (разрешение владельца 2026-10-01), дождаться «pages build and deployment».
 3. `python3 tools/tiktok/tt.py photos T-NN content/threads/T-NN/tiktok_caption.txt` → черновик с подписью; владелец добавляет музыку и публикует. Первый раз: T-03, 2026-10-01.
+
+**Ошибка TT-02 (2026-10-01):** фото-черновики (карусели) через API доходят до статуса `SEND_TO_USER_INBOX`, но уведомление в приложении у владельца **не появляется** (две попытки T-03). Видео-черновики приходят нормально. Пока карусели TikTok публикуются вручную: картинки и подпись — владельцу в чат.
