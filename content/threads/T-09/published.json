@@ -1,14 +1,11 @@
 {
  "code": "T-09",
  "ids": [
-  "18224378767336418",
-  "18166222636466576",
-  "18112974923133957"
+  "18021220430946463",
+  "18024245600871244",
+  "17972174649138993"
  ],
- "permalink": "https://www.threads.com/@bikas.home/post/Dd9Y0D3FS4q",
- "published_at": "2026-10-01T16:57:01Z",
- "note": "First run published post 1 and post 2 (18075410903449197, https://www.threads.com/@bikas.home/post/Dd9Y1x_m1MB) then failed on post 3; the resume duplicated post 2 (18166222636466576) with post 3 under it. Owner asked to delete the stray first copy Dd9Y1x_m1MB.",
- "stray_ids": [
-  "18075410903449197"
- ]
+ "complete": true,
+ "permalink": "https://www.threads.com/@bikas.home/post/Dd9g0j7G7am",
+ "published_at": "2026-10-01T18:06:22Z"
 }
