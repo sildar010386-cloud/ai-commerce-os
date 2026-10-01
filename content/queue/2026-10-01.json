@@ -16,7 +16,9 @@
  {
   "time": "20:30",
   "kind": "thread",
-  "code": "T-07"
+  "code": "T-07",
+  "done": "2026-10-01T15:31Z",
+  "url": "https://www.threads.com/@bikas.home/post/Dd9PLtildo1"
  },
  {
   "time": "21:00",
@@ -36,6 +38,7 @@
  {
   "time": "with T-07",
   "kind": "carousel",
-  "code": "T-04"
+  "code": "T-04",
+  "done": "2026-10-01T15:31Z"
  }
 ]
