@@ -1,0 +1,37 @@
+{
+ "collected_at": "2026-10-01T12:56Z",
+ "reel": {
+  "views": 167,
+  "reach": 156,
+  "saved": 1,
+  "shares": 0,
+  "likes": 0,
+  "comments": 0,
+  "total_interactions": 1,
+  "ig_reels_avg_watch_time": 4269,
+  "ig_reels_video_view_total_time": 674599
+ },
+ "reel_length_s": 31.8,
+ "avg_watch_share": 0.13,
+ "story": {
+  "views": 73,
+  "reach": 64,
+  "replies": 0,
+  "navigation": 65,
+  "shares": 0,
+  "total_interactions": 0
+ },
+ "profile": {
+  "followers_count": 568
+ },
+ "baseline_old_reels": {
+  "18427188700194100": {
+   "views": 158,
+   "avg_watch_ms": 4749
+  },
+  "17913730263454690": {
+   "views": 166,
+   "avg_watch_ms": 3967
+  }
+ }
+}
