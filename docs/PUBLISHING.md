@@ -37,3 +37,9 @@
 1. Файл загружается на отдельный сервер TikTok (`open-upload-sg.tiktokapis.com`, адрес выдаёт API). Он должен быть в разрешённых доменах сети облачной среды, иначе `Tunnel connection failed: 403` (ошибка TT-01, 2026-10-01). Лучше разрешить `*.tiktokapis.com`.
 2. Подпись через черновик не передаётся — готовый текст с хэштегами присылаем владельцу в чат, он вставляет его в TikTok.
 3. После публикации: найти ролик в `tt.py videos`, записать `tiktok_published.json` в папку ролика.
+
+## TikTok — карусель (фото) из ветки Threads
+
+1. `python3 tools/tiktok/carousel.py T-NN` → слайды в `content/threads/T-NN/carousel/`; подпись `content/threads/T-NN/tiktok_caption.txt` (1-я строка — заголовок до 90 символов, дальше — описание).
+2. Слайды скопировать в ветку сайта `claude/ai-ecommerce-automation-3n1lgz`, папка `docs/tiktok/media/T-NN/` (разрешение владельца 2026-10-01), дождаться «pages build and deployment».
+3. `python3 tools/tiktok/tt.py photos T-NN content/threads/T-NN/tiktok_caption.txt` → черновик с подписью; владелец добавляет музыку и публикует. Первый раз: T-03, 2026-10-01.
