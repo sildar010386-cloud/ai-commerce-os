@@ -2,7 +2,9 @@
 
   python3 tools/tiktok/carousel.py T-03            -> content/threads/T-03/carousel/01.jpg ...
 
-Each "## Пост N" becomes one 1080x1920 slide. A post with an image gets the photo as a darkened
+An optional line "Обложка TikTok: <5-7 words>" in the README adds a cover slide first: the intrigue
+phrase in large type over the first post's photo (owner rule 2026-10-01: the first slide is intrigue, not a
+retelling of the post). Each "## Пост N" becomes one 1080x1920 slide. A post with an image gets the photo as a darkened
 background; text-only posts get a dark brand background. The trailing "↓" of a post turns into
 "листай →". Needs Pillow (pip install pillow).
 """
@@ -80,14 +82,46 @@ def slide(text, image, n, total, last):
     return im
 
 
+def cover(text, image):
+    im = background(image)
+    d = ImageDraw.Draw(im)
+    size = 120
+    while True:
+        font = ImageFont.truetype(FONT, size)
+        lines = wrap(d, text, font, W - 160)[0]
+        if len(lines) * size * 1.2 < H / 2 or size <= 60:
+            break
+        size -= 6
+    y = (H - len(lines) * int(size * 1.2)) // 2
+    for line in lines:
+        d.text((W // 2, y), line, font=font, fill="white", anchor="ma")
+        y += int(size * 1.2)
+    small = ImageFont.truetype(FONT, 48)
+    d.text((W // 2, H - 300), "листай →", font=small, fill=ACCENT, anchor="ma")
+    return im
+
+
 def main(code):
     folder = os.path.join(ROOT, code)
+    readme = open(os.path.join(folder, "README.md")).read()
     posts = parse(os.path.join(folder, "README.md"))
+    m = re.search(r"^Обложка TikTok: (.+)$", readme, re.M)
+    if m:
+        posts.insert(0, ("COVER", m.group(1).strip()))
     out = os.path.join(folder, "carousel")
     os.makedirs(out, exist_ok=True)
+    first_image = next((img for img, _ in posts if img and img != "COVER"), None)
+    for name in os.listdir(out):
+        os.remove(os.path.join(out, name))
+    body = [p for p in posts if p[0] != "COVER"]
     for i, (image, text) in enumerate(posts, 1):
         path = os.path.join(out, f"{i:02d}.jpg")
-        slide(text, image and os.path.join(folder, image), i, len(posts), i == len(posts)).save(path, quality=90)
+        if image == "COVER":
+            im = cover(text, os.path.join(folder, first_image) if first_image else None)
+        else:
+            n = body.index((image, text)) + 1
+            im = slide(text, image and os.path.join(folder, image), n, len(body), i == len(posts))
+        im.save(path, quality=90)
         print(path)
 
 

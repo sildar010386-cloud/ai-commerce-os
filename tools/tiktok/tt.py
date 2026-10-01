@@ -12,10 +12,12 @@ the session needs add_repo access=push). Never print tokens.
   tt.py creator    creator_info (privacy options, limits) required before a direct post
   tt.py draft F    upload video file F to the TikTok inbox as a draft (owner finishes the post in the app;
                    works without app audit, max 5 pending drafts per 24 h). Only for owner-approved videos.
-  tt.py photos CODE CAPTION.txt
+  tt.py photos CODE CAPTION.txt [--direct]
                    send content/threads/CODE/carousel/*.jpg to the TikTok inbox as a photo-carousel draft with
                    the caption (first line = title, rest = description). TikTok pulls photos only from the verified
                    prefix PAGES (GitHub Pages, branch claude/ai-ecommerce-automation-3n1lgz, docs/tiktok/media/CODE/).
+                   --direct: post straight to the profile instead (unaudited app: SELF_ONLY; the owner switches it
+                   to "Everyone" in the app), with TikTok's auto-added music.
   tt.py status ID  status of an upload by publish_id
 """
 import glob, json, os, subprocess, sys, time, urllib.parse, urllib.request
@@ -113,17 +115,21 @@ def draft(path):
     print("uploaded; publish_id:", r["data"]["publish_id"], "- owner finishes the post in the TikTok app inbox")
 
 
-def photos(code, caption_file):
+def photos(code, caption_file, direct=False):
     names = sorted(n for n in os.listdir(f"content/threads/{code}/carousel") if n.endswith(".jpg"))
     title, _, description = open(caption_file).read().strip().partition("\n")
+    info = {"title": title[:90], "description": description.strip()}
+    if direct:
+        info.update(privacy_level="SELF_ONLY", disable_comment=False, auto_add_music=True)
     r = api("POST", "post/publish/content/init/", body={
-        "post_mode": "MEDIA_UPLOAD", "media_type": "PHOTO",
-        "post_info": {"title": title[:90], "description": description.strip()},
+        "post_mode": "DIRECT_POST" if direct else "MEDIA_UPLOAD", "media_type": "PHOTO",
+        "post_info": info,
         "source_info": {"source": "PULL_FROM_URL", "photo_cover_index": 0,
                         "photo_images": [f"{PAGES}{code}/{n}" for n in names]}})
     if r.get("error", {}).get("code") != "ok":
         sys.exit(f"photo init failed: {r.get('error')}")
-    print("sent; publish_id:", r["data"]["publish_id"], "- owner finishes the post in the TikTok app inbox")
+    print("sent; publish_id:", r["data"]["publish_id"],
+          "- posted as SELF_ONLY" if direct else "- owner finishes the post in the TikTok app inbox")
 
 
 def main(cmd):
@@ -159,7 +165,7 @@ def main(cmd):
     elif cmd == "draft":
         draft(sys.argv[2])
     elif cmd == "photos":
-        photos(sys.argv[2], sys.argv[3])
+        photos(sys.argv[2], sys.argv[3], "--direct" in sys.argv[4:])
     elif cmd == "status":
         print(json.dumps(api("POST", "post/publish/status/fetch/", body={"publish_id": sys.argv[2]}),
                          ensure_ascii=False, indent=1))
