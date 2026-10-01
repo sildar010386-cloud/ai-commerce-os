@@ -62,10 +62,14 @@ def main(code, sha, parent=None, start=1):
                 sys.exit(f"post {new_id} is not a reply to {parent}: {chk}. Stopped; fix before continuing.")
         parent = new_id
         ids.append(parent)
+        # Save progress after every post: if a later post fails, published.json shows exactly where to resume
+        # (2026-10-01: T-09 post 2 went out, post 3 failed, and the chain was resumed from the wrong post).
+        json.dump({"code": code, "ids": ids, "complete": False}, open(f"content/threads/{code}/published.json", "w"),
+                  ensure_ascii=False, indent=1)
         print("published", parent, text.splitlines()[0][:50], flush=True)
         time.sleep(5)
     link = call("GET", ids[0], fields="permalink").get("permalink")
-    json.dump({"code": code, "ids": ids, "permalink": link, "published_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
+    json.dump({"code": code, "ids": ids, "complete": True, "permalink": link, "published_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
               open(f"content/threads/{code}/published.json", "w"), ensure_ascii=False, indent=1)
     print("permalink", link)
 

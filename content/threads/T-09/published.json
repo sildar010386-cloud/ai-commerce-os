@@ -6,5 +6,9 @@
   "18112974923133957"
  ],
  "permalink": "https://www.threads.com/@bikas.home/post/Dd9Y0D3FS4q",
- "published_at": "2026-10-01T16:57:01Z"
+ "published_at": "2026-10-01T16:57:01Z",
+ "note": "First run published post 1 and post 2 (18075410903449197, https://www.threads.com/@bikas.home/post/Dd9Y1x_m1MB) then failed on post 3; the resume duplicated post 2 (18166222636466576) with post 3 under it. Owner asked to delete the stray first copy Dd9Y1x_m1MB.",
+ "stray_ids": [
+  "18075410903449197"
+ ]
 }
