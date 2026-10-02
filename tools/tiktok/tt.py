@@ -31,7 +31,10 @@ PAGES = "https://sildar010386-cloud.github.io/ai-commerce-os/tiktok/media/"
 
 
 def git(*args):
-    subprocess.run(["git", "-C", REPO, *args], check=True, capture_output=True)
+    # pull/push may fail when GitHub access to the private repo is lost: keep working on the local copy
+    r = subprocess.run(["git", "-C", REPO, *args], check=args[0] not in ("pull", "push"), capture_output=True)
+    if r.returncode:
+        print(f"warning: git {args[0]} failed for {REPO}, using the local copy", file=sys.stderr)
 
 
 def push(msg):
