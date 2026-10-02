@@ -8,6 +8,7 @@
 1. Подготовка сеанса: `bikas-music` (add_repo access=push, clone в `/home/user/bikas-music`), `pip install pillow`,
    исходники `raw-NN` из релизов в рабочую папку (см. `content/raw-*/README.md`, нумерация клипов raw-02 → 21, 22, 23…).
 2. Статистика: `python3 tools/stats/daily.py` → выводы (2–3 пункта с цифрами) в `content/stats/LEARNINGS.md`.
+   Карусель TikTok > 1 000 просмотров → предложить владельцу дубль в Instagram (решение 2026-10-02).
 3. Сборка на завтра по `docs/CONTENT_PLAYBOOK.md` §2, §3, §12, §13 и `docs/THREADS_PLAYBOOK.md`:
    - 4 ролика `REEL-NN` по §14 (с 2026-10-02): **2 охватных** (7–12 с, луп, повод переслать, мягкий призыв) и **2 продающих**
      (строго ТЗ §2, до 20 с, 5 вариантов хука → лучший по чек-листу §14.1); голос Larisa, музыка без повторов подряд;
