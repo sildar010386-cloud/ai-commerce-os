@@ -1,8 +1,24 @@
 {
- "taken_at": "2026-10-03T14:53:54Z",
+ "taken_at": "2026-10-03T16:59:22Z",
  "instagram": {
   "followers": 570,
   "media": [
+   {
+    "id": "18124366379487209",
+    "media_product_type": "REELS",
+    "timestamp": "2026-10-03T15:31:13+0000",
+    "permalink": "https://www.instagram.com/reel/DeCYr0GDTSX/",
+    "caption": "Куртку — прямо на вешалке? Проверяем.\nПосле шкафа — вся в за",
+    "insights": {
+     "views": 9,
+     "reach": 9,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "ig_reels_avg_watch_time": 3777
+    }
+   },
    {
     "id": "18010501511986685",
     "media_product_type": "REELS",
@@ -10,13 +26,13 @@
     "permalink": "https://www.instagram.com/reel/DeCEHcDCa60/",
     "caption": "Пододеяльник — без утюга и без доски. Просто смотрите.\nОтпра",
     "insights": {
-     "views": 136,
-     "reach": 118,
+     "views": 152,
+     "reach": 127,
      "saved": 0,
      "shares": 0,
      "likes": 0,
      "comments": 0,
-     "ig_reels_avg_watch_time": 3684
+     "ig_reels_avg_watch_time": 3693
     }
    },
    {
@@ -42,13 +58,13 @@
     "permalink": "https://www.instagram.com/reel/DeBQuIGim72/",
     "caption": "Мятая куртка? Даже с вешалки не снимаем.\nОтправь тому, кто д",
     "insights": {
-     "views": 174,
-     "reach": 151,
+     "views": 175,
+     "reach": 152,
      "saved": 0,
      "shares": 0,
      "likes": 0,
      "comments": 0,
-     "ig_reels_avg_watch_time": 3685
+     "ig_reels_avg_watch_time": 3675
     }
    },
    {
@@ -58,13 +74,13 @@
     "permalink": "https://www.instagram.com/reel/Dd_z9HjEYGZ/",
     "caption": "Вот такую ткань — за пару проходов.\nСлева — как было, справа",
     "insights": {
-     "views": 136,
-     "reach": 131,
+     "views": 137,
+     "reach": 132,
      "saved": 0,
      "shares": 0,
      "likes": 0,
      "comments": 0,
-     "ig_reels_avg_watch_time": 4745
+     "ig_reels_avg_watch_time": 4716
     }
    },
    {
@@ -816,7 +832,7 @@
    "published_at": "2026-10-03T14:01:51Z",
    "posts": [
     {
-     "views": 3,
+     "views": 6,
      "likes": 0,
      "replies": 2,
      "reposts": 0,
@@ -841,230 +857,261 @@
     }
    ],
    "read_through": 0.0
+  },
+  {
+   "code": "T-21",
+   "published_at": "2026-10-03T16:47:17Z",
+   "posts": [
+    {
+     "views": 0,
+     "likes": 0,
+     "replies": 2,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "views": 0,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "views": 0,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "read_through": null
   }
  ],
  "tiktok": {
   "followers": 4,
   "videos": [
    {
-    "view_count": 21,
-    "comment_count": 0,
-    "create_time": 1791036719,
-    "id": "7692444104189398273",
-    "like_count": 0,
-    "duration": 0,
     "share_count": 0,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7692444104189398273?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "title": ""
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7692465035238444306?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": "Куртку — прямо на вешалке? Проверяем. После шкафа — вся в заломах. Ведём паром — и ткань ровная. Без доски и утюга. Доставка бесплатно по всему Казахстану. Пишите нам в WhatsApp — номер в шапке профиля. #отпариватель #товарыдлядома #казахстан #алматы #лайфхак",
+    "comment_count": 0,
+    "create_time": 1791041592,
+    "duration": 16,
+    "id": "7692465035238444306",
+    "like_count": 0,
+    "view_count": 24
    },
    {
-    "title": "Пододеяльник — без утюга и без доски. Просто смотрите. Отправь тому, кто до сих пор гладит постельное. Где купить — в шапке профиля. #отпариватель #постельноебелье #лайфхак #казахстан #алматы",
-    "view_count": 33,
+    "duration": 0,
+    "id": "7692444104189398273",
+    "like_count": 1,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7692444104189398273?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "create_time": 1791036719,
+    "share_count": 0,
+    "title": "",
+    "view_count": 49,
+    "comment_count": 0
+   },
+   {
     "comment_count": 0,
     "create_time": 1791030894,
     "duration": 9,
     "like_count": 1,
-    "share_count": 1,
+    "title": "Пододеяльник — без утюга и без доски. Просто смотрите. Отправь тому, кто до сих пор гладит постельное. Где купить — в шапке профиля. #отпариватель #постельноебелье #лайфхак #казахстан #алматы",
+    "view_count": 55,
     "id": "7692419072398593288",
+    "share_count": 1,
     "share_url": "https://www.tiktok.com/@bikas.home/video/7692419072398593288?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu"
    },
    {
-    "duration": 0,
-    "like_count": 0,
+    "view_count": 186,
+    "create_time": 1791026368,
     "share_count": 0,
+    "id": "7692399642809535752",
+    "like_count": 0,
     "share_url": "https://www.tiktok.com/@bikas.home/video/7692399642809535752?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
     "title": "",
-    "view_count": 150,
     "comment_count": 0,
-    "id": "7692399642809535752",
-    "create_time": 1791026368
+    "duration": 0
    },
    {
-    "duration": 0,
-    "like_count": 1,
-    "share_count": 1,
-    "title": "",
     "comment_count": 0,
+    "create_time": 1791021180,
     "id": "7692377370333941010",
+    "like_count": 1,
+    "view_count": 136,
+    "duration": 0,
+    "share_count": 1,
     "share_url": "https://www.tiktok.com/@bikas.home/video/7692377370333941010?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "view_count": 71,
-    "create_time": 1791021180
+    "title": ""
    },
    {
-    "title": "Он висит на стене — и вот зачем. Рубашка мятая, а доску доставать некогда? Сняли со стены — и паром прямо по ткани. Держатель — в комплекте. Доставка бесплатно по всему Казахстану. Пишите нам в WhatsApp — номер в шапке профиля. #отпариватель #товарыдлядома #казахстан #алматы #лайфхак",
     "comment_count": 0,
+    "create_time": 1791014663,
+    "id": "7692349331537513735",
+    "share_count": 0,
+    "view_count": 133,
+    "duration": 19,
     "like_count": 3,
     "share_url": "https://www.tiktok.com/@bikas.home/video/7692349331537513735?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "share_count": 0,
-    "view_count": 127,
-    "create_time": 1791014663,
-    "duration": 19,
-    "id": "7692349331537513735"
+    "title": "Он висит на стене — и вот зачем. Рубашка мятая, а доску доставать некогда? Сняли со стены — и паром прямо по ткани. Держатель — в комплекте. Доставка бесплатно по всему Казахстану. Пишите нам в WhatsApp — номер в шапке профиля. #отпариватель #товарыдлядома #казахстан #алматы #лайфхак"
    },
    {
-    "id": "7692331170536623368",
-    "like_count": 0,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7692331170536623368?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "title": "",
-    "view_count": 109,
-    "comment_count": 0,
+    "view_count": 134,
     "create_time": 1791010428,
     "duration": 0,
-    "share_count": 1
+    "title": "",
+    "share_count": 1,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7692331170536623368?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "comment_count": 0,
+    "id": "7692331170536623368",
+    "like_count": 0
    },
    {
-    "like_count": 0,
-    "share_count": 0,
     "view_count": 136,
-    "comment_count": 0,
     "create_time": 1791010286,
     "duration": 8,
+    "share_count": 0,
+    "title": "Мятая куртка? Даже с вешалки не снимаем. Отправь тому, кто до сих пор гладит куртки утюгом. Где купить — в шапке профиля. #отпариватель #лайфхак #товарыдлядома #казахстан #алматы",
+    "comment_count": 0,
     "id": "7692330544390016263",
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7692330544390016263?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "title": "Мятая куртка? Даже с вешалки не снимаем. Отправь тому, кто до сих пор гладит куртки утюгом. Где купить — в шапке профиля. #отпариватель #лайфхак #товарыдлядома #казахстан #алматы"
+    "like_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7692330544390016263?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu"
+   },
+   {
+    "create_time": 1791010104,
+    "like_count": 2,
+    "title": "",
+    "comment_count": 0,
+    "duration": 0,
+    "id": "7692329754640403713",
+    "share_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7692329754640403713?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "view_count": 321
    },
    {
     "comment_count": 0,
-    "id": "7692329754640403713",
-    "like_count": 2,
-    "share_count": 0,
-    "title": "",
-    "create_time": 1791010104,
-    "duration": 0,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7692329754640403713?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "view_count": 271
-   },
-   {
-    "like_count": 3,
-    "title": "",
     "create_time": 1790959846,
     "duration": 0,
+    "title": "",
+    "view_count": 346,
     "id": "7692113937139059976",
-    "view_count": 334,
-    "comment_count": 0,
+    "like_count": 3,
     "share_count": 1,
     "share_url": "https://www.tiktok.com/@bikas.home/video/7692113937139059976?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu"
    },
    {
+    "view_count": 129,
     "comment_count": 0,
     "duration": 24,
-    "like_count": 2,
+    "id": "7692095312441199879",
     "share_count": 1,
     "share_url": "https://www.tiktok.com/@bikas.home/video/7692095312441199879?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "title": "Вот такую ткань — за пару проходов. Слева — как было, справа — после пара. Без доски и без утюга. Доставка бесплатно по всему Казахстану. Пишите нам в WhatsApp — номер в шапке профиля. #отпариватель #товарыдлядома #казахстан #алматы #лайфхак",
     "create_time": 1790955509,
-    "id": "7692095312441199879",
-    "view_count": 129
+    "like_count": 2,
+    "title": "Вот такую ткань — за пару проходов. Слева — как было, справа — после пара. Без доски и без утюга. Доставка бесплатно по всему Казахстану. Пишите нам в WhatsApp — номер в шапке профиля. #отпариватель #товарыдлядома #казахстан #алматы #лайфхак"
    },
    {
+    "id": "7692078593463028999",
+    "like_count": 2,
+    "comment_count": 0,
     "create_time": 1790951619,
     "share_url": "https://www.tiktok.com/@bikas.home/video/7692078593463028999?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
     "title": "",
-    "view_count": 343,
-    "comment_count": 0,
+    "view_count": 347,
     "duration": 0,
-    "id": "7692078593463028999",
-    "like_count": 2,
     "share_count": 1
    },
    {
-    "create_time": 1790944491,
-    "like_count": 0,
-    "title": "60 часов в год у гладильной доски — если гладить по 10 минут в день. Отпаривателем рубашка — примерно минута, прямо на вешалке. Доставка бесплатно по всему Казахстану. Пишите нам в WhatsApp — номер в шапке профиля. #отпариватель #товарыдлядома #казахстан #алматы #лайфхак",
+    "duration": 27,
+    "id": "7692047978256747783",
     "share_count": 1,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7692047978256747783?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
     "view_count": 139,
     "comment_count": 0,
-    "duration": 27,
-    "id": "7692047978256747783"
+    "like_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7692047978256747783?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": "60 часов в год у гладильной доски — если гладить по 10 минут в день. Отпаривателем рубашка — примерно минута, прямо на вешалке. Доставка бесплатно по всему Казахстану. Пишите нам в WhatsApp — номер в шапке профиля. #отпариватель #товарыдлядома #казахстан #алматы #лайфхак",
+    "create_time": 1790944491
    },
    {
-    "duration": 0,
+    "view_count": 2,
+    "id": "7692029147517881607",
     "like_count": 0,
     "share_count": 2,
     "share_url": "https://www.tiktok.com/@bikas.home/video/7692029147517881607?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
     "title": "",
-    "create_time": 1790940103,
-    "id": "7692029147517881607",
-    "view_count": 2,
-    "comment_count": 0
-   },
-   {
-    "id": "7692002896040299784",
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7692002896040299784?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "title": "",
-    "like_count": 2,
-    "share_count": 1,
-    "view_count": 201,
     "comment_count": 0,
-    "create_time": 1790933996,
+    "create_time": 1790940103,
     "duration": 0
    },
    {
-    "create_time": 1790928415,
+    "comment_count": 0,
+    "create_time": 1790933996,
+    "duration": 0,
+    "share_count": 1,
+    "title": "",
+    "id": "7692002896040299784",
+    "like_count": 2,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7692002896040299784?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "view_count": 201
+   },
+   {
     "id": "7691978918592646408",
+    "like_count": 3,
     "share_count": 0,
     "title": "Почему чёрная футболка блестит после утюга? Горячая подошва прижимает ткань. Пар не давит — блеска нет, и всё прямо на кровати, без доски. Доставка бесплатно по всему Казахстану. Пишите нам в WhatsApp — номер в шапке профиля. #отпариватель #товарыдлядома #казахстан #алматы #лайфхак",
-    "view_count": 150,
     "comment_count": 0,
     "duration": 24,
-    "like_count": 3,
+    "view_count": 150,
+    "create_time": 1790928415,
     "share_url": "https://www.tiktok.com/@bikas.home/video/7691978918592646408?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu"
    },
    {
-    "comment_count": 0,
-    "create_time": 1790922977,
-    "id": "7691955562782739713",
-    "duration": 0,
     "like_count": 0,
     "share_count": 1,
     "share_url": "https://www.tiktok.com/@bikas.home/video/7691955562782739713?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "view_count": 370,
+    "id": "7691955562782739713",
+    "create_time": 1790922977,
+    "duration": 0,
     "title": "",
-    "view_count": 368
+    "comment_count": 0
    },
    {
-    "comment_count": 0,
-    "create_time": 1790919631,
-    "share_count": 0,
-    "title": "",
-    "view_count": 417,
     "duration": 0,
+    "title": "",
     "id": "7691941191952141576",
     "like_count": 4,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7691941191952141576?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu"
+    "share_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7691941191952141576?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "view_count": 417,
+    "comment_count": 0,
+    "create_time": 1790919631
    },
    {
-    "id": "7691939664923594002",
-    "view_count": 1,
     "comment_count": 0,
     "duration": 26,
+    "like_count": 0,
     "share_count": 4,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7691939664923594002?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
     "title": "Вы отпариваете рубашку неправильно? Не водите паром туда-сюда: рубашку на вешалку, слегка оттяните низ и ведите сверху вниз — минута, и она ровная. Доставка бесплатно по всему Казахстану. Пишите нам в WhatsApp — номер в шапке профиля. #отпариватель #товарыдлядома #казахстан #алматы #лайфхак",
     "create_time": 1790919270,
-    "like_count": 0
+    "id": "7691939664923594002",
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7691939664923594002?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "view_count": 1
    },
    {
+    "duration": 0,
+    "like_count": 1,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7691747457360809223?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
     "title": "",
     "view_count": 228,
     "comment_count": 0,
-    "like_count": 1,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7691747457360809223?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "share_count": 0,
     "create_time": 1790874523,
-    "duration": 0,
-    "id": "7691747457360809223"
-   },
-   {
-    "share_count": 0,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7691738457000905991?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "title": "",
-    "duration": 0,
-    "id": "7691738457000905991",
-    "like_count": 1,
-    "view_count": 408,
-    "comment_count": 0,
-    "create_time": 1790872425
+    "id": "7691747457360809223",
+    "share_count": 0
    }
   ]
  }
