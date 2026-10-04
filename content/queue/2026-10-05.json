@@ -1,0 +1,52 @@
+[
+ {
+  "time": "09:00",
+  "kind": "thread",
+  "code": "T-28"
+ },
+ {
+  "time": "10:00",
+  "kind": "manual",
+  "code": "REEL-18"
+ },
+ {
+  "time": "11:30",
+  "kind": "thread",
+  "code": "T-29"
+ },
+ {
+  "time": "13:00",
+  "kind": "reel",
+  "code": "REEL-19"
+ },
+ {
+  "time": "14:30",
+  "kind": "thread",
+  "code": "T-30"
+ },
+ {
+  "time": "16:00",
+  "kind": "thread",
+  "code": "T-31"
+ },
+ {
+  "time": "17:30",
+  "kind": "reel",
+  "code": "REEL-20"
+ },
+ {
+  "time": "19:00",
+  "kind": "thread",
+  "code": "T-32"
+ },
+ {
+  "time": "20:30",
+  "kind": "reel",
+  "code": "REEL-21"
+ },
+ {
+  "time": "21:45",
+  "kind": "thread",
+  "code": "T-33"
+ }
+]
