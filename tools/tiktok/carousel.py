@@ -17,7 +17,7 @@ W, H = 1080, 1920
 FONT = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
 BG = (24, 24, 27)
 ACCENT = (242, 107, 30)  # steamer orange
-CTA = "Доставка бесплатно по всему Казахстану.\nПишите нам в WhatsApp — номер в шапке профиля."
+CTA = "Бесплатная доставка Казпочтой по всему Казахстану.\nПишите нам в WhatsApp — номер в шапке профиля."
 ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "content", "threads")
 
 
