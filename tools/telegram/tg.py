@@ -4,7 +4,8 @@
   tg.py video FILE.mp4 "caption"    video with a caption (<= 1024 chars)
   tg.py photos A.jpg B.jpg ...      album (2-10 photos)
   tg.py file FILE "caption"         any document
-  tg.py inbox                       new messages from the owner since the last call; voice messages are
+  tg.py inbox                       new messages from the owner since the last call (attached files are saved
+                                    to /home/user/work/inbox, TG_DOWNLOADS); voice messages are
                                     transcribed with ElevenLabs speech-to-text. Prints one JSON per line.
 
 Token: env TELEGRAM_BOT_TOKEN (host api.telegram.org must be allowed). The owner's chat id and the update
@@ -17,6 +18,7 @@ TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 API = f"https://api.telegram.org/bot{TOKEN}"
 REPO = os.environ.get("BIKAS_MUSIC", "/home/user/bikas-music")
 STATE = os.path.join(REPO, "secrets", "telegram.json")
+DOWNLOADS = os.environ.get("TG_DOWNLOADS", "/home/user/work/inbox")  # files the owner sends to the bot
 
 
 def git(*args):
@@ -101,6 +103,15 @@ def inbox():
             item["voice"] = transcribe((m.get("voice") or m.get("audio"))["file_id"])
         if m.get("photo") or m.get("video") or m.get("document"):
             item["attachment"] = True
+            # the update is consumed here, so save the file now: the Bot API serves files up to 20 MB
+            f = m.get("video") or m.get("document") or m["photo"][-1]
+            try:
+                path = call("getFile", file_id=f["file_id"])["file_path"]
+                os.makedirs(DOWNLOADS, exist_ok=True)
+                item["file"] = os.path.join(DOWNLOADS, f"{u['update_id']}_{f.get('file_name') or os.path.basename(path)}")
+                urllib.request.urlretrieve(f"https://api.telegram.org/file/bot{TOKEN}/{path}", item["file"])
+            except Exception as e:
+                item["file_error"] = str(e)[:200]
         print(json.dumps(item, ensure_ascii=False))
     save(state, "Update Telegram bot state")
 
