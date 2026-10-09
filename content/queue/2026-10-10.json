@@ -1,0 +1,27 @@
+[
+ {
+  "time": "09:30",
+  "kind": "thread",
+  "code": "T-42"
+ },
+ {
+  "time": "12:00",
+  "kind": "thread",
+  "code": "T-43"
+ },
+ {
+  "time": "14:30",
+  "kind": "thread",
+  "code": "T-44"
+ },
+ {
+  "time": "17:30",
+  "kind": "thread",
+  "code": "T-45"
+ },
+ {
+  "time": "20:00",
+  "kind": "thread",
+  "code": "T-46"
+ }
+]

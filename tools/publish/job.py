@@ -60,8 +60,11 @@ def thread(code, sha):
     chain_ok = len(links) == len(pub["ids"]) - 1 and all(links.get(c) == p for p, c in zip(pub["ids"], pub["ids"][1:]))
     # photo drafts reach SEND_TO_USER_INBOX but never show up in the owner's app (ERRORS 2026-10-01 TT-02, 2026-10-09):
     # carousels go to the bot as slides for a manual upload instead
-    tiktok = "слайды карусели ниже — загрузите вручную, без описания, музыку выберите в приложении."
-    return pub["permalink"], chain_ok, len(pub["ids"]), tiktok, False
+    # only the threads picked for TikTok have slides (owner 2026-10-10: 2 carousels a day, 1 reach + 1 selling)
+    has_slides = os.path.isdir(f"content/threads/{code}/carousel")
+    tiktok = ("слайды карусели ниже — загрузите вручную, без описания, музыку выберите в приложении." if has_slides
+              else "без карусели (в TikTok идут 2 ветки в день).")
+    return pub["permalink"], chain_ok, len(pub["ids"]), tiktok, not has_slides
 
 
 def main(kind, code, sha, date, hhmm, title):
@@ -77,7 +80,7 @@ def main(kind, code, sha, date, hhmm, title):
         link, chain_ok, n, tiktok, sent = thread(code, sha)
         tg("send", f"✅ Опубликовано: {hhmm} · Ветка {code} «{title}»\nThreads: {link} "
                    f"({n} пост., цепочка {'проверена' if chain_ok else '⚠️ НЕ совпадает — проверяю'})\nTikTok: {tiktok}")
-        if not sent:
+        if not sent:  # sent=True here means "no slides to send"
             import glob
             tg("photos", *sorted(glob.glob(f"content/threads/{code}/carousel/*.jpg")))
     q = f"content/queue/{date}.json"
