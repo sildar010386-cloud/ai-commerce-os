@@ -16,3 +16,10 @@ cd NAME && npx -y hyperframes@0.8.143 render -o out.mp4
 - Source clips: convert MOV to H.264 MP4 1080x1920 first (ffmpeg), reference them with `<video class="clip" data-start data-duration>`.
 - Fonts: Liberation Sans / DejaVu Sans (Cyrillic). Voice and music are mixed afterwards by `tools/video/build.py` / `tools/music/mix.py`.
 - `example_captions.html` — first test: animated hook plate + word-by-word captions with coloured keywords.
+
+## Captions over an existing reel (`captions.py`)
+1. Clean video without burned text: `ffmpeg -f concat -safe 0 -i seg_NAME/list.txt -an -c:v libx264 -crf 17 clean.mp4` (segments from `build.py`).
+2. `python3 tools/video/hyperframes/captions.py SPEC.json NAME clean.mp4 OUTDIR` (run in the work dir; add `"keywords"` to the spec).
+3. Copy `hyperframes.json`, `meta.json`, `package.json` from an `init` project and `gsap.min.js` into OUTDIR, then `render -o video.mp4` (19 s took ~74 s).
+4. Mux the audio from the built reel: `ffmpeg -i video.mp4 -i REEL_muzyka.mp4 -map 0:v -map 1:a -c:a copy -shortest out.mp4`.
+First comparison: REEL-25 old vs HyperFrames sent to the owner 2026-10-09.
