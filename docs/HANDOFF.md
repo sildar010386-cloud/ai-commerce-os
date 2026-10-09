@@ -22,6 +22,9 @@
 ## Новый подход
 См. `docs/NEW_APPROACH.md` и `docs/REF_ANALYSIS_01.md` (разбор вирусных роликов). Только русский язык; владелец снимает сырьё без звука, остальное — Claude.
 
+## Методика
+Навык `.claude/skills/bikas-content/SKILL.md` — формула продающего ролика, типы зацепок, форматы, воронки без цены, контент-план, чек-лист. Подробный конспект курса — в закрытом `bikas-music/course/NOTES.md`.
+
 ## Следующая задача
 1. Проверить, что плагины видны (навыки `reels-script`, `tiktok-script`, `short-form-video-script`, `hook-writer`, `scripting-and-storyboarding`, `viral-reverse-engineering`, `content-pillars`, `storytelling-and-narrative`, `before-after-and-transformation`, `behind-the-scenes-and-founder`, `social-proof-and-testimonials`, `social-selling-and-dm`, `tiktok-growth`, `instagram-growth`, `profile-optimization`).
 2. С их помощью: рубрики (не больше 1 продающего из 5), методика сценария (зацепка в 1-ю секунду, открытая петля, развязка, повод спросить «цена?»), **10 сценариев** (по 2 на рубрику) + **список сцен для съёмки** (что снять, крупность, свет, 1080p/4K, присылать файлом).
