@@ -8,6 +8,8 @@ retelling of the post). Each "## Пост N" becomes one 1080x1920 slide. A post
 background; text-only posts get a dark brand background. The trailing "↓" of a post turns into
 "листай →". The last slide always carries the CTA (owner rule 2026-10-01: carousels go out without a
 description, so the CTA lives on the slides): if the last post has no "WhatsApp", a CTA slide is appended.
+A line "CTA TikTok: <text>" overrides that slide ("\\n" = line break); "CTA TikTok: -" means the last post
+already carries the CTA (reach threads end with a question, selling ones with the code word).
 Needs Pillow (pip install pillow).
 """
 import os, re, sys
@@ -111,7 +113,11 @@ def main(code):
     m = re.search(r"^Обложка TikTok: (.+)$", readme, re.M)
     if m:
         posts.insert(0, ("COVER", m.group(1).strip()))
-    if "WhatsApp" not in posts[-1][1]:
+    c = re.search(r"^CTA TikTok: (.+)$", readme, re.M)
+    cta = c.group(1).strip().replace("\\n", "\n") if c else CTA
+    if c and cta != "-":
+        posts.append((None, cta))
+    elif not c and "WhatsApp" not in posts[-1][1]:
         posts.append((None, CTA))
     out = os.path.join(folder, "carousel")
     os.makedirs(out, exist_ok=True)
