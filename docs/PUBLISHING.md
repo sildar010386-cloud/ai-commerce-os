@@ -42,6 +42,8 @@
 
 ## TikTok — карусель (фото) из ветки Threads
 
+**С 2026-10-09:** фото-черновики не отправляем (не доходят до владельца, см. TT-02 ниже и ERRORS 2026-10-09). `job.py thread` после ветки сразу шлёт слайды в бот; владелец загружает их в TikTok вручную, без описания. Шаги 2–3 ниже — только если владелец снова попросит черновики.
+
 1. `python3 tools/tiktok/carousel.py T-NN` → слайды в `content/threads/T-NN/carousel/`; подпись `content/threads/T-NN/tiktok_caption.txt` (1-я строка — заголовок до 90 символов, дальше — описание).
 2. Слайды скопировать в ветку сайта `claude/ai-ecommerce-automation-3n1lgz`, папка `docs/tiktok/media/T-NN/` (разрешение владельца 2026-10-01), дождаться «pages build and deployment».
 3. `python3 tools/tiktok/tt.py photos T-NN content/threads/T-NN/tiktok_caption.txt` → черновик с подписью; владелец добавляет музыку и публикует. Первый раз: T-03, 2026-10-01.

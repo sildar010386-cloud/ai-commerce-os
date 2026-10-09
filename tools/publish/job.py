@@ -4,7 +4,7 @@
   python3 tools/publish/job.py thread T-12 SHA DATE "HH:MM" "Title for the bot"
 
 reel:   Reels (MP4 pinned to commit SHA) -> caption check -> Stories -> TikTok video draft -> bot notice + caption message.
-thread: Threads chain -> /conversation check -> TikTok photo draft without caption (or slides to the bot on refusal) -> notice.
+thread: Threads chain -> /conversation check -> carousel slides to the bot for a manual TikTok upload -> notice.
 Then marks the queue item done, updates the README status line and commits + pushes. Every step's output is printed
 in full (no tail: see docs/ERRORS.md, T-09).
 """
@@ -58,10 +58,10 @@ def thread(code, sha):
     conv = get(f"https://graph.threads.net/v1.0/{pub['ids'][0]}/conversation?fields=id,replied_to&access_token={tok}")
     links = {x["id"]: x.get("replied_to", {}).get("id") for x in conv.get("data", [])}
     chain_ok = len(links) == len(pub["ids"]) - 1 and all(links.get(c) == p for p, c in zip(pub["ids"], pub["ids"][1:]))
-    draft = sh(sys.executable, "tools/tiktok/tt.py", "photos", code, "-")
-    tiktok = ("карусель отправлена черновиком (без описания, призыв на последнем слайде)." if "sent" in draft.stdout
-              else "⚠️ TikTok не принял карусель (лимит черновиков) — слайды ниже, загрузите вручную, без описания.")
-    return pub["permalink"], chain_ok, len(pub["ids"]), tiktok, "sent" in draft.stdout
+    # photo drafts reach SEND_TO_USER_INBOX but never show up in the owner's app (ERRORS 2026-10-01 TT-02, 2026-10-09):
+    # carousels go to the bot as slides for a manual upload instead
+    tiktok = "слайды карусели ниже — загрузите вручную, без описания, музыку выберите в приложении."
+    return pub["permalink"], chain_ok, len(pub["ids"]), tiktok, False
 
 
 def main(kind, code, sha, date, hhmm, title):
