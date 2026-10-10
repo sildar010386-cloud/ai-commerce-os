@@ -12,7 +12,7 @@ Token: env TELEGRAM_BOT_TOKEN (host api.telegram.org must be allowed). The owner
 offset live in the PRIVATE repo bikas-music (secrets/telegram.json), not in this public repo. The first chat
 that sends /start becomes the owner; messages from any other chat are ignored.
 """
-import json, os, subprocess, sys, urllib.parse, urllib.request
+import json, time, os, subprocess, sys, urllib.parse, urllib.request
 
 TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 API = f"https://api.telegram.org/bot{TOKEN}"
@@ -57,7 +57,14 @@ def upload(method, chat, fields, files):
         cmd += ["--form-string", f"{k}={v}"]
     for k, path in files.items():
         cmd += ["-F", f"{k}=@{path}"]
-    r = json.loads(subprocess.run(cmd, capture_output=True, text=True, check=True).stdout)
+    for attempt in range(4):  # transient network errors (curl exit 56) happened 2026-10-10; retry, never print the URL
+        p = subprocess.run(cmd, capture_output=True, text=True)
+        if p.returncode == 0:
+            break
+        time.sleep(2 ** attempt * 2)
+    else:
+        sys.exit(f"{method}: curl failed with exit code {p.returncode}")
+    r = json.loads(p.stdout)
     if not r.get("ok"):
         sys.exit(f"{method}: {r}")
     return r["result"]
