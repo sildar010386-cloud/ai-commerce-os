@@ -206,7 +206,9 @@ def build(name, spec):
                 "-t", f"{total:.3f}", track]
     run(vcmd)
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", f"seg_{name}/list.txt",
-           "-i", track, "-filter_complex", f"[0:v]ass={name}.ass[vout]", "-map", "[vout]", "-map", "1:a",
+           "-i", track, "-filter_complex",
+           # "burn": false -> clean video; captions and plates are added by tools/video/hyperframes/captions.py
+           f"[0:v]ass={name}.ass[vout]" if spec.get("burn", True) else "[0:v]null[vout]", "-map", "[vout]", "-map", "1:a",
            "-t", f"{total:.3f}", "-r", str(FPS), "-c:v", "libx264", "-crf", "19", "-maxrate", "7000k",
            "-bufsize", "12000k", "-preset", "medium", "-profile:v", "high", "-pix_fmt", "yuv420p",
            "-c:a", "aac", "-b:a", "160k", "-ar", "44100", "-movflags", "+faststart", f"out/{spec['file']}"]

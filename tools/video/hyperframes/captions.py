@@ -24,7 +24,7 @@ html,body{width:1080px;height:1920px;overflow:hidden;background:#000}
 .y{color:#FFD60A}.o{color:#FF7A1A}.g{color:#3DDC84}.r{color:#FF4D4D}
 .plate{position:absolute;top:250px;left:60px;right:60px;text-align:center;font-weight:800;font-size:76px;line-height:1.15;
  padding:26px 24px;border-radius:26px;opacity:0}
-.Hook{background:#FFD60A;color:#111}.Cta{background:#FF7A1A;color:#fff}
+.Hook{background:#FFD60A;color:#111}.Cta{background:#FF7A1A;color:#fff}.Label{background:#fff;color:#111}
 """
 
 
@@ -36,7 +36,7 @@ def main(spec_path, name, clean, out):
     total = sum(s["dur"] for s in spec["segments"])
     body, js = [], []
     for k, (text, t0, t1, style) in enumerate(spec.get("texts", [])):
-        if style not in ("Hook", "Cta"):
+        if style not in ("Hook", "Cta", "Label"):
             continue
         t1 = min(t1, total)
         body.append(f'<div id="p{k}" class="plate {style} clip" data-start="{t0}" data-duration="{t1 - t0:.2f}" '
