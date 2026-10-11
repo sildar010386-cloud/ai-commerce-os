@@ -6,6 +6,7 @@ huggingface.co, *.huggingface.co, *.hf.space. Free ZeroGPU quota is a few GPU-mi
   python3 tools/ai/gen.py video "image prompt" "motion prompt" out.mp4 [seconds]
                                                              FLUX still -> LTX-Video image-to-video, 704x1216
 
+Owner rule 2026-10-11: send the still to the owner first; animate it only after the owner approves the image.
 AI text and clock faces come out garbled: put times and words on plates (HyperFrames), not in prompts.
 """
 import os, shutil, subprocess, sys
