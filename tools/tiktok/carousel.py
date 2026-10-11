@@ -1,138 +1,168 @@
-"""Render a Threads draft (content/threads/<code>/README.md) as TikTok photo-carousel slides.
+"""Render a Threads draft (content/threads/<code>/README.md) as bright TikTok carousel slides (max 3).
 
-  python3 tools/tiktok/carousel.py T-03            -> content/threads/T-03/carousel/01.jpg ...
+  python3 tools/tiktok/carousel.py T-52        -> content/threads/T-52/carousel/01.jpg ...
 
-An optional line "Обложка TikTok: <5-7 words>" in the README adds a cover slide first: the intrigue
-phrase in large type over the first post's photo (owner rule 2026-10-01: the first slide is intrigue, not a
-retelling of the post). Each "## Пост N" becomes one 1080x1920 slide. A post with an image gets the photo as a darkened
-background; text-only posts get a dark brand background. The trailing "↓" of a post turns into
-"листай →". The last slide always carries the CTA (owner rule 2026-10-01: carousels go out without a
-description, so the CTA lives on the slides): if the last post has no "WhatsApp", a CTA slide is appended.
-A line "CTA TikTok: <text>" overrides that slide ("\\n" = line break); "CTA TikTok: -" means the last post
-already carries the CTA (reach threads end with a question, selling ones with the code word).
-Needs Pillow (pip install pillow).
+Owner rules: bright, pleasant slides, never dark and gloomy (2026-10-12, old dark design scored 3/10);
+at most 3 slides (2026-10-12); the first slide is intrigue (2026-10-01); the last slide always carries a
+call to action (2026-10-12: "people do not know what to do next").
+
+README lines used:
+  Обложка TikTok: <headline>        cover headline; *word* is highlighted in orange
+  Тег TikTok: <text>                optional pill on the cover
+  CTA TikTok: <text>                CTA box on the last slide (default: write «ПАР» in comments)
+  ## Слайд TikTok N — `img.jpg`     optional custom slide text instead of the posts (N = 2, 3)
+Slides: cover (photo of the first post + headline) followed by the posts (or custom slides), cut to 3.
+Inside a slide: the first paragraph is the headline; lines "1. ..." become numbered cards (a leading
+«quote». becomes the card title; "Миф:" / "Правда:" become badges); a paragraph with «ПАР» is a CTA box.
+Rendered with headless Chromium (Playwright build in /opt/pw-browsers), Montserrat (OFL) from fonts/.
 """
-import os, re, sys
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+import glob, html, os, re, subprocess, sys, tempfile
 
-W, H = 1080, 1920
-FONT = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
-BG = (24, 24, 27)
-ACCENT = (242, 107, 30)  # steamer orange
-CTA = "Бесплатная доставка Казпочтой по всему Казахстану.\nПишите нам в WhatsApp — номер в шапке профиля."
-ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "content", "threads")
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "content", "threads")
+FONTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+BROWSER = (glob.glob("/opt/pw-browsers/chromium_headless_shell-*/chrome-linux/headless_shell") or ["chromium"])[0]
+CTA = "Напишите «ПАР» в комментариях — ответим в личные сообщения"
+MAX_SLIDES = 3
+
+CSS = """
+@font-face{font-family:M;src:url(F/montserrat-cyrillic-400-normal.woff2);font-weight:400}
+@font-face{font-family:M;src:url(F/montserrat-cyrillic-600-normal.woff2);font-weight:600}
+@font-face{font-family:M;src:url(F/montserrat-cyrillic-800-normal.woff2);font-weight:800}
+@font-face{font-family:M;src:url(F/montserrat-cyrillic-900-normal.woff2);font-weight:900}
+@font-face{font-family:M;src:url(F/montserrat-latin-400-normal.woff2);font-weight:400;unicode-range:U+0000-00FF}
+@font-face{font-family:M;src:url(F/montserrat-latin-600-normal.woff2);font-weight:600;unicode-range:U+0000-00FF}
+@font-face{font-family:M;src:url(F/montserrat-latin-800-normal.woff2);font-weight:800;unicode-range:U+0000-00FF}
+@font-face{font-family:M;src:url(F/montserrat-latin-900-normal.woff2);font-weight:900;unicode-range:U+0000-00FF}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden}
+body{font-family:M,sans-serif;background:#F7F1E8;color:#1E1B18;position:relative;font-size:var(--s,40px)}
+.tag{display:inline-block;background:#1E1B18;color:#F7F1E8;font-weight:800;font-size:34px;padding:16px 30px;border-radius:999px}
+.brand{position:absolute;bottom:64px;left:80px;font-weight:600;font-size:30px;color:#8A7F73}
+.swipe{position:absolute;bottom:56px;right:80px;font-weight:800;font-size:34px;color:#F26B1E}
+.mark{background:#F26B1E;color:#fff;padding:0 18px;border-radius:18px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.photo{position:absolute;top:0;left:0;width:1080px;height:1250px;background-size:cover;background-position:center 60%}
+.fade{position:absolute;top:900px;left:0;width:1080px;height:360px;background:linear-gradient(rgba(247,241,232,0),#F7F1E8)}
+.top{position:absolute;top:80px;left:80px;right:80px}
+h1{position:absolute;top:1170px;left:80px;right:80px;font-weight:900;font-size:100px;line-height:1.1;letter-spacing:-1px}
+#wrap{position:absolute;top:0;bottom:150px;left:80px;right:80px;display:flex;flex-direction:column;justify-content:center}
+.pic{height:620px;border-radius:40px;background-size:cover;background-position:center;margin-bottom:44px;flex:none}
+h2{font-weight:900;font-size:1.75em;line-height:1.15;margin-bottom:.6em}
+p{font-weight:600;font-size:1em;line-height:1.4;color:#4A423A;margin-bottom:.7em}
+p.ask{font-weight:900;font-size:1.2em;color:#F26B1E;line-height:1.25}
+.card{background:#fff;border-radius:36px;padding:.9em 1.05em;margin-bottom:.7em;display:flex;align-items:flex-start;box-shadow:0 10px 30px rgba(60,40,20,.08)}
+.num{flex:none;width:2.2em;height:2.2em;border-radius:50%;background:#F7F1E8;color:#F26B1E;font-weight:900;font-size:1.15em;display:flex;align-items:center;justify-content:center;margin-right:.75em}
+.card b{display:block;font-weight:800;font-size:1.05em;line-height:1.25;margin-bottom:.25em}
+.card span{font-weight:400;font-size:.92em;line-height:1.38;color:#4A423A}
+.badge{display:inline-block;font-weight:900;font-size:.72em;padding:.3em .75em;border-radius:999px;margin-bottom:.45em;letter-spacing:1px}
+.myth{background:#FFE3E0;color:#D64532}.truth{background:#DDF5E6;color:#1E9E55}
+.cta{background:#F26B1E;color:#fff;border-radius:36px;padding:.9em 1.1em;font-weight:800;font-size:1.05em;line-height:1.3;margin-top:.5em}
+"""
+
+FIT = """<script>
+document.fonts.ready.then(()=>{const w=document.getElementById('inner');if(!w)return;
+let s=52;const lim=1920-150-160;
+while(s>28){document.body.style.setProperty('--s',s+'px');if(w.offsetHeight<=lim)break;s-=2;}});
+</script>"""
 
 
-def parse(readme):
-    posts = []
-    for m in re.finditer(r"^## Пост \d+ — (.+?)\n(.*?)(?=\n## |\Z)", open(readme).read(), re.S | re.M):
-        images = re.findall(r"`([^`]+\.jpg)`", m.group(1))
-        posts.append((images[0] if images else None, m.group(2).strip()))
-    return posts
+def page(body):
+    css = CSS.replace("url(F/", f"url(file://{FONTS}/")
+    return f'<html><head><meta charset="utf-8"><style>{css}</style></head><body>{body}{FIT}</body></html>'
 
 
-def wrap(draw, text, font, width):
-    """Paragraphs -> list of wrapped line lists."""
-    paras = []
-    for para in text.split("\n"):
-        words, line, lines = para.split(), "", []
-        for w in words:
-            test = f"{line} {w}".strip()
-            if draw.textlength(test, font=font) <= width:
-                line = test
-            else:
-                lines.append(line)
-                line = w
-        lines.append(line)
-        paras.append(lines)
-    return paras
+def esc(t):
+    return html.escape(t).replace("\n", "<br>")
 
 
-def background(path):
-    if not path:
-        return Image.new("RGB", (W, H), BG)
-    im = Image.open(path).convert("RGB")
-    scale = max(W / im.width, H / im.height)
-    im = im.resize((round(im.width * scale), round(im.height * scale)))
-    left, top = (im.width - W) // 2, (im.height - H) // 2
-    im = im.crop((left, top, left + W, top + H)).filter(ImageFilter.GaussianBlur(2))
-    return Image.blend(im, Image.new("RGB", (W, H), (0, 0, 0)), 0.55)
+def highlight(t):
+    return re.sub(r"\*(.+?)\*", r'<span class="mark">\1</span>', esc(t))
 
 
-def slide(text, image, n, total, last):
-    more = text.rstrip().endswith("↓")
+def card(n, text):
+    m = re.match(r"(«[^»]+»\.?)\s*(.*)", text)
+    title, rest = (m.group(1).rstrip("."), m.group(2)) if m else ("", text)
+    badge = ""
+    b = re.match(r"(Миф|Правда)[:.]\s*(.*)", rest)
+    if b:
+        kind = "myth" if b.group(1) == "Миф" else "truth"
+        badge, rest = f'<div class="badge {kind}">{b.group(1).upper()}</div>', b.group(2)
+        rest = rest[:1].upper() + rest[1:]
+    inner = f"{badge}<b>{esc(title)}</b><span>{esc(rest)}</span>" if title else f"<b>{esc(rest)}</b>"
+    return f'<div class="card"><div class="num">{n}</div><div>{inner}</div></div>'
+
+
+def text_slide(text, image, last, cta):
     text = text.rstrip().rstrip("↓").rstrip()
-    im = background(image)
-    d = ImageDraw.Draw(im)
-    size = 84 if n == 1 else 68
-    while True:
-        font = ImageFont.truetype(FONT, size)
-        paras = wrap(d, text, font, W - 160)
-        lh, gap = int(size * 1.25), int(size * 0.6)
-        height = sum(len(p) for p in paras) * lh + (len(paras) - 1) * gap
-        if height < H - 640 or size <= 40:
-            break
-        size -= 4
-    y = (H - height) // 2
+    paras = [p.strip() for p in text.split("\n") if p.strip()]
+    out = [f'<div class="pic" style="background-image:url(file://{image})"></div>'] if image else []
+    has_cta = False
     for k, para in enumerate(paras):
-        for line in para:
-            d.text((80, y), line, font=font, fill=ACCENT if k == 0 and n > 1 else "white")
-            y += lh
-        y += gap
-    small = ImageFont.truetype(FONT, 44)
-    d.text((80, 140), f"{n}/{total}", font=small, fill=ACCENT)
-    if more and not last:
-        d.text((W - 80, H - 260), "листай →", font=small, fill=ACCENT, anchor="ra")
-    d.text((80, H - 260), "@bikas.home", font=small, fill=(200, 200, 200))
-    return im
+        m = re.match(r"(\d+)\.\s+(.*)", para)
+        if m:
+            out.append(card(m.group(1), m.group(2)))
+        elif "«ПАР»" in para:
+            out.append(f'<div class="cta">{esc(para)}</div>'); has_cta = True
+        elif k == 0:
+            out.append(f"<h2>{esc(para)}</h2>")
+        elif para.endswith("?"):
+            out.append(f'<p class="ask">{esc(para)}</p>')
+        else:
+            out.append(f"<p>{esc(para)}</p>")
+    if last and not has_cta:
+        out.append(f'<div class="cta">{esc(cta)}</div>')
+    foot = '<div class="brand">@bikas.home</div>' + ("" if last else '<div class="swipe">листай →</div>')
+    return page(f'<div id="wrap"><div id="inner">{"".join(out)}</div></div>{foot}')
 
 
-def cover(text, image):
-    im = background(image)
-    d = ImageDraw.Draw(im)
-    size = 120
-    while True:
-        font = ImageFont.truetype(FONT, size)
-        lines = wrap(d, text, font, W - 160)[0]
-        if len(lines) * size * 1.2 < H / 2 or size <= 60:
-            break
-        size -= 6
-    y = (H - len(lines) * int(size * 1.2)) // 2
-    for line in lines:
-        d.text((W // 2, y), line, font=font, fill="white", anchor="ma")
-        y += int(size * 1.2)
-    small = ImageFont.truetype(FONT, 48)
-    d.text((W // 2, H - 300), "листай →", font=small, fill=ACCENT, anchor="ma")
-    return im
+def cover_slide(headline, image, tag):
+    photo = (f'<div class="photo" style="background-image:url(file://{image})"></div><div class="fade"></div>'
+             if image else "")
+    top = f'<div class="top"><span class="tag">{esc(tag)}</span></div>' if tag else ""
+    h_top = "" if image else ' style="top:640px"'
+    return page(f'{photo}{top}<h1{h_top}>{highlight(headline)}</h1>'
+                '<div class="brand">@bikas.home</div><div class="swipe">листай →</div>')
+
+
+def render(doc, out):
+    with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False) as f:
+        f.write(doc)
+    png = out[:-4] + ".png"
+    subprocess.run([BROWSER, "--headless", "--no-sandbox", "--disable-gpu", "--hide-scrollbars",
+                    "--allow-file-access-from-files", "--window-size=1080,1920", "--virtual-time-budget=4000",
+                    f"--screenshot={png}", f"file://{f.name}"], capture_output=True, check=True)
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", png, "-q:v", "2", out], check=True)
+    os.remove(png); os.remove(f.name)
+
+
+def sections(readme, head):
+    return [(re.findall(r"`([^`]+\.jpg)`", m.group(1)), m.group(2).strip())
+            for m in re.finditer(rf"^## {head} \d+(.*?)\n(.*?)(?=\n## |\Z)", readme, re.S | re.M)]
 
 
 def main(code):
-    folder = os.path.join(ROOT, code)
+    folder = os.path.abspath(os.path.join(ROOT, code))
     readme = open(os.path.join(folder, "README.md")).read()
-    posts = parse(os.path.join(folder, "README.md"))
-    m = re.search(r"^Обложка TikTok: (.+)$", readme, re.M)
-    if m:
-        posts.insert(0, ("COVER", m.group(1).strip()))
-    c = re.search(r"^CTA TikTok: (.+)$", readme, re.M)
-    cta = c.group(1).strip().replace("\\n", "\n") if c else CTA
-    if c and cta != "-":
-        posts.append((None, cta))
-    elif not c and "WhatsApp" not in posts[-1][1]:
-        posts.append((None, CTA))
+    line = lambda key: (re.search(rf"^{key}: (.+)$", readme, re.M) or [None, None])[1]
+    posts = sections(readme, "Пост")
+    custom = sections(readme, "Слайд TikTok")
+    slides = custom or posts
+    first_img = next((os.path.join(folder, i[0]) for i, _ in posts if i), None)
+    cta = line("CTA TikTok")
+    cta = CTA if not cta or cta.strip() == "-" else cta.strip()
     out = os.path.join(folder, "carousel")
     os.makedirs(out, exist_ok=True)
-    first_image = next((img for img, _ in posts if img and img != "COVER"), None)
     for name in os.listdir(out):
         os.remove(os.path.join(out, name))
-    body = [p for p in posts if p[0] != "COVER"]
-    for i, (image, text) in enumerate(posts, 1):
+    docs = []
+    if line("Обложка TikTok"):
+        docs.append(cover_slide(line("Обложка TikTok").strip(), first_img, (line("Тег TikTok") or "").strip()))
+    body = slides[:MAX_SLIDES - len(docs)]
+    for k, (imgs, text) in enumerate(body):
+        img = os.path.join(folder, imgs[0]) if imgs and custom else None  # photos only on custom slides
+        docs.append(text_slide(text, img, k == len(body) - 1, cta))
+    for i, d in enumerate(docs, 1):
         path = os.path.join(out, f"{i:02d}.jpg")
-        if image == "COVER":
-            im = cover(text, os.path.join(folder, first_image) if first_image else None)
-        else:
-            n = body.index((image, text)) + 1
-            im = slide(text, image and os.path.join(folder, image), n, len(body), i == len(posts))
-        im.save(path, quality=90)
+        render(d, path)
         print(path)
 
 
