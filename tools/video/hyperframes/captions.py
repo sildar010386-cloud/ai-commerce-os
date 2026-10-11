@@ -6,7 +6,8 @@ SPEC_JSON is a raw-NN specs file (tools/video/build.py format) plus an optional 
 {word_without_punctuation_lowercase: colour_class}. Word timings come from the ElevenLabs JSON next to the
 voice mp3 (run from the work dir, like build.py). Each word pops in at the moment it is spoken; keywords
 get their colour and a short scale punch (owner rule 2026-10-09: key words in different colours, captions
-that catch the eye). Hook/Cta texts from "texts" become animated plates at the top.
+that catch the eye). Hook/Cta texts from "texts" become animated plates at the top. An optional "css" string in
+the spec is appended to the stylesheet, so each reel can get its own caption look (size, position, case).
 Render: see README.md; the audio is muxed afterwards from the reel built by build.py.
 """
 import html, json, os, re, shutil, sys
@@ -64,7 +65,7 @@ def main(spec_path, name, clean, out):
     page = f"""<!doctype html>
 <html lang="ru" data-resolution="portrait"><head><meta charset="UTF-8" />
 <meta name="viewport" content="width=1080, height=1920" />
-<script src="gsap.min.js"></script><style>{CSS}</style></head><body>
+<script src="gsap.min.js"></script><style>{CSS}{spec.get("css", "")}</style></head><body>
 <div id="root" data-composition-id="main" data-start="0" data-duration="{total:.2f}" data-width="1080" data-height="1920">
 <video id="bg" class="clip" src="clean.mp4" muted playsinline data-start="0" data-duration="{total:.2f}" data-track-index="0"></video>
 {chr(10).join(body)}
