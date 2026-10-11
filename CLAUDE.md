@@ -2,6 +2,8 @@
 
 Owner-facing docs are in Russian; code, comments and commit messages are in English.
 
+**Owner rule (2026-10-11, repeated many times): the owner does not read English. Every message to the owner — chat replies, short progress notes between tool calls, final summaries, bot messages — is in Russian only. Never switch to English in anything the owner sees.**
+
 ## Read first
 - `docs/DECISIONS.md` — facts about the business and every owner decision. Source of truth; update it when a decision is made.
 - `docs/PLAN_V2_KZ.md` — current plan and phase order (Kazakhstan, organic content, no managers).
