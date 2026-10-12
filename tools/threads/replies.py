@@ -29,6 +29,7 @@ def unanswered(n=30):
 def reply(cid, text):
     container = call("POST", "me/threads", media_type="TEXT", text=text, reply_to_id=cid)["id"]
     wait_ready(container)
+    time.sleep(5)  # publishing right after FINISHED sometimes returns "Media Not Found" (2026-10-12)
     new_id = call("POST", "me/threads_publish", creation_id=container)["id"]
     link = call("GET", new_id, fields="permalink").get("permalink")
     os.makedirs(os.path.dirname(LOG), exist_ok=True)
