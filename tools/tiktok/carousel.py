@@ -55,6 +55,9 @@ p.ask{font-weight:900;font-size:1.2em;color:#F26B1E;line-height:1.25}
 .card span{font-weight:400;font-size:.92em;line-height:1.38;color:#4A423A}
 .badge{display:inline-block;font-weight:900;font-size:.72em;padding:.3em .75em;border-radius:999px;margin-bottom:.45em;letter-spacing:1px}
 .myth{background:#FFE3E0;color:#D64532}.truth{background:#DDF5E6;color:#1E9E55}
+.deco1{position:absolute;top:-260px;right:-260px;width:820px;height:820px;border-radius:50%;background:#F26B1E;opacity:.92}
+.deco2{position:absolute;bottom:-200px;left:-160px;width:560px;height:560px;border-radius:50%;background:#FFD9BF}
+h1.big{top:560px;font-size:124px}
 .cta{background:#F26B1E;color:#fff;border-radius:36px;padding:.9em 1.1em;font-weight:800;font-size:1.05em;line-height:1.3;margin-top:.5em}
 """
 
@@ -118,8 +121,9 @@ def cover_slide(headline, image, tag):
     photo = (f'<div class="photo" style="background-image:url(file://{image})"></div><div class="fade"></div>'
              if image else "")
     top = f'<div class="top"><span class="tag">{esc(tag)}</span></div>' if tag else ""
-    h_top = "" if image else ' style="top:640px"'
-    return page(f'{photo}{top}<h1{h_top}>{highlight(headline)}</h1>'
+    h_cls = "" if image else ' class="big"'
+    deco = "" if image else '<div class="deco1"></div><div class="deco2"></div>'
+    return page(f'{deco}{photo}{top}<h1{h_cls}>{highlight(headline)}</h1>'
                 '<div class="brand">@bikas.home</div><div class="swipe">листай →</div>')
 
 
