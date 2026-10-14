@@ -14,7 +14,7 @@ for f in *.mp4; do
   i=${f%.mp4}
   if [ ! -s stt/$i.json ]; then
     ffmpeg -y -loglevel error -i "$f" -vn -ac 1 -ar 16000 -b:a 48k stt/$i.mp3 && \
-    curl -sS https://api.elevenlabs.io/v1/speech-to-text -H "xi-api-key: $ELEVENLABS_API_KEY" -F model_id=scribe_v1 \
+    curl -sS https://api.elevenlabs.io/v1/speech-to-text -H "xi-api-key: ${ELEVENLABS_API_KEY:-}" -F model_id=scribe_v1 \
       -F file=@stt/$i.mp3 -F timestamps_granularity=word > stt/$i.json &
   fi
   dur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$f"); n=0
