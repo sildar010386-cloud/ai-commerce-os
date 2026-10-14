@@ -9,7 +9,7 @@
 | Голос ElevenLabs | «Larisa Actrisa — Confident and Clear» из библиотеки ElevenLabs, ID `AB9XsbSA4eLG12t2myjN` |
 | Модель | `eleven_multilingual_v2` |
 | stability / similarity_boost / style | 0.45 / 0.8 / 0.4, use_speaker_boost true |
-| speed | 0.88 (на 12% медленнее — владелец просил «не так быстро») |
+| speed | 1.0 (владелец, 2026-10-14: ускорить до 1,0 — как в вирусных роликах; раньше 0.88) |
 | В скрипте | `tools/video/tts.py`, пресет `larisa` (по умолчанию); прежний голос — `TTS_VOICE=owner` |
 
 - «WhatsApp» писать латиницей: «Пишите нам в WhatsApp, номер — в шапке профиля». «Ватсап» кириллицей у этого голоса звучал роботизированно.

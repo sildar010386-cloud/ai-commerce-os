@@ -1,8 +1,8 @@
 import base64, json, os, sys, urllib.request
 # Owner-approved voices and settings, see content/voice/VOICE.md. TTS_VOICE picks the preset.
 PRESETS = {
-    "larisa": ("AB9XsbSA4eLG12t2myjN",  # ElevenLabs library voice "Larisa Actrisa", chosen 2026-10-01 (variant L2)
-               {"stability": 0.45, "similarity_boost": 0.8, "style": 0.4, "use_speaker_boost": True, "speed": 0.88}),
+    "larisa": ("AB9XsbSA4eLG12t2myjN",  # ElevenLabs library voice "Larisa Actrisa", chosen 2026-10-01 (variant L2); speed 1.0 since 2026-10-14
+               {"stability": 0.45, "similarity_boost": 0.8, "style": 0.4, "use_speaker_boost": True, "speed": 1.0}),
     "owner": (os.environ.get("ELEVENLABS_VOICE_ID", ""),  # owner's clone, approved 2026-09-30
               {"stability": 0.5, "similarity_boost": 0.8, "style": 0.2, "use_speaker_boost": True}),
 }
