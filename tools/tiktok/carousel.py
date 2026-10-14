@@ -1,9 +1,9 @@
-"""Render a Threads draft (content/threads/<code>/README.md) as bright TikTok carousel slides (max 3).
+"""Render a Threads draft (content/threads/<code>/README.md) as bright TikTok carousel slides (max 10).
 
   python3 tools/tiktok/carousel.py T-52        -> content/threads/T-52/carousel/01.jpg ...
 
 Owner rules: bright, pleasant slides, never dark and gloomy (2026-10-12, old dark design scored 3/10);
-at most 3 slides (2026-10-12); the first slide is intrigue (2026-10-01); the last slide always carries a
+at most 10 slides (2026-10-14: viral home carousels have 5-14 slides; the 3-slide cap of 2026-10-12 is lifted); the first slide is intrigue (2026-10-01); the last slide always carries a
 call to action (2026-10-12: "people do not know what to do next").
 
 README lines used:
@@ -22,7 +22,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "con
 FONTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
 BROWSER = (glob.glob("/opt/pw-browsers/chromium_headless_shell-*/chrome-linux/headless_shell") or ["chromium"])[0]
 CTA = "Напишите «ПАР» в комментариях — ответим в личные сообщения"
-MAX_SLIDES = 3
+MAX_SLIDES = 10
 
 CSS = """
 @font-face{font-family:M;src:url(F/montserrat-cyrillic-400-normal.woff2);font-weight:400}
