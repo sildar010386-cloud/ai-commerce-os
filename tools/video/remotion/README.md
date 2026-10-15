@@ -13,3 +13,10 @@ npx remotion render src/index.ts Reel out.mp4 --muted \
 ```
 Then mux the voice from `out/<reel>.mp4` and run `tools/music/mix.py`, as in the HyperFrames pipeline.
 License: Remotion is free for individuals and companies of up to 3 people (remotion.dev/license).
+
+## 3D inserts (Mix3D.tsx, approved for use 2026-10-15)
+- Cloth: `PlaneGeometry(4, 6)` displaced by curved creases; texture = crop of a smooth area of our garment from the 4K raw clip
+  (`ffmpeg -ss T -i raw05/9.MOV -vf "scale=-2:2160,crop=1215:2160,crop=636:952:290:518"`), `meshStandardMaterial` roughness .95, grazing key light.
+- Steam: soft radial-gradient sprites (`PUFF`), opacity ~0.2, a wave whose front moves across the visible window; creases relax behind it.
+- Render: `npx remotion render src/index.ts Mix3D out.mp4 --muted --gl=swangle --concurrency=4 --browser-executable=...headless_shell`.
+- Check stills of every second before sending; first-second dark corner of the cloth edge is a known nit (move the camera lower/closer).
