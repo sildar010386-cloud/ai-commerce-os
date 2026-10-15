@@ -4,6 +4,7 @@ huggingface.co, *.huggingface.co, *.hf.space. Free ZeroGPU quota is a few GPU-mi
 
   python3 tools/ai/gen.py image "prompt" out.jpg            FLUX.1-schnell (Apache 2.0), 704x1216
   python3 tools/ai/gen.py video "image prompt" "motion prompt" out.mp4 [seconds]
+  python3 tools/ai/gen.py animate still.jpg "motion prompt" out.mp4 [seconds]   animate an approved still
                                                              FLUX still -> LTX-Video image-to-video, 704x1216
 
 Owner rule 2026-10-11: send the still to the owner first; animate it only after the owner approves the image.
@@ -27,6 +28,10 @@ def image(prompt, out, seed=7):
 def video(img_prompt, motion, out, seconds=3, seed=5):
     still = out.rsplit(".", 1)[0] + "_still.jpg"
     image(img_prompt, still, seed)
+    return animate(still, motion, out, seconds, seed)
+
+
+def animate(still, motion, out, seconds=3, seed=5):
     r = Client("Lightricks/ltx-video-distilled", token=TOKEN, verbose=False).predict(
         prompt=motion, negative_prompt=NEG, input_image_filepath=handle_file(still), input_video_filepath=None,
         height_ui=H, width_ui=W, mode="image-to-video", duration_ui=seconds, ui_frames_to_use=9, seed_ui=seed,
@@ -39,5 +44,7 @@ if __name__ == "__main__":
     kind, *args = sys.argv[1:]
     if kind == "image":
         print(image(*args))
+    elif kind == "animate":
+        print(animate(args[0], args[1], args[2], float(args[3]) if len(args) > 3 else 3))
     else:
         print(video(args[0], args[1], args[2], float(args[3]) if len(args) > 3 else 3))
