@@ -23,6 +23,7 @@ top band y 265-515 only; captions go to the bottom):
   b_crease  wavy line straightens (creases → smooth)    {before, after, at, until}
   b_compare two mini bars                               {rows: [{label, value, text, color, mark}]}
   b_bubble  «ПАР» typed in a comment bubble, pulses     {text, hint}
+  b_check   up to 3 items tick in at their own times     {items: [[text, t_abs], ...]}
 Camera work on the live footage (test 3, 2026-10-15):
   whip      blur + sideways shift across a cut          {}            (t = cut time)
   punch     small punch-in right after a cut            {scale}
@@ -197,20 +198,25 @@ def render(fx, total):
             js.append(f'tl.to("#{i}e",{{attr:{{"stroke-dashoffset":0}},duration:.45,ease:"power2.out"}},{t:.2f});')
             js.append(f'tl.fromTo("#{i}t",{{opacity:0,y:20}},{{opacity:1,y:0,duration:.2,ease:"back.out(2)"}},{t + .3:.2f});')
         elif kind == "beforeafter":
+            # ДО on the left over the "before" still; the "after" still slides in from the RIGHT edge (line moves
+            # right → left), so the smooth part is always under «ПОСЛЕ» (owner 2026-10-15: the first version was mirrored).
             body.append(f'<div {clip.format(cls="")} style="inset:0;overflow:hidden">'
                         f'<img src="{f["before"]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>'
-                        f'<div id="{i}w" style="position:absolute;inset:0;clip-path:inset(0 100% 0 0)">'
+                        f'<div id="{i}w" style="position:absolute;inset:0;clip-path:inset(0 0 0 100%)">'
                         f'<img src="{f["after"]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/></div>'
-                        f'<div id="{i}line" style="position:absolute;top:0;bottom:0;left:0;width:10px;background:#fff;box-shadow:0 0 20px #fff"></div>'
-                        f'<div style="position:absolute;left:40px;top:360px;font-weight:900;font-size:90px;color:#FF4D4D;'
+                        f'<div id="{i}line" style="position:absolute;top:0;bottom:0;left:1070px;width:10px;background:#fff;box-shadow:0 0 20px #fff;opacity:0"></div>'
+                        f'<div id="{i}b" style="position:absolute;left:40px;top:360px;font-weight:900;font-size:90px;color:#FF4D4D;'
                         f'text-shadow:0 5px 0 #000,3px 0 0 #000,-3px 0 0 #000">ДО</div>'
                         f'<div id="{i}a" style="position:absolute;right:40px;top:360px;font-weight:900;font-size:90px;color:#3DDC84;opacity:0;'
                         f'text-shadow:0 5px 0 #000,3px 0 0 #000,-3px 0 0 #000">ПОСЛЕ ✨</div></div>')
-            w0, w1 = t + .25, t + .85
+            w0, w1 = t + .3, t + .95
+            js.append(f'tl.to("#{i}line",{{opacity:1,duration:.05}},{w0:.2f});')
+            js.append(f'tl.to("#{i}a",{{opacity:1,duration:.15}},{w0 + .12:.2f});')
             js.append(f'(()=>{{const s={{p:0}},w=document.getElementById("{i}w"),l=document.getElementById("{i}line");'
-                      f'tl.to(s,{{p:1,duration:{w1 - w0:.2f},ease:"power2.inOut",onUpdate:()=>{{w.style.clipPath="inset(0 "+(100-s.p*100)+"% 0 0)";'
-                      f'l.style.left=(s.p*1070)+"px"}}}},{w0:.2f});}})();')
-            js.append(f'tl.to("#{i}a",{{opacity:1,duration:.15}},{w1 - .1:.2f});')
+                      f'tl.to(s,{{p:1,duration:{w1 - w0:.2f},ease:"power2.inOut",onUpdate:()=>{{w.style.clipPath="inset(0 0 0 "+(100-s.p*100)+"%)";'
+                      f'l.style.left=(1070-s.p*1070)+"px"}}}},{w0:.2f});}})();')
+            js.append(f'tl.to("#{i}b",{{opacity:0,duration:.12}},{w1 - .2:.2f});')
+            js.append(f'tl.to("#{i}line",{{opacity:0,duration:.1}},{w1:.2f});')
         elif kind.startswith("b_"):
             inner = ""
             if kind == "b_count":
@@ -268,6 +274,13 @@ def render(fx, total):
                               f'{html.escape(r["text"])} {r.get("mark", "")}</div>')
                     js.append(f'tl.to("#{i}b{j}",{{scaleX:1,duration:.5,ease:"power3.out"}},{t + .25 + j * .5:.2f});')
                     js.append(f'tl.to("#{i}x{j}",{{opacity:1,duration:.2}},{t + .6 + j * .5:.2f});')
+            elif kind == "b_check":
+                for j, (text, ta) in enumerate(f["items"]):
+                    inner += (f'<div class="t" id="{i}c{j}" style="left:40px;top:{18 + j * 76}px;font-size:56px;opacity:0">'
+                              f'<span id="{i}k{j}" style="display:inline-block;width:62px;height:62px;border-radius:31px;background:#1FAF5A;color:#fff;'
+                              f'text-align:center;line-height:62px;margin-right:22px;transform:scale(0)">✓</span>{html.escape(text)}</div>')
+                    js.append(f'tl.fromTo("#{i}c{j}",{{opacity:0,x:-60}},{{opacity:1,x:0,duration:.2,ease:"power3.out"}},{ta:.2f});')
+                    js.append(f'tl.to("#{i}k{j}",{{scale:1,duration:.28,ease:"back.out(3)"}},{ta + .12:.2f});')
             elif kind == "b_bubble":
                 text = f.get("text", "ПАР")
                 letters = "".join(f'<i id="{i}l{j}" style="font-style:normal;opacity:0">{html.escape(ch)}</i>' for j, ch in enumerate(text))
