@@ -8,12 +8,14 @@ voice mp3 (run from the work dir, like build.py). Each word pops in at the momen
 get their colour and a short scale punch (owner rule 2026-10-09: key words in different colours, captions
 that catch the eye). Hook/Cta texts from "texts" become animated plates at the top. An optional "css" string in
 the spec is appended to the stylesheet, so each reel can get its own caption look (size, position, case).
+An optional "fx" list adds motion-graphic layers (timers, gauges, comparisons, slams, particles; see fx.py).
 Render: see README.md; the audio is muxed afterwards from the reel built by build.py.
 """
 import html, json, os, re, shutil, sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import build  # noqa: E402  (words_of, chunks)
+import fx as fxmod  # noqa: E402  (motion-graphic layers, optional "fx" in the spec)
 
 CSS = """*{margin:0;padding:0;box-sizing:border-box}
 html,body{width:1080px;height:1920px;overflow:hidden;background:#000}
@@ -62,10 +64,14 @@ def main(spec_path, name, clean, out):
             body.append(f'<div class="cap clip" data-start="{t0:.2f}" data-duration="{t1 - t0:.2f}" '
                         f'data-track-index="{track}">{"".join(spans)}</div>')
             track += 1
+    if spec.get("fx"):
+        fx_html, fx_js = fxmod.render(spec["fx"], total)
+        body.append(fx_html)
+        js.extend(fx_js)
     page = f"""<!doctype html>
 <html lang="ru" data-resolution="portrait"><head><meta charset="UTF-8" />
 <meta name="viewport" content="width=1080, height=1920" />
-<script src="gsap.min.js"></script><style>{CSS}{spec.get("css", "")}</style></head><body>
+<script src="gsap.min.js"></script><style>{CSS}{fxmod.CSS if spec.get("fx") else ""}{spec.get("css", "")}</style></head><body>
 <div id="root" data-composition-id="main" data-start="0" data-duration="{total:.2f}" data-width="1080" data-height="1920">
 <video id="bg" class="clip" src="clean.mp4" muted playsinline data-start="0" data-duration="{total:.2f}" data-track-index="0"></video>
 {chr(10).join(body)}
