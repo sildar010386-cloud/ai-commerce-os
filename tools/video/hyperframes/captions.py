@@ -65,6 +65,11 @@ def main(spec_path, name, clean, out):
                         f'data-track-index="{track}">{"".join(spans)}</div>')
             track += 1
     if spec.get("fx"):
+        for f in spec["fx"]:  # stills used by fx (before/after) are copied next to index.html
+            for key in ("before", "after"):
+                if key in f and os.path.exists(f[key]):
+                    shutil.copy(f[key], os.path.join(out, os.path.basename(f[key])))
+                    f[key] = os.path.basename(f[key])
         fx_html, fx_js = fxmod.render(spec["fx"], total)
         body.append(fx_html)
         js.extend(fx_js)

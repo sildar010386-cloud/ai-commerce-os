@@ -23,6 +23,13 @@ top band y 265-515 only; captions go to the bottom):
   b_crease  wavy line straightens (creases → smooth)    {before, after, at, until}
   b_compare two mini bars                               {rows: [{label, value, text, color, mark}]}
   b_bubble  «ПАР» typed in a comment bubble, pulses     {text, hint}
+Camera work on the live footage (test 3, 2026-10-15):
+  whip      blur + sideways shift across a cut          {}            (t = cut time)
+  punch     small punch-in right after a cut            {scale}
+  zoomto    slow zoom into a point of the footage       {x, y, scale}
+  callout   ellipse drawn around a point + label         {x, y, rx, ry, label}
+  beforeafter  full-frame stills ДО / ПОСЛЕ, wipe       {before, after}  (image files, copied by captions.py)
+Slam accepts {top} to move it out of the middle.
 """
 import html, random
 
@@ -68,7 +75,7 @@ def render(fx, total):
             js.append(f'tl.fromTo("#{i}",{{opacity:0}},{{opacity:.9,duration:.06}},{t:.2f});')
             js.append(f'tl.to("#{i}",{{opacity:0,duration:{max(d - .06, .1):.2f},ease:"power2.out"}},{t + .06:.2f});')
         elif kind == "slam":
-            body.append(f'<div {clip.format(cls="slam")} style="color:{f.get("color", "#FFD60A")};font-size:{f.get("size", 170)}px">'
+            body.append(f'<div {clip.format(cls="slam")} style="color:{f.get("color", "#FFD60A")};font-size:{f.get("size", 170)}px;top:{f.get("top", 640)}px">'
                         f'{html.escape(f["text"])}</div>')
             js.append(f'tl.fromTo("#{i}",{{opacity:0,scale:3.2}},{{opacity:1,scale:1,duration:.22,ease:"power4.in"}},{t:.2f});')
             js.append(f'tl.fromTo("#{i}",{{x:-18}},{{x:18,duration:.05,yoyo:true,repeat:5,ease:"none"}},{t + .22:.2f});')
@@ -169,6 +176,41 @@ def render(fx, total):
             reps = max(int((d - (p0 - t) - .2) / .5), 1)
             js.append(f'tl.to("#{i}",{{scale:1.08,duration:.25,yoyo:true,repeat:{reps * 2 - 1},ease:"sine.inOut"}},{p0:.2f});')
 
+        elif kind == "whip":
+            js.append(f'tl.to("#bg",{{x:-90,filter:"blur(14px)",duration:.1,ease:"power2.in"}},{t - .1:.2f});')
+            js.append(f'tl.fromTo("#bg",{{x:90,filter:"blur(14px)"}},{{x:0,filter:"blur(0px)",duration:.16,ease:"power2.out",immediateRender:false}},{t:.2f});')
+        elif kind == "punch":
+            js.append(f'tl.fromTo("#bg",{{scale:{f.get("scale", 1.08)}}},{{scale:1,duration:.4,ease:"power3.out",immediateRender:false}},{t:.2f});')
+        elif kind == "zoomto":
+            ox, oy = f["x"] / 10.8, f["y"] / 19.2
+            js.append(f'tl.set("#bg",{{transformOrigin:"{ox:.1f}% {oy:.1f}%"}},{t:.2f});')
+            js.append(f'tl.fromTo("#bg",{{scale:1}},{{scale:{f.get("scale", 1.3)},duration:{d:.2f},ease:"power1.inOut",immediateRender:false}},{t:.2f});')
+            js.append(f'tl.set("#bg",{{scale:1,transformOrigin:"50% 50%"}},{t + d:.2f});')
+        elif kind == "callout":
+            x, y, rx, ry = f["x"], f["y"], f.get("rx", 240), f.get("ry", 110)
+            L = int(3.3 * (rx + ry))
+            body.append(f'<div {clip.format(cls="")} style="inset:0"><svg width="1080" height="1920" style="position:absolute;left:0;top:0">'
+                        f'<ellipse id="{i}e" cx="{x}" cy="{y}" rx="{rx}" ry="{ry}" fill="none" stroke="#FFD60A" stroke-width="12" '
+                        f'stroke-linecap="round" stroke-dasharray="{L}" stroke-dashoffset="{L}" transform="rotate(-8 {x} {y})"/></svg>'
+                        f'<div class="t" id="{i}t" style="position:absolute;left:{max(x - rx, 40)}px;top:{y + ry + 20}px;font-weight:900;font-size:64px;'
+                        f'color:#FFD60A;text-shadow:0 4px 0 #000,3px 0 0 #000,-3px 0 0 #000;opacity:0">{html.escape(f.get("label", ""))}</div></div>')
+            js.append(f'tl.to("#{i}e",{{attr:{{"stroke-dashoffset":0}},duration:.45,ease:"power2.out"}},{t:.2f});')
+            js.append(f'tl.fromTo("#{i}t",{{opacity:0,y:20}},{{opacity:1,y:0,duration:.2,ease:"back.out(2)"}},{t + .3:.2f});')
+        elif kind == "beforeafter":
+            body.append(f'<div {clip.format(cls="")} style="inset:0;overflow:hidden">'
+                        f'<img src="{f["before"]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>'
+                        f'<div id="{i}w" style="position:absolute;inset:0;clip-path:inset(0 100% 0 0)">'
+                        f'<img src="{f["after"]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/></div>'
+                        f'<div id="{i}line" style="position:absolute;top:0;bottom:0;left:0;width:10px;background:#fff;box-shadow:0 0 20px #fff"></div>'
+                        f'<div style="position:absolute;left:40px;top:360px;font-weight:900;font-size:90px;color:#FF4D4D;'
+                        f'text-shadow:0 5px 0 #000,3px 0 0 #000,-3px 0 0 #000">ДО</div>'
+                        f'<div id="{i}a" style="position:absolute;right:40px;top:360px;font-weight:900;font-size:90px;color:#3DDC84;opacity:0;'
+                        f'text-shadow:0 5px 0 #000,3px 0 0 #000,-3px 0 0 #000">ПОСЛЕ ✨</div></div>')
+            w0, w1 = t + .25, t + .85
+            js.append(f'(()=>{{const s={{p:0}},w=document.getElementById("{i}w"),l=document.getElementById("{i}line");'
+                      f'tl.to(s,{{p:1,duration:{w1 - w0:.2f},ease:"power2.inOut",onUpdate:()=>{{w.style.clipPath="inset(0 "+(100-s.p*100)+"% 0 0)";'
+                      f'l.style.left=(s.p*1070)+"px"}}}},{w0:.2f});}})();')
+            js.append(f'tl.to("#{i}a",{{opacity:1,duration:.15}},{w1 - .1:.2f});')
         elif kind.startswith("b_"):
             inner = ""
             if kind == "b_count":
