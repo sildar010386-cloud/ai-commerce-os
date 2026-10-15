@@ -1,8 +1,24 @@
 {
- "taken_at": "2026-10-15T13:25:29Z",
+ "taken_at": "2026-10-15T17:00:44Z",
  "instagram": {
   "followers": 571,
   "media": [
+   {
+    "id": "18120309754738368",
+    "media_product_type": "REELS",
+    "timestamp": "2026-10-15T14:31:25+0000",
+    "permalink": "https://www.instagram.com/reel/DehLYTCjMBc/",
+    "caption": "Холодает — а тёплые вещи из шкафа все в заломах 🥶 Без гладил",
+    "insights": {
+     "views": 83,
+     "reach": 73,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "ig_reels_avg_watch_time": 4087
+    }
+   },
    {
     "id": "18011929256986778",
     "media_product_type": "REELS",
@@ -10,13 +26,13 @@
     "permalink": "https://www.instagram.com/reel/Dege3ysDIF5/",
     "caption": "Мама смеялась над этой покупкой — а теперь отпариватель живё",
     "insights": {
-     "views": 120,
-     "reach": 110,
+     "views": 122,
+     "reach": 112,
      "saved": 0,
      "shares": 0,
      "likes": 2,
      "comments": 0,
-     "ig_reels_avg_watch_time": 4801
+     "ig_reels_avg_watch_time": 4745
     }
    },
    {
@@ -27,12 +43,12 @@
     "caption": "А вы знали? 👆 Подошва утюга — до 200°, пар — около 100°. Поэ",
     "insights": {
      "views": 167,
-     "reach": 133,
+     "reach": 134,
      "saved": 0,
      "shares": 0,
      "likes": 0,
      "comments": 0,
-     "ig_reels_avg_watch_time": 4648
+     "ig_reels_avg_watch_time": 4649
     }
    },
    {
@@ -107,12 +123,12 @@
     "caption": "Подарила сестре отпариватель — а через неделю она звонит: «Н",
     "insights": {
      "views": 148,
-     "reach": 141,
+     "reach": 142,
      "saved": 0,
      "shares": 0,
      "likes": 0,
      "comments": 0,
-     "ig_reels_avg_watch_time": 4335
+     "ig_reels_avg_watch_time": 4311
     }
    },
    {
@@ -139,12 +155,12 @@
     "caption": "Распаковка без слов 🤍\nЧто бы вы отпарили первым? Пишите в ко",
     "insights": {
      "views": 120,
-     "reach": 110,
+     "reach": 111,
      "saved": 0,
      "shares": 0,
      "likes": 0,
      "comments": 0,
-     "ig_reels_avg_watch_time": 3528
+     "ig_reels_avg_watch_time": 3503
     }
    },
    {
@@ -2433,7 +2449,7 @@
    "published_at": "2026-10-15T04:31:39Z",
    "posts": [
     {
-     "views": 436,
+     "views": 444,
      "likes": 0,
      "replies": 22,
      "reposts": 0,
@@ -2463,7 +2479,7 @@
    "published_at": "2026-10-15T09:31:22Z",
    "posts": [
     {
-     "views": 77,
+     "views": 78,
      "likes": 0,
      "replies": 1,
      "reposts": 0,
@@ -2478,9 +2494,9 @@
    "published_at": "2026-10-15T10:30:55Z",
    "posts": [
     {
-     "views": 127,
+     "views": 132,
      "likes": 0,
-     "replies": 5,
+     "replies": 7,
      "reposts": 0,
      "quotes": 0,
      "shares": 0
@@ -2493,7 +2509,7 @@
    "published_at": "2026-10-15T13:02:13Z",
    "posts": [
     {
-     "views": 7,
+     "views": 26,
      "likes": 0,
      "replies": 0,
      "reposts": 0,
@@ -2508,224 +2524,224 @@
   "followers": 8,
   "videos": [
    {
-    "comment_count": 0,
+    "create_time": 1792076006,
     "duration": 19,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7696824255979261202?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "view_count": 48,
-    "title": "Мама смеялась над этой покупкой — а теперь отпариватель живёт у неё 😅 Греется за 9 секунд, гладит прямо на кровати, свитер без блеска и растянутых петель. Хотите такой же — напишите «ПАР» в комментариях, ответим в личные сообщения. Бесплатная доставка Казпочтой по всему Казахстану. #отпариватель #мама #уходзаодеждой #казахстан #алматы",
+    "id": "7696907817646558465",
+    "view_count": 29,
+    "comment_count": 0,
+    "like_count": 0,
+    "share_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7696907817646558465?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": "Холодает — а тёплые вещи из шкафа все в заломах 🥶 Без гладильной доски: 9 секунд — и пар. Хотите так же — напишите «ПАР» в комментариях, ответим в личные сообщения. Бесплатная доставка Казпочтой по всему Казахстану. #отпариватель #осень #уходзаодеждой #казахстан #алматы"
+   },
+   {
+    "id": "7696889585720118536",
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7696889585720118536?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "create_time": 1792071761,
+    "duration": 0,
+    "like_count": 0,
+    "share_count": 0,
+    "title": "",
+    "view_count": 54,
+    "comment_count": 0
+   },
+   {
     "create_time": 1792056551,
     "id": "7696824255979261202",
+    "like_count": 1,
+    "share_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7696824255979261202?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": "Мама смеялась над этой покупкой — а теперь отпариватель живёт у неё 😅 Греется за 9 секунд, гладит прямо на кровати, свитер без блеска и растянутых петель. Хотите такой же — напишите «ПАР» в комментариях, ответим в личные сообщения. Бесплатная доставка Казпочтой по всему Казахстану. #отпариватель #мама #уходзаодеждой #казахстан #алматы",
+    "view_count": 106,
+    "comment_count": 0,
+    "duration": 19
+   },
+   {
+    "comment_count": 0,
     "like_count": 0,
+    "title": "А вы знали? 👆 Подошва утюга — до 200°, пар — около 100°. Поэтому паром вещь не прожжёшь. А вы чем гладите — утюгом или паром? Пишите в комментариях 👇 #глажка #уходзаодеждой #лайфхаки #казахстан #алматы",
+    "view_count": 103,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7696777634985938194?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "create_time": 1792045703,
+    "duration": 9,
+    "id": "7696777634985938194",
     "share_count": 0
    },
    {
-    "like_count": 0,
-    "view_count": 103,
-    "comment_count": 0,
-    "duration": 9,
-    "id": "7696777634985938194",
-    "share_count": 0,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7696777634985938194?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "title": "А вы знали? 👆 Подошва утюга — до 200°, пар — около 100°. Поэтому паром вещь не прожжёшь. А вы чем гладите — утюгом или паром? Пишите в комментариях 👇 #глажка #уходзаодеждой #лайфхаки #казахстан #алматы",
-    "create_time": 1792045703
-   },
-   {
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7696641754937691399?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "title": "",
-    "comment_count": 0,
-    "duration": 0,
-    "id": "7696641754937691399",
-    "like_count": 1,
     "create_time": 1792014066,
+    "duration": 0,
+    "like_count": 2,
+    "title": "",
+    "view_count": 193,
+    "comment_count": 0,
+    "id": "7696641754937691399",
     "share_count": 0,
-    "view_count": 161
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7696641754937691399?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu"
    },
    {
     "duration": 21,
     "id": "7696544078120439058",
-    "like_count": 0,
-    "view_count": 127,
-    "comment_count": 0,
-    "create_time": 1791991317,
-    "share_count": 0,
     "share_url": "https://www.tiktok.com/@bikas.home/video/7696544078120439058?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "title": "Муж смеялся над этой покупкой — пока рубашка не понадобилась через 5 минут 😏 Греется за 9 секунд, гладит прямо на кровати — доску можно не доставать. Хотите такой же — напишите «ПАР» в комментариях, ответим в личные сообщения. Бесплатная доставка Казпочтой по всему Казахстану. #отпариватель #глажка #уходзаодеждой #казахстан #алматы"
+    "title": "Муж смеялся над этой покупкой — пока рубашка не понадобилась через 5 минут 😏 Греется за 9 секунд, гладит прямо на кровати — доску можно не доставать. Хотите такой же — напишите «ПАР» в комментариях, ответим в личные сообщения. Бесплатная доставка Казпочтой по всему Казахстану. #отпариватель #глажка #уходзаодеждой #казахстан #алматы",
+    "comment_count": 0,
+    "like_count": 0,
+    "share_count": 0,
+    "view_count": 127,
+    "create_time": 1791991317
    },
    {
-    "create_time": 1791979450,
-    "like_count": 0,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7696493111119236359?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "title": "",
     "view_count": 152,
     "comment_count": 0,
     "duration": 0,
     "id": "7696493111119236359",
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7696493111119236359?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": "",
+    "create_time": 1791979450,
+    "like_count": 0,
     "share_count": 0
    },
    {
-    "duration": 27,
+    "create_time": 1791970371,
     "id": "7696454114787495176",
     "like_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7696454114787495176?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
     "title": "Командировка, а рубашка из чемодана — гармошкой 😅 Утюга в номере нет. Ручной отпариватель помещается в маленькую коробку и ездит со мной: 9 секунд — и горячий. Хотите такой же — напишите «ПАР» в комментариях, ответим в личные сообщения. Бесплатная доставка Казпочтой по всему Казахстану. #отпариватель #командировка #путешествия #казахстан #алматы",
     "view_count": 113,
-    "create_time": 1791970371,
-    "share_count": 0,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7696454114787495176?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "comment_count": 0
+    "comment_count": 0,
+    "duration": 27,
+    "share_count": 0
    },
    {
-    "title": "",
-    "view_count": 172,
+    "comment_count": 0,
     "create_time": 1791962091,
     "duration": 0,
-    "share_count": 0,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7696418544191409416?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "comment_count": 0,
     "id": "7696418544191409416",
-    "like_count": 4
-   },
-   {
-    "like_count": 0,
+    "like_count": 4,
     "share_count": 0,
-    "title": "3 ошибки после глажки, из-за которых вещь снова мятая. Третью делают почти все 👀 1. Складываете влажной после пара 2. Тесный шкаф 3. Надеваете сразу, пока ткань тёплая Какую делали вы? Напишите номер в комментариях. Сохраните, чтобы не забыть. #глажка #уходзаодеждой #лайфхаки #казахстан #алматы",
-    "view_count": 0,
-    "create_time": 1791959277,
-    "duration": 33,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7696406443716644104?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "comment_count": 0,
-    "id": "7696406443716644104"
-   },
-   {
-    "like_count": 1,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7696160943713094920?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "title": "Подруга одолжила блузку на вечер — а она вот такая 🙈 Сколько секунд ушло, чтобы её спасти? Пишите свой вариант в комментариях 👇 #отпариватель #лайфхаки #уходзаодеждой #глажка #дом",
-    "view_count": 111,
-    "comment_count": 0,
-    "create_time": 1791902110,
-    "duration": 19,
-    "id": "7696160943713094920",
-    "share_count": 1
-   },
-   {
-    "title": "",
-    "comment_count": 0,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7696133859460517128?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "id": "7696133859460517128",
-    "like_count": 3,
-    "share_count": 0,
-    "view_count": 265,
-    "create_time": 1791895805,
-    "duration": 0
-   },
-   {
-    "comment_count": 0,
-    "create_time": 1791884374,
-    "duration": 0,
-    "like_count": 0,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7696084754826874119?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "view_count": 24,
-    "id": "7696084754826874119",
-    "share_count": 1,
+    "view_count": 172,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7696418544191409416?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
     "title": ""
    },
    {
+    "duration": 33,
+    "view_count": 0,
+    "comment_count": 0,
+    "create_time": 1791959277,
+    "id": "7696406443716644104",
+    "like_count": 0,
+    "share_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7696406443716644104?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": "3 ошибки после глажки, из-за которых вещь снова мятая. Третью делают почти все 👀 1. Складываете влажной после пара 2. Тесный шкаф 3. Надеваете сразу, пока ткань тёплая Какую делали вы? Напишите номер в комментариях. Сохраните, чтобы не забыть. #глажка #уходзаодеждой #лайфхаки #казахстан #алматы"
+   },
+   {
+    "id": "7696160943713094920",
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7696160943713094920?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": "Подруга одолжила блузку на вечер — а она вот такая 🙈 Сколько секунд ушло, чтобы её спасти? Пишите свой вариант в комментариях 👇 #отпариватель #лайфхаки #уходзаодеждой #глажка #дом",
+    "comment_count": 0,
+    "create_time": 1791902110,
+    "duration": 19,
+    "like_count": 1,
+    "share_count": 1,
+    "view_count": 112
+   },
+   {
+    "title": "",
+    "view_count": 265,
+    "comment_count": 0,
+    "duration": 0,
+    "id": "7696133859460517128",
+    "like_count": 3,
+    "share_count": 0,
+    "create_time": 1791895805,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7696133859460517128?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu"
+   },
+   {
+    "view_count": 24,
+    "comment_count": 0,
+    "create_time": 1791884374,
+    "duration": 0,
+    "id": "7696084754826874119",
+    "like_count": 0,
+    "share_count": 1,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7696084754826874119?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": ""
+   },
+   {
+    "title": "Подарила сестре отпариватель — а через неделю она звонит: «Найди такой же маме!» 😄 Греется за 9 секунд, гладит прямо на кровати и помещается в маленькую коробку. Хотите такой же — напишите «ПАР» в комментариях, ответим в личные сообщения. Бесплатная доставка Казпочтой по всему Казахстану. #отпариватель #подарок #уходзаодеждой #казахстан #алматы",
+    "comment_count": 1,
     "create_time": 1791879411,
     "duration": 26,
-    "like_count": 3,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7696063445703134471?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "comment_count": 1,
     "id": "7696063445703134471",
+    "like_count": 3,
     "share_count": 0,
-    "title": "Подарила сестре отпариватель — а через неделю она звонит: «Найди такой же маме!» 😄 Греется за 9 секунд, гладит прямо на кровати и помещается в маленькую коробку. Хотите такой же — напишите «ПАР» в комментариях, ответим в личные сообщения. Бесплатная доставка Казпочтой по всему Казахстану. #отпариватель #подарок #уходзаодеждой #казахстан #алматы",
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7696063445703134471?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
     "view_count": 128
    },
    {
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7696029842889805063?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "view_count": 126,
+    "share_count": 0,
+    "create_time": 1791871592,
     "duration": 20,
     "id": "7696029842889805063",
     "like_count": 3,
-    "share_count": 0,
+    "comment_count": 0,
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7696029842889805063?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
     "title": "Свекровь сказала: «Кофту паром не разгладишь — только утюгом» 😅 Проверили. Как думаете, признает? Пишите в комментариях 👇 #отпариватель #свекровь #уходзаодеждой #лайфхакидлядома #казахстан",
-    "comment_count": 0,
-    "create_time": 1791871592
+    "view_count": 126
    },
    {
-    "duration": 14,
     "like_count": 1,
     "share_count": 0,
-    "title": "Распаковка без слов 🤍 Что бы вы отпарили первым? Пишите в комментариях 👇 #отпариватель #распаковка #товарыдлядома #уходзаодеждой #дом",
-    "view_count": 138,
-    "comment_count": 0,
-    "id": "7695869127734430984",
     "share_url": "https://www.tiktok.com/@bikas.home/video/7695869127734430984?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "create_time": 1791834175
+    "title": "Распаковка без слов 🤍 Что бы вы отпарили первым? Пишите в комментариях 👇 #отпариватель #распаковка #товарыдлядома #уходзаодеждой #дом",
+    "create_time": 1791834175,
+    "duration": 14,
+    "id": "7695869127734430984",
+    "comment_count": 0,
+    "view_count": 138
    },
    {
-    "view_count": 25,
-    "create_time": 1791801317,
-    "like_count": 1,
-    "share_count": 0,
     "share_url": "https://www.tiktok.com/@bikas.home/video/7695728019503303954?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
     "title": "",
-    "comment_count": 0,
+    "id": "7695728019503303954",
+    "share_count": 0,
     "duration": 0,
-    "id": "7695728019503303954"
+    "like_count": 1,
+    "view_count": 25,
+    "comment_count": 0,
+    "create_time": 1791801317
    },
    {
-    "comment_count": 0,
+    "create_time": 1791797977,
     "duration": 28,
+    "id": "7695713685842447623",
     "like_count": 2,
     "share_count": 0,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7695713685842447623?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "comment_count": 0,
     "title": "8:47. В 9:00 встреча, а рубашка — вот такая 😅 Спасибо малышу: и утюг, и отпариватель, греется за 9 секунд и помещается в маленькую коробку. Хотите такой же — напишите «ПАР» в комментариях, ответим в личные сообщения. Бесплатная доставка Казпочтой по всему Казахстану. #отпариватель #утро #уходзаодеждой #казахстан #алматы",
     "view_count": 133,
-    "create_time": 1791797977,
-    "id": "7695713685842447623"
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7695713685842447623?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu"
    },
    {
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7695677489967811858?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "view_count": 11,
     "comment_count": 0,
     "create_time": 1791789553,
     "duration": 0,
     "id": "7695677489967811858",
-    "share_count": 1,
     "like_count": 0,
-    "title": ""
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7695677489967811858?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "title": "",
+    "share_count": 1,
+    "view_count": 11
    },
    {
-    "duration": 6,
     "id": "7695642021322689810",
+    "share_count": 0,
     "title": "POV: гладильная доска больше не нужна 😌 А где сейчас стоит ваша доска? Пишите в комментариях 👇 #отпариватель #глажка #лайфхакидлядома #уходзаодеждой #дом",
-    "view_count": 127,
     "comment_count": 0,
     "create_time": 1791781298,
+    "duration": 6,
     "like_count": 1,
-    "share_count": 0,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7695642021322689810?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu"
-   },
-   {
-    "create_time": 1791732481,
-    "id": "7695432372816284936",
-    "share_count": 1,
-    "title": "3 вещи, которые лучше не гладить утюгом 👇 1. Бархат — утюг приминает ворс. 2. Тонкая синтетика — может расплавиться. 3. Тёмные вещи — после утюга остаётся блеск. Сохраните, чтобы не испортить любимые вещи. А что из этого вы гладили утюгом? 😅 #уходзаодеждой #лайфхаки #отпариватель #глажка #полезныесоветы",
-    "comment_count": 0,
-    "like_count": 6,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7695432372816284936?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "view_count": 128,
-    "duration": 16
-   },
-   {
-    "comment_count": 0,
-    "duration": 0,
-    "id": "7695408370311793938",
-    "like_count": 0,
-    "share_count": 0,
-    "share_url": "https://www.tiktok.com/@bikas.home/video/7695408370311793938?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
-    "create_time": 1791726889,
-    "title": "",
-    "view_count": 198
+    "share_url": "https://www.tiktok.com/@bikas.home/video/7695642021322689810?utm_campaign=tt4d_open_api&utm_source=sbaw992f08qbgebiyu",
+    "view_count": 127
    }
   ]
  }
