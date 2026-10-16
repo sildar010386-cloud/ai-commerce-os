@@ -39,6 +39,12 @@ def render_segment(seg, out):
              "-filter_complex", vf.replace("[0:v]", "[0:v]trim=end_frame=1,loop=-1:1,")
              .replace("[1:v]", "[1:v]trim=end_frame=1,loop=-1:1,"),
              "-an", "-t", str(dur), "-c:v", "libx264", "-crf", "16", "-preset", "fast", "-pix_fmt", "yuv420p", out])
+    elif seg.get("mode") == "still":
+        # one frame held for dur with a slow push-in (for a callout that must stay on the same crease)
+        vf = (f"trim=end_frame=1,loop=-1:1,fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+              f"scale=iw*(1+0.03*t/{dur}):-2:eval=frame,crop={W}:{H},setsar=1")
+        run(["ffmpeg", "-y", "-loglevel", "error", "-ss", str(ss), "-i", src, "-vf", vf, "-an", "-t", str(dur),
+             "-c:v", "libx264", "-crf", "16", "-preset", "fast", "-pix_fmt", "yuv420p", out])
     else:
         vf = (f"setpts=PTS/{speed},fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase,"
               f"crop={W}:{H},setsar=1")
