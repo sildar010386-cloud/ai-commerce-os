@@ -95,7 +95,7 @@ def main(kind, code, sha, date, hhmm, title):
     open(f"{folder}/README.md", "w").write(s)
     sh("git", "add", "-A")
     sh("git", "commit", "-q", "-m", f"Publish {code}\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n"
-                                     "Claude-Session: https://claude.ai/code/session_01VFufGzxidoqzfwSHwp3Azx")
+                                     "Claude-Session: https://claude.ai/code/session_01YFduMoyzdw2Bucb48wkWP1")
     sh("git", "push", "-q", "origin", "HEAD")
 
 
