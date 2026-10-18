@@ -24,3 +24,7 @@ License: Remotion is free for individuals and companies of up to 3 people (remot
 ## Trail3D (2026-10-16) — 3D first frame «один проход — гладкая дорожка»
 `src/Trail3D.tsx`, 2,6 с (78 кадров): мятая белая ткань (складки — гауссовы гребни, текстура `public/cotton_tex.jpg` — высокочастотная часть фото нашей белой рубашки, raw-05 клип 5, 25,2 с), облако пара движется по диагонали, за ним складки в полосе ~0,8 опадают и ткань чуть светлеет (vertex colors). Облако — круглое распределение точек (равномерный квадрат давал видимый «квадрат»).
 Рендер: `npx remotion render src/index.ts Trail3D out.mp4 --muted --gl=swangle --concurrency=4 --browser-executable=…/headless_shell` (~3 мин), затем как клип `td46.MOV` в `raw05/` для `build.py`. Используется: REEL-46.
+
+## Wave3D (2026-10-18) — вставка 2,6 с без плашек
+`Wave3D` в `src/Mix3D.tsx`: волна пара по ткани, складки опадают за ней; плашки и субтитры добавляет слой HyperFrames. Текстура — `public/knit_photo.jpg` (гладкий участок нашей вещи из 4K-сырья, без отпаривателя в кадре, иначе он «впечатывается» в ткань). Камера ниже и ближе, чем в Mix3D, чтобы край ткани не попадал в кадр.
+Рендер ~3 мин: `npx remotion render src/index.ts Wave3D w51.mp4 --muted --gl=swangle --concurrency=4 --browser-executable=…/headless_shell`, затем как клип `raw05/w51.MOV` для `build.py`. Используется: REEL-52 (розовая кофта), REEL-53 (леопардовая блузка). Root.tsx импортирует `public/data.json` и `data41.json` — в рабочей копии нужны заглушки.

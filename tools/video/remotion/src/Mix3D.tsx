@@ -203,3 +203,22 @@ export const Mix3D: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+// 2.6 s insert without plates (the HyperFrames layer adds captions): steam wave relaxes the creases of our pink knit
+export const Wave3D: React.FC = () => {
+  const frame = useCurrentFrame();
+  const {fps, width, height: h} = useVideoConfig();
+  const t = frame / fps;
+  const front = interpolate(t, [0.1, 2.4], [-2.2, 2.2], {...clamp, easing: Easing.inOut(Easing.quad)});
+  return (
+    <AbsoluteFill style={{background: "#2a1424"}}>
+      <ThreeCanvas width={width} height={h}>
+        <Cam t={t} from={[-0.1, 2.35, 0.75]} to={[0.1, 2.2, 0.7]} dur={2.6} look={[0, 0, 0.2]} />
+        <Studio />
+        <Fabric front={front} />
+        <SteamWave t={t} front={front} />
+      </ThreeCanvas>
+      <Vignette />
+    </AbsoluteFill>
+  );
+};
