@@ -10,5 +10,6 @@
       "Bash(python3 tools/tiktok/carousel.py *)",
       "Bash(python3 tools/tiktok/tt.py *)"
     ]
-  }
+  },
+  "model": "opus"
 }
