@@ -14,6 +14,7 @@
 ## Первые шаги новой сессии
 1. Прочитать `CLAUDE.md`, этот раздел, последние записи `docs/DECISIONS.md`, `docs/MODEL_ROUTING.md`, `docs/QA_CHECKLIST.md`.
 2. Убедиться, что помощники `bikas-writer`, `bikas-researcher`, `bikas-publisher` доступны (тест без публикаций).
+   - Помощники подгружаются только при старте сессии из её стартовой ветки. Основная ветка (`claude/ai-ecommerce-automation-3n1lgz`) папки `.claude/agents/` не содержит, поэтому если сессия стартовала не с этой ветки, `subagent_type: bikas-*` даёт «not found». Обходной путь (проверен 22.10): `subagent_type: general-purpose` + `model: sonnet` (writer, researcher) или `model: haiku` (publisher), первой строкой задачи — «прочитай `.claude/agents/<роль>.md` и следуй ему».
 3. Ничего не публиковать. Коротко доложить владельцу готовность и ждать его новый подход.
 
 ---
