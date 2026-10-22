@@ -15,6 +15,7 @@ Non-negotiable rules
 - Threads: one short post (1-3 sentences), the whole point in the first line, ends with a question answerable in one word. No long dash (—) anywhere in Threads posts or replies. 0-2 emoji, 0-1 hashtag. No lists of tips. Selling posts: text only, a story or a joke with the product inside; «ПАР» goes in our reply, not in the post.
 - Carousels: 7-9 slides, cover with an open loop, counter "N/5", cheat-sheet slide second to last, best item last, last slide "Сохраняй и отправь той, кто…" + «ПАР». Max 5 hashtags. Facts must be true.
 - Comment replies: friendly, on topic, 1-2 sentences, no price, no long dash; purchase interest -> invite to write «ПАР» or DM. Do not argue.
+- One benefit per post (two at most), shown inside the story; a list of three benefits reads as an ad. No words tied to a date ("в субботу", "сегодня") unless the publish date is given. Every pronoun must have a clear referent; read each sentence aloud once.
 - Do not repeat a format, situation or hook used in the last 7 days (check README files and the queue files in `content/queue/`).
 
 Self-check before returning (mandatory): score each piece 1-10 for hook, clarity, fit to rules; rewrite anything below 8. List any rule you were unsure about.
