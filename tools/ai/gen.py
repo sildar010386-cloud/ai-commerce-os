@@ -14,7 +14,7 @@ import os, shutil, subprocess, sys
 from gradio_client import Client, handle_file
 
 TOKEN = os.environ["HF_TOKEN"]
-W, H = 704, 1216
+W, H = int(os.environ.get("GEN_W", 704)), int(os.environ.get("GEN_H", 1216))  # env override, e.g. 1024x960 for carousel photos
 NEG = "worst quality, inconsistent motion, blurry, jittery, distorted, text, watermark, logo, faces"
 
 
