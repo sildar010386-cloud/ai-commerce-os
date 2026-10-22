@@ -19,8 +19,8 @@ def call(method, path, **params):
         sys.exit(f"{method} {path}: {e.code} {e.read().decode()[:500]}")
 
 
-def wait_ready(cid):
-    for _ in range(30):
+def wait_ready(cid, tries=30):
+    for _ in range(tries):
         st = call("GET", cid, fields="status,error_message")
         if st.get("status") == "FINISHED":
             return
@@ -33,7 +33,7 @@ def wait_ready(cid):
 def parse(readme):
     posts = []
     for m in re.finditer(r"^## Пост \d+ — (.+?)\n(.*?)(?=\n## |\Z)", open(readme).read(), re.S | re.M):
-        images = re.findall(r"`([^`]+\.jpg)`", m.group(1))
+        images = re.findall(r"`([^`]+\.(?:jpg|mp4))`", m.group(1))
         posts.append((images, m.group(2).strip()))
     return posts
 
@@ -50,11 +50,13 @@ def main(code, sha, parent=None, start=1):
             for k in kids:
                 wait_ready(k)
             cid = call("POST", "me/threads", media_type="CAROUSEL", children=",".join(kids), text=text, **extra)["id"]
+        elif urls and urls[0].endswith(".mp4"):  # one short video (viral Threads format 2026-10-14: joke + product in action)
+            cid = call("POST", "me/threads", media_type="VIDEO", video_url=urls[0], text=text, **extra)["id"]
         elif urls:
             cid = call("POST", "me/threads", media_type="IMAGE", image_url=urls[0], text=text, **extra)["id"]
         else:
             cid = call("POST", "me/threads", media_type="TEXT", text=text, **extra)["id"]
-        wait_ready(cid)
+        wait_ready(cid, 100 if urls and urls[0].endswith(".mp4") else 30)
         new_id = call("POST", "me/threads_publish", creation_id=cid)["id"]
         if parent:  # every post after the first must be a reply to the previous one
             chk = call("GET", new_id, fields="is_reply,replied_to")
@@ -62,10 +64,14 @@ def main(code, sha, parent=None, start=1):
                 sys.exit(f"post {new_id} is not a reply to {parent}: {chk}. Stopped; fix before continuing.")
         parent = new_id
         ids.append(parent)
+        # Save progress after every post: if a later post fails, published.json shows exactly where to resume
+        # (2026-10-01: T-09 post 2 went out, post 3 failed, and the chain was resumed from the wrong post).
+        json.dump({"code": code, "ids": ids, "complete": False}, open(f"content/threads/{code}/published.json", "w"),
+                  ensure_ascii=False, indent=1)
         print("published", parent, text.splitlines()[0][:50], flush=True)
         time.sleep(5)
     link = call("GET", ids[0], fields="permalink").get("permalink")
-    json.dump({"code": code, "ids": ids, "permalink": link, "published_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
+    json.dump({"code": code, "ids": ids, "complete": True, "permalink": link, "published_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
               open(f"content/threads/{code}/published.json", "w"), ensure_ascii=False, indent=1)
     print("permalink", link)
 

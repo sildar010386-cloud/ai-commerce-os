@@ -1,0 +1,51 @@
+[
+ {
+  "time": "after_approval",
+  "kind": "reel",
+  "code": "REEL-04",
+  "done": "2026-10-01T14:21Z",
+  "url": "https://www.instagram.com/reel/Dd9HGjYj3Ro/"
+ },
+ {
+  "time": "after_approval",
+  "kind": "thread",
+  "code": "T-06",
+  "done": "2026-10-01T14:23Z",
+  "url": "https://www.threads.com/@bikas.home/post/Dd9HWkDEe-m"
+ },
+ {
+  "time": "20:30",
+  "kind": "thread",
+  "code": "T-07",
+  "done": "2026-10-01T15:31Z",
+  "url": "https://www.threads.com/@bikas.home/post/Dd9PLtildo1"
+ },
+ {
+  "time": "21:00",
+  "kind": "reel",
+  "code": "REEL-05",
+  "done": "2026-10-01T16:01Z",
+  "url": "https://www.instagram.com/reel/Dd9Si2ckWWk/"
+ },
+ {
+  "time": "21:30",
+  "kind": "thread",
+  "code": "T-08",
+  "done": "2026-10-01T16:31Z",
+  "url": "https://www.threads.com/@bikas.home/post/Dd9V70Am5Ag"
+ },
+ {
+  "time": "21:55",
+  "kind": "thread",
+  "code": "T-09",
+  "done": "2026-10-01T16:57Z",
+  "url": "https://www.threads.com/@bikas.home/post/Dd9Y0D3FS4q",
+  "tiktok": "not sent: spam_risk_too_many_pending_share; slides sent to owner"
+ },
+ {
+  "time": "with T-07",
+  "kind": "carousel",
+  "code": "T-04",
+  "done": "2026-10-01T15:31Z"
+ }
+]

@@ -5,11 +5,20 @@ PRIVATE repo sildar010386-cloud/bikas-music (clone at $BIKAS_MUSIC, default /hom
 the session needs add_repo access=push). Never print tokens.
 
   tt.py url        authorization link for the owner (redirect -> docs/tiktok/callback.html)
-  tt.py exchange   newest bikas-music/tiktok/code-*.txt -> tokens (secrets/tiktok_token.json), code deleted
+  tt.py exchange   newest bikas-music/tiktok/code-* -> tokens (secrets/tiktok_token.json), code deleted
   tt.py refresh    refresh the access token (24 h); refresh token lives 365 days
   tt.py me         profile + stats
   tt.py videos     own videos with views/likes/comments/shares
   tt.py creator    creator_info (privacy options, limits) required before a direct post
+  tt.py draft F    upload video file F to the TikTok inbox as a draft (owner finishes the post in the app;
+                   works without app audit, max 5 pending drafts per 24 h). Only for owner-approved videos.
+  tt.py photos CODE CAPTION.txt|- [--direct]
+                   send content/threads/CODE/carousel/*.jpg to the TikTok inbox as a photo-carousel draft with
+                   the caption (first line = title, rest = description). TikTok pulls photos only from the verified
+                   prefix PAGES (GitHub Pages, branch claude/ai-ecommerce-automation-3n1lgz, docs/tiktok/media/CODE/).
+                   --direct: DIRECT_POST as SELF_ONLY with auto music. Rejected for our unaudited app on a public
+                   account (unaudited_client_can_only_post_to_private_accounts) - kept for after an audit.
+  tt.py status ID  status of an upload by publish_id
 """
 import glob, json, os, subprocess, sys, time, urllib.parse, urllib.request
 
@@ -18,10 +27,14 @@ REDIRECT = "https://sildar010386-cloud.github.io/ai-commerce-os/tiktok/callback.
 SCOPES = "user.info.basic,user.info.profile,user.info.stats,video.list,video.upload,video.publish"
 REPO = os.environ.get("BIKAS_MUSIC", "/home/user/bikas-music")
 TOKEN_FILE = os.path.join(REPO, "secrets", "tiktok_token.json")
+PAGES = "https://sildar010386-cloud.github.io/ai-commerce-os/tiktok/media/"
 
 
 def git(*args):
-    subprocess.run(["git", "-C", REPO, *args], check=True, capture_output=True)
+    # pull/push may fail when GitHub access to the private repo is lost: keep working on the local copy
+    r = subprocess.run(["git", "-C", REPO, *args], check=args[0] not in ("pull", "push"), capture_output=True)
+    if r.returncode:
+        print(f"warning: git {args[0]} failed for {REPO}, using the local copy", file=sys.stderr)
 
 
 def push(msg):
@@ -81,6 +94,48 @@ def api(method, path, params=None, body=None):
         sys.exit(f"{path}: HTTP {e.code} {e.read().decode()[:300]}")
 
 
+def draft(path):
+    size = os.path.getsize(path)
+    # TikTok chunks: 5-64 MB each, the last one takes the remainder (up to 128 MB); small files go whole.
+    chunk = size if size <= 64 * 2**20 else 10 * 2**20
+    count = size // chunk
+    r = api("POST", "post/publish/inbox/video/init/", body={"source_info": {
+        "source": "FILE_UPLOAD", "video_size": size, "chunk_size": chunk, "total_chunk_count": count}})
+    if r.get("error", {}).get("code") != "ok":
+        sys.exit(f"init failed: {r.get('error')}")
+    with open(path, "rb") as f:
+        for i in range(count):
+            start = i * chunk
+            end = size if i == count - 1 else start + chunk
+            f.seek(start)
+            req = urllib.request.Request(r["data"]["upload_url"], data=f.read(end - start), method="PUT",
+                                         headers={"Content-Type": "video/mp4",
+                                                  "Content-Range": f"bytes {start}-{end - 1}/{size}"})
+            try:
+                urllib.request.urlopen(req, timeout=600)
+            except urllib.error.HTTPError as e:
+                sys.exit(f"upload chunk {i}: HTTP {e.code} {e.read().decode()[:300]}")
+    print("uploaded; publish_id:", r["data"]["publish_id"], "- owner finishes the post in the TikTok app inbox")
+
+
+def photos(code, caption_file, direct=False):
+    names = sorted(n for n in os.listdir(f"content/threads/{code}/carousel") if n.endswith(".jpg"))
+    # "-" = no caption: owner rule 2026-10-01, a carousel description covers the slides
+    title, _, description = ("", "", "") if caption_file == "-" else open(caption_file).read().strip().partition("\n")
+    info = {"title": title[:90], "description": description.strip()} if caption_file != "-" else {}
+    if direct:
+        info.update(privacy_level="SELF_ONLY", disable_comment=False, auto_add_music=True)
+    r = api("POST", "post/publish/content/init/", body={
+        "post_mode": "DIRECT_POST" if direct else "MEDIA_UPLOAD", "media_type": "PHOTO",
+        "post_info": info,
+        "source_info": {"source": "PULL_FROM_URL", "photo_cover_index": 0,
+                        "photo_images": [f"{PAGES}{code}/{n}" for n in names]}})
+    if r.get("error", {}).get("code") != "ok":
+        sys.exit(f"photo init failed: {r.get('error')}")
+    print("sent; publish_id:", r["data"]["publish_id"],
+          "- posted as SELF_ONLY" if direct else "- owner finishes the post in the TikTok app inbox")
+
+
 def main(cmd):
     if cmd == "url":
         q = {"client_key": os.environ["TIKTOK_CLIENT_KEY"], "scope": SCOPES, "response_type": "code",
@@ -88,7 +143,7 @@ def main(cmd):
         print("https://www.tiktok.com/v2/auth/authorize/?" + urllib.parse.urlencode(q))
     elif cmd == "exchange":
         git("pull", "-q", "origin", "main")
-        codes = sorted(glob.glob(os.path.join(REPO, "tiktok", "code-*.txt")))
+        codes = sorted(glob.glob(os.path.join(REPO, "tiktok", "code-*")))  # manual uploads may end in "."
         if not codes:
             sys.exit("no code file in bikas-music/tiktok/ yet")
         code = open(codes[-1]).read().strip()
@@ -111,6 +166,13 @@ def main(cmd):
               "view_count,like_count,comment_count,share_count"}, {"max_count": 20}), ensure_ascii=False, indent=1))
     elif cmd == "creator":
         print(json.dumps(api("POST", "post/publish/creator_info/query/", body={}), ensure_ascii=False, indent=1))
+    elif cmd == "draft":
+        draft(sys.argv[2])
+    elif cmd == "photos":
+        photos(sys.argv[2], sys.argv[3], "--direct" in sys.argv[4:])
+    elif cmd == "status":
+        print(json.dumps(api("POST", "post/publish/status/fetch/", body={"publish_id": sys.argv[2]}),
+                         ensure_ascii=False, indent=1))
     else:
         sys.exit(__doc__)
 

@@ -39,6 +39,12 @@ def render_segment(seg, out):
              "-filter_complex", vf.replace("[0:v]", "[0:v]trim=end_frame=1,loop=-1:1,")
              .replace("[1:v]", "[1:v]trim=end_frame=1,loop=-1:1,"),
              "-an", "-t", str(dur), "-c:v", "libx264", "-crf", "16", "-preset", "fast", "-pix_fmt", "yuv420p", out])
+    elif seg.get("mode") == "still":
+        # one frame held for dur with a slow push-in (for a callout that must stay on the same crease)
+        vf = (f"trim=end_frame=1,loop=-1:1,fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+              f"scale=iw*(1+0.03*t/{dur}):-2:eval=frame,crop={W}:{H},setsar=1")
+        run(["ffmpeg", "-y", "-loglevel", "error", "-ss", str(ss), "-i", src, "-vf", vf, "-an", "-t", str(dur),
+             "-c:v", "libx264", "-crf", "16", "-preset", "fast", "-pix_fmt", "yuv420p", out])
     else:
         vf = (f"setpts=PTS/{speed},fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase,"
               f"crop={W}:{H},setsar=1")
@@ -206,7 +212,9 @@ def build(name, spec):
                 "-t", f"{total:.3f}", track]
     run(vcmd)
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", f"seg_{name}/list.txt",
-           "-i", track, "-filter_complex", f"[0:v]ass={name}.ass[vout]", "-map", "[vout]", "-map", "1:a",
+           "-i", track, "-filter_complex",
+           # "burn": false -> clean video; captions and plates are added by tools/video/hyperframes/captions.py
+           f"[0:v]ass={name}.ass[vout]" if spec.get("burn", True) else "[0:v]null[vout]", "-map", "[vout]", "-map", "1:a",
            "-t", f"{total:.3f}", "-r", str(FPS), "-c:v", "libx264", "-crf", "19", "-maxrate", "7000k",
            "-bufsize", "12000k", "-preset", "medium", "-profile:v", "high", "-pix_fmt", "yuv420p",
            "-c:a", "aac", "-b:a", "160k", "-ar", "44100", "-movflags", "+faststart", f"out/{spec['file']}"]
