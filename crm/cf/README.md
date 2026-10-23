@@ -8,13 +8,12 @@
 
 | Секрет | Что это |
 |---|---|
-| `CLOUDFLARE_API_TOKEN` | Токен Cloudflare: My Profile → API Tokens → Create Token → Custom token. Права: **Workers Scripts: Edit**, **D1: Edit**, **Account Settings: Read** (аккаунт — ваш). |
+| `CLOUDFLARE_API_TOKEN` | Токен Cloudflare: My Profile → API Tokens → Create Token → шаблон **Edit Cloudflare Workers** → Use template → «+ Add more»: **Account · D1 · Edit** → Account Resources: ваш аккаунт, Zone Resources: All zones → Continue to summary → Create Token. |
 | `CLOUDFLARE_ACCOUNT_ID` | Номер аккаунта Cloudflare (Workers & Pages → справа «Account ID»). |
 | `CRM_API_KEY` | Любая длинная случайная строка (30+ символов). Это ключ, которым публикации и воронка пишут в CRM. Никому не показывайте. |
 | `CRM_ADMIN_EMAIL` | Ваша почта — по ней вы входите в CRM (например `you@gmail.com`). |
 | `CRM_ADMIN_PASSWORD` | Ваш пароль для входа, **не короче 10 символов**. |
 | `GH_DISPATCH_TOKEN` | Необязательно. Токен GitHub для кнопки «Опубликовать сейчас» прямо в CRM: Settings → Developer settings → Fine-grained tokens → доступ только к этому репозиторию, право **Actions: Read and write**. Без него кнопка открывает страницу GitHub, где нужно нажать «Run workflow». |
-| `CRM_URL` | Добавьте **после** первого запуска: адрес CRM, который выведет деплой (вида `https://bikas-crm.<имя>.workers.dev`). Нужен, чтобы публикации и воронка отправляли данные в CRM. |
 
 Один раз зайдите в Cloudflare → Workers & Pages и, если попросит, выберите имя поддомена workers.dev.
 
@@ -23,7 +22,7 @@
 1. GitHub → Actions → **CRM deploy** → Run workflow.
 2. Дождитесь зелёной галочки. В конце в журнале и на странице запуска будет адрес CRM.
 3. Откройте адрес, войдите почтой и паролем из секретов `CRM_ADMIN_EMAIL` / `CRM_ADMIN_PASSWORD`.
-4. Добавьте секрет `CRM_URL` (см. таблицу).
+4. Адрес CRM сохраняется сам (файл `crm/url.txt`), публикации и воронка начинают писать в CRM автоматически.
 
 Повторный запуск безопасен: он обновит CRM, данные не трогает, второго админа не создаёт. Чтобы обновить CRM после изменений в коде, просто запустите деплой ещё раз.
 
@@ -41,5 +40,5 @@
 
 - `src/worker.js` — API и раздача страницы; `public/` — страница (JS и CSS в файлах, инлайн-скриптов нет из-за CSP); `migrations/` — схема D1.
 - Машинные эндпоинты (заголовок `X-Api-Key`): `POST /api/hooks/lead`, `/api/hooks/content-sync`, `/api/hooks/content-status`, `/api/hooks/bot-stats`, `/api/bootstrap`.
-- Клиенты на Python: `tools/crm/client.py`, `tools/crm/sync_content.py`. Без `CRM_URL`/`CRM_API_KEY` они ничего не делают.
+- Клиенты на Python: `tools/crm/client.py`, `tools/crm/sync_content.py`. Адрес — `CRM_URL` или `crm/url.txt`; без адреса или `CRM_API_KEY` они ничего не делают.
 - Локальный запуск: `npm i wrangler@3.114.17`, `npx wrangler d1 migrations apply bikas-crm --local`, `npx wrangler dev --local --var CRM_API_KEY:test`.
