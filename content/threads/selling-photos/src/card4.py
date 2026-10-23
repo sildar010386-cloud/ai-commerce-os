@@ -5,7 +5,8 @@ import os, subprocess, sys, shutil, glob, math
 R='/home/user/ai-commerce-os/'
 F=R+'tools/tiktok/fonts'
 BG=sys.argv[1] if len(sys.argv)>1 else R+'content/carousels/K-04/src/ai_cover.jpg'
-TMP=sys.argv[2] if len(sys.argv)>2 else '/tmp/claude-0/-home-user/806654ae-ec25-5531-a118-358aebc17e29/scratchpad/'
+TMP=sys.argv[2] if len(sys.argv)>2 else __import__('tempfile').mkdtemp()+'/'
+os.makedirs(TMP, exist_ok=True)
 OUTS=[R+'content/threads/T-112/4.jpg',R+'content/threads/selling-photos/4.jpg'] if len(sys.argv)<=2 else [TMP+'4.jpg']
 PROD=R+'content/carousels/K-02/src/p1.jpg'
 BROWSER=glob.glob('/opt/pw-browsers/chromium_headless_shell-*/chrome-linux/headless_shell')[0]
