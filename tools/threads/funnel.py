@@ -15,6 +15,8 @@ from publish_thread import call  # noqa: E402
 from replies import ME, reply  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+sys.path.insert(0, os.path.abspath(ROOT))
+from tools.crm.client import post as crm_post  # noqa: E402
 CFG = json.load(open(os.path.join(ROOT, "content", "funnel", "settings.json")))
 
 
@@ -45,6 +47,7 @@ def main(dry):
         if dry:
             continue
         reply(c["id"], text)
+        crm_post("/api/hooks/lead", {"source": "Threads", "user": c["user"], "text": c["text"], "permalink": c["permalink"]})
         subprocess.run([sys.executable, os.path.join(ROOT, "tools", "telegram", "tg.py"), "send",
                         f"🔥 Threads: @{c['user']} написал «{c['text']}» под постом «{c['post']}».\n"
                         f"Ответили ссылкой на WhatsApp (+{CFG['whatsapp']}) — ждите сообщения.\n{c['permalink']}"])

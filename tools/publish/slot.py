@@ -99,7 +99,31 @@ def run(date, hhmm, items, q):
     sync_push(f"{code}: carousel sent to the bot")
 
 
+def crm_sync(error=None):
+    """Mirror the queue into the CRM (no-op when CRM_URL is unset; never fails the publishing)."""
+    try:
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+        from tools.crm import sync_content
+        sync_content.main()
+        if error:
+            sync_content.report_error(*error)
+    except Exception as e:
+        print(f"CRM sync skipped: {type(e).__name__}")
+
+
 def main(args):
+    err = None
+    try:
+        publish(args)
+    except SystemExit as e:  # still sync the CRM, then fail exactly as before
+        err = e
+    slot = tuple(args[:2]) if len(args) >= 2 and not args[0].startswith("--") else None
+    crm_sync((*slot, f"ошибка публикации ({err.code})") if err and err.code not in (0, None) and slot else None)
+    if err:
+        raise err
+
+
+def publish(args):
     sh("git", "pull", "-q", "--rebase")
     if args and args[0] == "--due":
         now = datetime.datetime.now(ALMATY)

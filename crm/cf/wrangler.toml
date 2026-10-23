@@ -1,0 +1,23 @@
+name = "bikas-crm"
+main = "src/worker.js"
+compatibility_date = "2025-01-15"
+workers_dev = true
+
+# Static UI (public/). The Worker runs first so that every asset gets the security headers.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bikas-crm"
+# Replaced by the deploy workflow (crm-deploy.yml) with the real id of the D1 database.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[vars]
+# Branch that holds the publish workflow (used by the manual-publish button).
+GH_DISPATCH_REF = "claude/ai-ecommerce-automation-3n1lgz"
+
+# Secrets (set with `wrangler secret put`, never in this file): CRM_API_KEY, GH_DISPATCH_TOKEN (optional).
