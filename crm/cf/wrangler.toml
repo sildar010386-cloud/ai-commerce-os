@@ -16,6 +16,10 @@ database_name = "bikas-crm"
 database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
 
+# Every 5 minutes 09:00-20:55 Almaty (UTC+5): start publishing as soon as an approved slot is due (worker.js autoPublish).
+[triggers]
+crons = ["*/5 4-15 * * *"]
+
 [vars]
 # Branch that holds the publish workflow (used by the manual-publish button).
 GH_DISPATCH_REF = "claude/ai-ecommerce-automation-3n1lgz"

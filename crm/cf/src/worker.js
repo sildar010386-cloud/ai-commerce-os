@@ -737,7 +737,39 @@ async function api(req, env, url) {
   fail(404, 'Не найдено');
 }
 
+/* ---------- punctual autopublishing ----------
+   GitHub starts its own scheduled runs 10-40 min late, so a Cloudflare cron (wrangler.toml [triggers]) checks every
+   5 minutes whether an approved slot is due and still waiting, and if so starts the publish workflow right away.
+   GitHub's schedule stays as the backup; publish.yml runs one at a time and never posts a done slot twice. */
+async function autoPublish(env) {
+  if (!env.GH_DISPATCH_TOKEN) return;
+  const almaty = new Date(Date.now() + 5 * 3600 * 1000).toISOString();
+  const date = almaty.slice(0, 10), time = almaty.slice(11, 16);
+  const due = await env.DB.prepare(
+    "SELECT COUNT(*) AS n FROM content WHERE date = ? AND time <= ? AND approved = 1 AND status = 'ждёт'"
+  ).bind(date, time).first();
+  if (!due || !due.n) return;
+  const last = await env.DB.prepare("SELECT value FROM settings WHERE key = 'auto_dispatch_at'").first();
+  if (last && Date.now() - Number(last.value) < 9 * 60 * 1000) return;  // a run started recently is still working
+  const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/publish.yml/dispatches`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.GH_DISPATCH_TOKEN}`, Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'bikas-crm', 'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ ref: env.GH_DISPATCH_REF || 'claude/ai-ecommerce-automation-3n1lgz', inputs: { date: '', time: '' } })
+  });
+  if (resp.status !== 204) { console.error('auto publish dispatch failed:', resp.status); return; }
+  await env.DB.prepare(
+    "INSERT INTO settings (key, value) VALUES ('auto_dispatch_at', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+  ).bind(String(Date.now())).run();
+}
+
 export default {
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(autoPublish(env));
+  },
+
   async fetch(req, env) {
     const url = new URL(req.url);
     if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
