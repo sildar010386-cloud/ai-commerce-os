@@ -1,0 +1,44 @@
+# Bikas Home funnel step 1: reply to «пар» comments in Threads with the WhatsApp link, without Claude.
+# Code and settings come from the working branch (repository variable PUBLISH_BRANCH, or the default below).
+# Read-only: nothing is committed; a comment counts as handled once @bikas.home has replied to it.
+name: Funnel
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: funnel
+  cancel-in-progress: false
+jobs:
+  funnel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ vars.PUBLISH_BRANCH || 'claude/practical-mendel-vjtsd5' }}
+          sparse-checkout: |
+            tools
+            content/funnel
+      - name: Answer «пар» comments
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          BIKAS_MUSIC: /tmp/no-private-repo
+        run: python3 tools/threads/funnel.py
+      - name: Tell the owner in Telegram if the run failed
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # at most one alert an hour (the :07 run), so an API outage does not flood the bot
+          [ "$(date -u +%M)" -lt 15 ] || exit 0
+          curl -sS -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "disable_web_page_preview=true" \
+            --data-urlencode "text=⚠️ Автоответ на «пар» в Threads не сработал, проверка повторяется каждые 15 минут. Если повторяется — напишите Claude. Подробности: ${RUN_URL}"
