@@ -1,0 +1,107 @@
+# Deploys the Bikas CRM (Cloudflare Worker + D1) from crm/cf/. Manual run only.
+# Move this file to .github/workflows/ (the CRM build session may not write there).
+# Security: workflow_dispatch needs write access to the repo; secrets are masked in logs and reach the shell
+# only through env (never through ${{ }} inside run scripts).
+name: CRM deploy
+on:
+  workflow_dispatch:
+permissions:
+  contents: write  # only to save the CRM address to crm/url.txt on the working branch
+concurrency:
+  group: crm-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: crm/cf
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CRM_API_KEY: ${{ secrets.CRM_API_KEY }}
+      GH_DISPATCH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
+      CRM_ADMIN_EMAIL: ${{ secrets.CRM_ADMIN_EMAIL }}
+      CRM_ADMIN_PASSWORD: ${{ secrets.CRM_ADMIN_PASSWORD }}
+      WRANGLER_SEND_METRICS: "false"
+      WRANGLER: wrangler@3.114.17
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ vars.PUBLISH_BRANCH || 'claude/practical-mendel-vjtsd5' }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check that the required secrets are set
+        run: |
+          missing=""
+          for v in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID CRM_API_KEY CRM_ADMIN_EMAIL CRM_ADMIN_PASSWORD; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then echo "::error::Missing GitHub secrets:$missing"; exit 1; fi
+
+      - name: Create the D1 database if it does not exist and write its id into wrangler.toml
+        run: |
+          npx --yes "$WRANGLER" d1 list --json > d1.json
+          id=$(jq -r '.[] | select(.name == "bikas-crm") | .uuid' d1.json | head -n1)
+          if [ -z "$id" ]; then
+            npx --yes "$WRANGLER" d1 create bikas-crm
+            npx --yes "$WRANGLER" d1 list --json > d1.json
+            id=$(jq -r '.[] | select(.name == "bikas-crm") | .uuid' d1.json | head -n1)
+          fi
+          [ -n "$id" ] || { echo "::error::D1 database id not found"; exit 1; }
+          sed -i "s/^database_id = .*/database_id = \"$id\"/" wrangler.toml
+          grep -n '^database_id' wrangler.toml
+
+      - name: Apply migrations
+        run: npx --yes "$WRANGLER" d1 migrations apply bikas-crm --remote
+
+      - name: Deploy the Worker
+        run: |
+          npx --yes "$WRANGLER" deploy 2>&1 | tee deploy.log
+          url=$(grep -oE 'https://[A-Za-z0-9._-]+\.workers\.dev' deploy.log | head -n1)
+          echo "CRM_URL_FOUND=$url" >> "$GITHUB_ENV"
+
+      - name: Set Worker secrets
+        run: |
+          printf '%s' "$CRM_API_KEY" | npx --yes "$WRANGLER" secret put CRM_API_KEY
+          if [ -n "$GH_DISPATCH_TOKEN" ]; then
+            printf '%s' "$GH_DISPATCH_TOKEN" | npx --yes "$WRANGLER" secret put GH_DISPATCH_TOKEN
+          else
+            echo "GH_DISPATCH_TOKEN is not set: the manual-publish button will open the GitHub page instead."
+          fi
+
+      - name: Create the first admin (409 = already exists, fine)
+        run: |
+          [ -n "$CRM_URL_FOUND" ] || { echo "::error::workers.dev URL not found in the deploy log"; exit 1; }
+          body=$(jq -n --arg l "$CRM_ADMIN_EMAIL" --arg p "$CRM_ADMIN_PASSWORD" '{email: $l, password: $p}')
+          code=000
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o resp.txt -w '%{http_code}' -X POST "$CRM_URL_FOUND/api/bootstrap" \
+              -H "X-Api-Key: $CRM_API_KEY" -H 'Content-Type: application/json' -d "$body" || true)
+            case "$code" in 201|409) break ;; esac
+            sleep 10
+          done
+          echo "bootstrap answered HTTP $code"
+          case "$code" in
+            201) echo "Admin created." ;;
+            409) echo "Admin already exists, nothing changed." ;;
+            *) echo "::error::bootstrap failed (HTTP $code): $(head -c 300 resp.txt)"; exit 1 ;;
+          esac
+
+      - name: Save the CRM address for publishing and the funnel (crm/url.txt)
+        working-directory: .
+        run: |
+          printf '%s\n' "$CRM_URL_FOUND" > crm/url.txt
+          git config user.name "bikas-autopublish"
+          git config user.email "bikas-autopublish@users.noreply.github.com"
+          git add crm/url.txt
+          git diff --cached --quiet || { git commit -q -m "CRM address" && git pull -q --rebase && git push -q origin HEAD; }
+
+      - name: Result
+        run: |
+          echo "CRM is live: $CRM_URL_FOUND"
+          echo "### CRM: $CRM_URL_FOUND" >> "$GITHUB_STEP_SUMMARY"

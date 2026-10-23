@@ -22,11 +22,13 @@ jobs:
           sparse-checkout: |
             tools
             content/funnel
+            crm
       - name: Answer «пар» comments
         env:
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          CRM_API_KEY: ${{ secrets.CRM_API_KEY }}
           BIKAS_MUSIC: /tmp/no-private-repo
         run: python3 tools/threads/funnel.py
       - name: Tell the owner in Telegram if the run failed
