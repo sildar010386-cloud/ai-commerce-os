@@ -5,14 +5,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
---bg:#F4F5F7;--card:#FFFFFF;--fg:#1F2430;--muted:#5B6270;--line:#E3E6EB;--line2:#EEF0F3;
+--bg:#EDF1F8;--card:#FFFFFF;--fg:#1F2430;--muted:#5B6270;--line:#E3E6EB;--line2:#EEF0F3;
 --accent:#1D4ED8;--accent-fg:#FFFFFF;--accent-bg:#EAF0FF;--field:#FFFFFF;--field-line:#D5D9E0;
---chip-on-bg:#1F2430;--chip-on-fg:#FFFFFF;--danger:#B42318;--danger-bg:#FFE0E0;--ok:#0F5132;
+--chip-on-bg:#1F2430;--chip-on-fg:#FFFFFF;--danger:#B42318;--danger-bg:#FFE0E0;--ok:#15803D;
 --warn-bg:#FFF7E0;--warn-line:#F1D58A;--warn-fg:#6B4E00;--shadow:rgba(15,20,30,.15);--scrim:rgba(15,20,30,.45);
 --c1:#1D4ED8;--c2:#C2410C;--c3:#0F766E;--c4:#6B21A8;--c5:#6B7280;
---s-new-bg:#DBE7FF;--s-new-fg:#1E3A8A;--s-work-bg:#FFF1C2;--s-work-fg:#6B4E00;--s-pay-bg:#FFE2CC;--s-pay-fg:#8A3B00;
---s-paid-bg:#D6F5E3;--s-paid-fg:#0F5132;--s-sent-bg:#E3E0FF;--s-sent-fg:#3B2A8F;--s-done-bg:#E6E9EE;--s-done-fg:#2E3440;
---s-cancel-bg:#FFE0E0;--s-cancel-fg:#8A1C1C;
+--s-new:#1D4ED8;--s-new-on:#FFFFFF;--s-new-ink:#1D4ED8;--s-new-row:#DFE6FA;--s-accepted:#4ADE80;--s-accepted-on:#052E16;--s-accepted-ink:#15803D;--s-accepted-row:#E6FAED;
+--s-pay:#FBBF24;--s-pay-on:#3B2A00;--s-pay-ink:#92600A;--s-pay-row:#FEF6E0;--s-reserve:#7E22CE;--s-reserve-on:#FFFFFF;--s-reserve-ink:#7E22CE;--s-reserve-row:#EDE0F8;
+--s-paid:#166534;--s-paid-on:#FFFFFF;--s-paid-ink:#166534;--s-paid-row:#DEE9E3;--s-sent:#0E7490;--s-sent-on:#FFFFFF;--s-sent-ink:#0E7490;--s-sent-row:#DDECEF;
+--s-done:#4D6B5A;--s-done-on:#FFFFFF;--s-done-ink:#4D6B5A;--s-done-row:#E6EAE8;--s-cancel:#DC2626;--s-cancel-on:#FFFFFF;--s-cancel-ink:#B91C1C;--s-cancel-row:#FAE1E1;
+--h1:#1E3A8A;
 color-scheme:light;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
@@ -21,9 +23,11 @@ color-scheme:light;
 --chip-on-bg:#E8EAEE;--chip-on-fg:#12151B;--danger:#FF8A80;--danger-bg:#3A1D1D;--ok:#7ADBA6;
 --warn-bg:#3A2F10;--warn-line:#6B5518;--warn-fg:#F3D98B;--shadow:rgba(0,0,0,.5);--scrim:rgba(0,0,0,.6);
 --c1:#7BA2FF;--c2:#FB9A62;--c3:#4FD1C5;--c4:#C79BFF;--c5:#9AA3B2;
---s-new-bg:#1E2D55;--s-new-fg:#B9CDFF;--s-work-bg:#4A3C0E;--s-work-fg:#F6DC8A;--s-pay-bg:#51280D;--s-pay-fg:#FFC9A0;
---s-paid-bg:#123B27;--s-paid-fg:#9BE3BC;--s-sent-bg:#2B2559;--s-sent-fg:#C9C3FF;--s-done-bg:#2B3039;--s-done-fg:#C5CBD6;
---s-cancel-bg:#502020;--s-cancel-fg:#FFB4B4;
+--s-new:#60A5FA;--s-new-on:#0B1B3F;--s-new-ink:#7FB2FF;--s-new-row:#233042;--s-accepted:#4ADE80;--s-accepted-on:#052E16;--s-accepted-ink:#4ADE80;--s-accepted-row:#213733;
+--s-pay:#FBBF24;--s-pay-on:#2B1D00;--s-pay-ink:#FBBF24;--s-pay-row:#363328;--s-reserve:#C084FC;--s-reserve-on:#2E0A52;--s-reserve-ink:#CFA0FF;--s-reserve-row:#2F2C42;
+--s-paid:#15803D;--s-paid-on:#FFFFFF;--s-paid-ink:#5BD98A;--s-paid-row:#1A2C2B;--s-sent:#22D3EE;--s-sent-on:#042F3A;--s-sent-ink:#22D3EE;--s-sent-row:#1C3541;
+--s-done:#9DB5A6;--s-done-on:#14201A;--s-done-ink:#B7CBBF;--s-done-row:#2B3238;--s-cancel:#F87171;--s-cancel-on:#450A0A;--s-cancel-ink:#FF9A9A;--s-cancel-row:#362A32;
+--h1:#BFD2FF;
 color-scheme:dark;}}
 :root[data-theme="dark"]{
 --bg:#12151B;--card:#1B2029;--fg:#E8EAEE;--muted:#9AA3B2;--line:#2B323E;--line2:#242A35;
@@ -31,9 +35,11 @@ color-scheme:dark;}}
 --chip-on-bg:#E8EAEE;--chip-on-fg:#12151B;--danger:#FF8A80;--danger-bg:#3A1D1D;--ok:#7ADBA6;
 --warn-bg:#3A2F10;--warn-line:#6B5518;--warn-fg:#F3D98B;--shadow:rgba(0,0,0,.5);--scrim:rgba(0,0,0,.6);
 --c1:#7BA2FF;--c2:#FB9A62;--c3:#4FD1C5;--c4:#C79BFF;--c5:#9AA3B2;
---s-new-bg:#1E2D55;--s-new-fg:#B9CDFF;--s-work-bg:#4A3C0E;--s-work-fg:#F6DC8A;--s-pay-bg:#51280D;--s-pay-fg:#FFC9A0;
---s-paid-bg:#123B27;--s-paid-fg:#9BE3BC;--s-sent-bg:#2B2559;--s-sent-fg:#C9C3FF;--s-done-bg:#2B3039;--s-done-fg:#C5CBD6;
---s-cancel-bg:#502020;--s-cancel-fg:#FFB4B4;
+--s-new:#60A5FA;--s-new-on:#0B1B3F;--s-new-ink:#7FB2FF;--s-new-row:#233042;--s-accepted:#4ADE80;--s-accepted-on:#052E16;--s-accepted-ink:#4ADE80;--s-accepted-row:#213733;
+--s-pay:#FBBF24;--s-pay-on:#2B1D00;--s-pay-ink:#FBBF24;--s-pay-row:#363328;--s-reserve:#C084FC;--s-reserve-on:#2E0A52;--s-reserve-ink:#CFA0FF;--s-reserve-row:#2F2C42;
+--s-paid:#15803D;--s-paid-on:#FFFFFF;--s-paid-ink:#5BD98A;--s-paid-row:#1A2C2B;--s-sent:#22D3EE;--s-sent-on:#042F3A;--s-sent-ink:#22D3EE;--s-sent-row:#1C3541;
+--s-done:#9DB5A6;--s-done-on:#14201A;--s-done-ink:#B7CBBF;--s-done-row:#2B3238;--s-cancel:#F87171;--s-cancel-on:#450A0A;--s-cancel-ink:#FF9A9A;--s-cancel-row:#362A32;
+--h1:#BFD2FF;
 color-scheme:dark;}
 
 *,*::before,*::after{box-sizing:border-box}
@@ -46,14 +52,14 @@ small{font-size:12px;color:var(--muted)}
 .wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 
 /* header */
-.hdr{background:var(--card);border-bottom:1px solid var(--line)}
+.hdr{background:var(--card);border-bottom:1px solid var(--line);border-top:3px solid var(--accent)}
 .hdr-in{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding-top:10px;padding-bottom:10px}
 .menu-btn{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--field-line);border-radius:8px;padding:0 14px;min-height:44px;font-weight:600;font-size:15px}
 .logo{font-weight:700;font-size:20px;letter-spacing:-.2px}
 .logo span{color:var(--accent)}
 .tabs{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .tab{border:0;background:transparent;border-radius:8px;padding:0 14px;min-height:44px;font-size:15px;white-space:nowrap}
-.tab.on{background:var(--accent-bg);color:var(--accent);font-weight:600}
+.tab.on{background:var(--accent);color:var(--accent-fg);font-weight:600}
 .role{margin-left:auto;font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:6px 12px;white-space:nowrap}
 .role:empty{display:none}
 @media (max-width:720px){
@@ -64,13 +70,16 @@ main{padding-top:16px;padding-bottom:48px;display:flex;flex-direction:column;gap
 
 /* generic blocks */
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
-.h1{font-size:20px;font-weight:700}
+.h1{font-size:20px;font-weight:700;color:var(--h1);display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px}
+.h1::before{content:"";width:5px;height:22px;border-radius:3px;background:var(--accent);flex:0 0 auto}
 .h1 small{font-weight:500;margin-left:6px}
 .muted{color:var(--muted)}
 .row-flex{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .grow{margin-left:auto}
 .chip{border-radius:999px;padding:0 14px;min-height:44px;font-size:14px;background:var(--card);border:1px solid var(--field-line);white-space:nowrap}
 .chip.on{background:var(--chip-on-bg);color:var(--chip-on-fg);border-color:var(--chip-on-bg)}
+.chip.cs{border:2px solid var(--st);color:var(--st-ink);font-weight:600}
+.chip.cs.on{background:var(--st);color:var(--st-on);border-color:var(--st)}
 .chip b{margin-left:4px}
 .btn{border-radius:8px;min-height:44px;padding:0 16px;font-weight:600;font-size:14px;border:1px solid var(--accent);background:var(--card);color:var(--accent)}
 .btn.pri{background:var(--accent);color:var(--accent-fg)}
@@ -78,15 +87,18 @@ main{padding-top:16px;padding-bottom:48px;display:flex;flex-direction:column;gap
 .btn.dngf{background:var(--danger);border-color:var(--danger);color:var(--card)}
 .btn.sm{padding:0 12px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
+a.btn{display:inline-flex;align-items:center;text-decoration:none}
 .icon-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;min-width:44px;border:1px solid var(--field-line);background:var(--bg);border-radius:8px;padding:0 12px;font-size:14px;font-weight:600}
 .badge{display:inline-block;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600;white-space:nowrap}
-.b-new{background:var(--s-new-bg);color:var(--s-new-fg)}
-.b-work{background:var(--s-work-bg);color:var(--s-work-fg)}
-.b-pay{background:var(--s-pay-bg);color:var(--s-pay-fg)}
-.b-paid{background:var(--s-paid-bg);color:var(--s-paid-fg)}
-.b-sent{background:var(--s-sent-bg);color:var(--s-sent-fg)}
-.b-done{background:var(--s-done-bg);color:var(--s-done-fg)}
-.b-cancel{background:var(--s-cancel-bg);color:var(--s-cancel-fg)}
+.s-new{--st:var(--s-new);--st-on:var(--s-new-on);--st-ink:var(--s-new-ink);--st-row:var(--s-new-row)}
+.s-accepted{--st:var(--s-accepted);--st-on:var(--s-accepted-on);--st-ink:var(--s-accepted-ink);--st-row:var(--s-accepted-row)}
+.s-pay{--st:var(--s-pay);--st-on:var(--s-pay-on);--st-ink:var(--s-pay-ink);--st-row:var(--s-pay-row)}
+.s-reserve{--st:var(--s-reserve);--st-on:var(--s-reserve-on);--st-ink:var(--s-reserve-ink);--st-row:var(--s-reserve-row)}
+.s-paid{--st:var(--s-paid);--st-on:var(--s-paid-on);--st-ink:var(--s-paid-ink);--st-row:var(--s-paid-row)}
+.s-sent{--st:var(--s-sent);--st-on:var(--s-sent-on);--st-ink:var(--s-sent-ink);--st-row:var(--s-sent-row)}
+.s-done{--st:var(--s-done);--st-on:var(--s-done-on);--st-ink:var(--s-done-ink);--st-row:var(--s-done-row)}
+.s-cancel{--st:var(--s-cancel);--st-on:var(--s-cancel-on);--st-ink:var(--s-cancel-ink);--st-row:var(--s-cancel-row)}
+.bs{background:var(--st);color:var(--st-on)}
 .b-ex{background:var(--line2);color:var(--muted);font-weight:500;font-size:11px;padding:2px 8px;margin-left:6px}
 .notice{background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-fg);border-radius:10px;padding:10px 14px;font-size:14px}
 .empty{padding:28px 16px;text-align:center;color:var(--muted)}
@@ -105,8 +117,11 @@ table.t td{padding:10px 16px;border-bottom:1px solid var(--line2);vertical-align
 table.t tr:last-child td{border-bottom:0}
 table.t td input{max-width:130px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.kpi{border-top:4px solid var(--kc,var(--accent))}
 .kpi .k{font-size:13px;color:var(--muted)}
-.kpi .v{font-size:28px;font-weight:700;margin-top:6px;word-break:break-word}
+.kpi .v{font-size:28px;font-weight:700;margin-top:6px;word-break:break-word;color:var(--kc,var(--accent))}
+.kc1{--kc:var(--accent)}.kc2{--kc:var(--c4)}.kc3{--kc:var(--c3)}.kc4{--kc:var(--ok)}
+.card.top-g{border-top:4px solid var(--ok)}
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px}
 .bar-line{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px;gap:8px}
 .bar{height:10px;background:var(--line2);border-radius:6px;overflow:hidden}
@@ -118,17 +133,33 @@ table.t td input{max-width:130px}
 .eco-row input{width:120px}
 .eco-row .u{width:16px;color:var(--muted)}
 .sum-line{display:flex;justify-content:space-between;gap:12px;font-size:15px;padding:6px 0}
+.sum-line.big span:last-child{font-size:20px}
 .sum-line.big{font-size:18px;font-weight:700;padding-top:10px;margin-top:4px;border-top:1px solid var(--line)}
 
 /* orders list */
 .otbl{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
-.otbl-in{min-width:860px}
-.ohead,.orow{display:grid;grid-template-columns:80px 110px 1.3fr 1.4fr 110px 120px 150px;gap:12px;align-items:center;padding:12px 16px}
+.otbl-in{min-width:900px}
+.ohead,.orow{display:grid;grid-template-columns:70px 110px 1.3fr 1.3fr 110px 110px 180px;gap:12px;align-items:center;padding:12px 16px}
 .ohead{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--line)}
-.orow{width:100%;text-align:left;background:var(--card);border:0;border-bottom:1px solid var(--line2);min-height:56px;font-size:14px}
-.orow:hover{background:var(--bg)}
+.orow{width:100%;text-align:left;background:var(--st-row,var(--card));box-shadow:inset 4px 0 0 var(--st,transparent);color:var(--fg);cursor:pointer;border:0;border-bottom:1px solid var(--line2);min-height:64px;font-size:14px}
+.orow:hover{filter:brightness(.96)}
+.orow .c-st{min-width:0}
+.orow .dl{display:block;margin-top:3px;font-size:12px;overflow-wrap:anywhere}
+.orow .dl.due{color:var(--danger);font-weight:600}
+.stsel{position:relative;display:block;border-radius:10px;background:var(--st);color:var(--st-on)}
+.stsel::after{content:"";position:absolute;right:14px;top:50%;width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.stsel select{-webkit-appearance:none;appearance:none;background:transparent;color:inherit;border:0;border-radius:10px;font-weight:700;padding:0 34px 0 12px;min-height:44px;width:100%;cursor:pointer}
+.stsel select option{background:var(--card);color:var(--fg)}
+.stsel select:focus-visible{outline:3px solid var(--st-ink);outline-offset:2px}
+.stsel.big select{min-height:56px;font-size:18px;padding-left:16px}
+.stsel.big::after{right:18px;width:9px;height:9px}
+.remind{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:12px;font-size:16px;font-weight:700;text-align:left;background:var(--st);color:var(--st-on)}
+.remind small{color:inherit;font-weight:500}
+.remind.on{outline:3px solid var(--st-ink);outline-offset:2px}
+.xblk{display:flex;flex-direction:column;gap:10px;padding:12px 12px 12px 16px;border-radius:12px;background:var(--st-row);box-shadow:inset 4px 0 0 var(--st)}
+.need{background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-fg);border-radius:8px;padding:8px 12px;font-size:13px}
 .orow:last-child{border-bottom:0}
-.orow.ex{opacity:.6}
+.orow.ex{opacity:.75}
 .orow .cl b{display:block;font-weight:600}
 .orow .sum{font-weight:600}
 .orow .dim{color:var(--muted)}
@@ -137,7 +168,7 @@ table.t td input{max-width:130px}
  .ohead{display:none}
  .orow{grid-template-columns:1fr auto;grid-template-areas:"num st" "cl sum" "pr src" "dt dt";gap:4px 12px;padding:12px 16px}
  .orow .c-num{grid-area:num;font-weight:600}
- .orow .c-st{grid-area:st;justify-self:end}
+ .orow .c-st{grid-area:st;justify-self:end;min-width:160px;text-align:right}
  .orow .cl{grid-area:cl}
  .orow .sum{grid-area:sum;justify-self:end}
  .orow .c-pr{grid-area:pr;font-size:13px}
@@ -146,7 +177,7 @@ table.t td input{max-width:130px}
 }
 
 /* content */
-.slot{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:12px 16px;border-bottom:1px solid var(--line2)}
+.slot{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:12px 16px;border-bottom:1px solid var(--line2);background:var(--st-row,var(--card));box-shadow:inset 4px 0 0 var(--st,transparent)}
 .slot:last-child{border-bottom:0}
 .slot .tm{font-weight:700;width:52px}
 .slot .pl{width:170px;font-size:13px;color:var(--muted)}
@@ -165,9 +196,6 @@ table.t td input{max-width:130px}
 .panel{background:var(--card);width:100%;max-width:480px;height:100%;overflow-y:auto;padding:20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:max(20px,env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
 .panel .ph{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .panel .ph .t{font-size:20px;font-weight:700}
-.sts{display:flex;flex-wrap:wrap;gap:6px}
-.stb{border-radius:8px;padding:0 12px;min-height:44px;font-size:13px;font-weight:600;border:1px solid var(--field-line);background:var(--card)}
-.stb.on{border-width:2px;border-color:currentColor}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .phone-row{display:flex;gap:8px}
 .phone-row input{flex:1;min-width:0}
@@ -199,8 +227,13 @@ table.t td input{max-width:130px}
 'use strict';
 
 /* ---------- constants ---------- */
-var ST = [['new', 'Новый'], ['work', 'В работе'], ['pay', 'Ждёт оплату'], ['paid', 'Оплачен'], ['sent', 'Отправлен'], ['done', 'Получен'], ['cancel', 'Отказ']];
+var ST = [['new', 'Новый'], ['accepted', 'Принят'], ['pay', 'Ждёт оплату'], ['reserve', 'Резерв'], ['paid', 'Оплачен'], ['sent', 'Отправлен'], ['done', 'Получен'], ['cancel', 'Отказ']];
 var STN = {}; ST.forEach(function (s) { STN[s[0]] = s[1]; });
+var NEEDS = { reserve: 1, sent: 1 }; // statuses that need extra fields before they can be saved
+var DELIVERY = ['Казпочта', 'Курьер', 'СДЭК'];
+var PUBLISH_URL = 'https://github.com/sildar010386-cloud/ai-commerce-os/actions/workflows/publish.yml';
+// Normalised order status: legacy "work" reads as "accepted", unknown keys as "new" (no database rewrite).
+function ostat(o) { var k = o && o.status; if (k === 'work') return 'accepted'; return STN[k] ? k : 'new'; }
 var PAID = { paid: 1, sent: 1, done: 1 };
 var SOURCES = ['Threads', 'Instagram', 'TikTok', 'WhatsApp', 'Другое'];
 var PERIODS = [['today', 'Сегодня', 1], ['week', 'Неделя', 7], ['month', 'Месяц', 30]];
@@ -210,7 +243,7 @@ var LOW_STOCK = 5;
 var TZ = 'Asia/Almaty';
 var MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 var WDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-var CONTENT_STATUS = { 'ждёт': 'b-done', 'вышел': 'b-paid', 'в боте': 'b-new', 'ошибка': 'b-cancel' };
+var CONTENT_STATUS = { 'ждёт': 's-pay', 'вышел': 's-paid', 'в боте': 's-accepted', 'ошибка': 's-cancel' };
 
 /* ---------- state ---------- */
 var S = {
@@ -309,6 +342,10 @@ function fmtDate(iso) {
   if (diff === 1) return 'вчера ' + hm;
   return p.d + ' ' + MONTHS[p.m - 1] + ' ' + hm;
 }
+function fmtDay(key) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key || '');
+  return m ? (+m[3]) + ' ' + MONTHS[+m[2] - 1] : '';
+}
 function dayLabel(key) {
   var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key || '');
   if (!m) return key || '';
@@ -369,6 +406,15 @@ function errNotice(key) {
   return S.errors[key] ? '<div class="notice">Не загрузилось: ' + esc(S.errors[key]) + '</div>' : '';
 }
 
+function stSelectHTML(st, selAttrs, big) {
+  return '<div class="stsel s-' + st + (big ? ' big" id="card-stw' : '') + '"><select ' + selAttrs + '>' + ST.map(function (x) {
+    return '<option value="' + x[0] + '"' + (x[0] === st ? ' selected' : '') + '>' + x[1] + '</option>';
+  }).join('') + '</select></div>';
+}
+function remindDue() {
+  var t = todayP(), key = t ? t.key : '';
+  return S.data.orders.filter(function (o) { return ostat(o) === 'reserve' && o.remindAt && o.remindAt <= key; });
+}
 function renderOrders() {
   if (!S.loaded.orders) return loadingHTML();
   var q = S.q.trim().toLowerCase(), qd = q.replace(/\D/g, '');
@@ -379,27 +425,37 @@ function renderOrders() {
     return qd.length >= 3 && String(o.phone || '').replace(/\D/g, '').indexOf(qd) >= 0;
   });
   var counts = { all: all.length };
-  ST.forEach(function (s) { counts[s[0]] = all.filter(function (o) { return o.status === s[0]; }).length; });
-  var list = all.filter(function (o) { return S.filter === 'all' || o.status === S.filter; }).sort(byNumDesc);
-  var chips = [['all', 'Все']].concat(ST).map(function (s) {
-    return '<button type="button" class="chip' + (S.filter === s[0] ? ' on' : '') + '" data-act="filter" data-f="' + s[0] + '">' + s[1] + ' <b>' + counts[s[0]] + '</b></button>';
+  ST.forEach(function (s) { counts[s[0]] = all.filter(function (o) { return ostat(o) === s[0]; }).length; });
+  var tp = todayP(), today = tp ? tp.key : '';
+  var due = remindDue(), dueIds = {};
+  due.forEach(function (o) { dueIds[o.id] = 1; });
+  var list = all.filter(function (o) {
+    if (S.filter === 'remind') return !!dueIds[o.id];
+    return S.filter === 'all' || ostat(o) === S.filter;
+  }).sort(byNumDesc);
+  var chips = '<button type="button" class="chip' + (S.filter === 'all' ? ' on' : '') + '" data-act="filter" data-f="all">Все <b>' + counts.all + '</b></button>' + ST.map(function (s) {
+    return '<button type="button" class="chip cs s-' + s[0] + (S.filter === s[0] ? ' on' : '') + '" data-act="filter" data-f="' + s[0] + '">' + s[1] + ' <b>' + counts[s[0]] + '</b></button>';
   }).join('');
+  var plaque = (due.length || S.filter === 'remind')
+    ? '<button type="button" class="remind s-pay' + (S.filter === 'remind' ? ' on' : '') + '" data-act="filter" data-f="remind"><span>Сегодня напомнить: ' + due.length + '</span><small>' + (S.filter === 'remind' ? 'показать все' : 'показать') + '</small></button>' : '';
   var rows = list.map(function (o) {
-    var st = STN[o.status] ? o.status : 'new';
-    return '<button type="button" class="orow' + (o.example ? ' ex' : '') + '" data-act="open-order" data-id="' + esc(o.id) + '">' +
+    var st = ostat(o), sub = '';
+    if (st === 'sent' && (o.delivery || o.track)) sub = '<small class="dl">' + esc([o.delivery, o.track].filter(Boolean).join(' · ')) + '</small>';
+    else if (st === 'reserve' && o.remindAt) sub = '<small class="dl' + (o.remindAt <= today ? ' due' : '') + '">напомнить ' + esc(fmtDay(o.remindAt)) + '</small>';
+    return '<div class="orow s-' + st + (o.example ? ' ex' : '') + '" role="button" tabindex="0" data-act="open-order" data-id="' + esc(o.id) + '">' +
       '<div class="c-num dim">№ ' + esc(o.num != null ? o.num : '—') + '</div>' +
       '<div class="c-dt dim">' + esc(fmtDate(o.createdAt)) + '</div>' +
       '<div class="cl"><b>' + esc(o.name || 'Без имени') + (o.example ? '<span class="badge b-ex">пример</span>' : '') + '</b><small>' + esc(o.city || '') + '</small></div>' +
       '<div class="c-pr">' + esc(o.productName || '—') + ' ×' + esc(o.qty || 1) + '</div>' +
       '<div class="sum">' + fmt(num(o.sum)) + '</div>' +
       '<div class="c-src">' + esc(o.source || '') + '</div>' +
-      '<div class="c-st"><span class="badge b-' + st + '">' + STN[st] + '</span></div></button>';
+      '<div class="c-st">' + stSelectHTML(st, 'data-ost="' + esc(o.id) + '" aria-label="Статус заказа № ' + esc(o.num != null ? o.num : '') + '"', false) + sub + '</div></div>';
   }).join('');
-  return errNotice('orders') +
+  return errNotice('orders') + plaque +
     '<div class="row-flex">' + chips + '<span class="grow"></span><button type="button" class="btn pri" data-act="new-order">+ Новый заказ</button></div>' +
     '<div><label class="sr" for="orders-search">Поиск</label><input id="orders-search" type="search" placeholder="Поиск: имя, телефон, город" value="' + esc(S.q) + '" autocomplete="off"></div>' +
     '<div class="otbl"><div class="otbl-in"><div class="ohead"><div>№</div><div>Дата</div><div>Клиент</div><div>Товар</div><div>Сумма</div><div>Откуда</div><div>Статус</div></div>' +
-    (rows || '<div class="empty">' + (S.data.orders.length ? 'Ничего не найдено.' : 'Заказов пока нет. Нажмите «+ Новый заказ».') + '</div>') +
+    (rows || '<div class="empty">' + (S.filter === 'remind' ? 'На сегодня напоминаний нет.' : (S.data.orders.length ? 'Ничего не найдено.' : 'Заказов пока нет. Нажмите «+ Новый заказ».')) + '</div>') +
     '</div></div>';
 }
 
@@ -431,7 +487,7 @@ function renderSummary() {
   }).join('') : '<div class="muted" style="font-size:14px">Пока нет оплаченных заказов с указанным постом.</div>';
   var exCount = S.data.orders.filter(function (o) { return o.example; }).length;
   return errNotice('orders') + '<div class="h1">Статистика и касса</div>' + periodChips() +
-    '<div class="kpis">' + kpis.map(function (k) { return '<div class="card kpi"><div class="k">' + k[0] + '</div><div class="v">' + k[1] + '</div></div>'; }).join('') + '</div>' +
+    '<div class="kpis">' + kpis.map(function (k, i) { return '<div class="card kpi kc' + (i + 1) + '"><div class="k">' + k[0] + '</div><div class="v">' + k[1] + '</div></div>'; }).join('') + '</div>' +
     '<div class="two"><div class="card"><div style="font-weight:600;margin-bottom:12px">Откуда пришли заказы</div>' + srcHtml + '</div>' +
     '<div class="card"><div style="font-weight:600;margin-bottom:6px">С каких постов заказы</div>' + topHtml + '<small style="display:block;margin-top:8px">Топ-5 постов по числу оплаченных заказов.</small></div></div>' +
     '<small>Период считается по дате создания заказа, часовой пояс Алматы.' + (exCount && !COUNT_EXAMPLES ? ' Примеры (' + exCount + ') в расчёт не входят.' : '') + '</small>';
@@ -471,12 +527,12 @@ function renderProfit() {
   if (!prods.length) blocks = '<div class="card empty">Активных товаров нет. Добавьте товар в разделе «Склад».</div>';
   var fixedCard = '<div class="card"><div class="eco-row" style="margin:0"><label for="fin-fixed">Общие расходы в месяц</label><span class="in"><input class="num" id="fin-fixed" type="number" inputmode="decimal" min="0" step="any" value="' + esc(num((S.data.finance.general || {}).fixedMonth)) + '"><span class="u">₸</span></span></div></div>';
   var c = calcProfit(S.period);
-  var res = '<div class="card">' + periodChips() +
+  var res = '<div class="card top-g">' + periodChips() +
     '<div style="margin-top:12px">' +
     '<div class="sum-line"><span>Продано (оплачено)</span><span>' + c.qty + ' шт.</span></div>' +
-    '<div class="sum-line"><span>Касса (выручка)</span><span>' + fmt(c.rev) + '</span></div>' +
-    '<div class="sum-line"><span>Расходы на товар</span><span>− ' + fmt(c.cost).replace('−', '') + '</span></div>' +
-    '<div class="sum-line"><span>Общие расходы за период</span><span>− ' + fmt(c.fixed).replace('−', '') + '</span></div>' +
+    '<div class="sum-line"><span>Касса (выручка)</span><span class="pos"><b>' + fmt(c.rev) + '</b></span></div>' +
+    '<div class="sum-line"><span>Расходы на товар</span><span class="neg">− ' + fmt(c.cost).replace('−', '') + '</span></div>' +
+    '<div class="sum-line"><span>Общие расходы за период</span><span class="neg">− ' + fmt(c.fixed).replace('−', '') + '</span></div>' +
     '<div class="sum-line big"><span>Чистая прибыль</span><span class="' + (c.net < 0 ? 'neg' : 'pos') + '">' + fmt(c.net) + '</span></div></div>' +
     (c.missing.length ? '<div class="notice" style="margin-top:12px">Не заполнены расходы на 1 шт. для: ' + esc(c.missing.join(', ')) + ' — прибыль завышена.</div>' : '') +
     '<small style="display:block;margin-top:10px">Считается само: касса оплаченных заказов − расходы на товар − общие расходы (в месяц × дни периода / 30).</small></div>';
@@ -502,14 +558,14 @@ function renderContent() {
   var slots = items.filter(function (c) { return c.date === S.contentDay; }).sort(function (a, b) { return String(a.time || '').localeCompare(String(b.time || '')); });
   var rows = slots.map(function (c) {
     var url = safeUrl(c.url), st = c.status || 'ждёт';
-    return '<div class="slot"><div class="tm">' + esc(c.time || '—') + '</div><div class="pl">' + esc(c.platform || '') + (c.kind ? ' · ' + esc(c.kind) : '') + '</div>' +
-      '<div class="ti">' + esc(c.title || '') + '</div><span class="badge ' + (CONTENT_STATUS[st] || 'b-done') + '">' + esc(st) + '</span>' +
+    return '<div class="slot ' + (CONTENT_STATUS[st] || 's-done') + '"><div class="tm">' + esc(c.time || '—') + '</div><div class="pl">' + esc(c.platform || '') + (c.kind ? ' · ' + esc(c.kind) : '') + '</div>' +
+      '<div class="ti">' + esc(c.title || '') + '</div><span class="badge bs">' + esc(st) + '</span>' +
       (url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">открыть</a>' : '') +
-      (st === 'ждёт' ? '<button type="button" class="btn sm" disabled aria-disabled="true">Опубликовать сейчас</button>' : '') + '</div>';
+      (st === 'ждёт' && S.admin ? '<a class="btn sm" href="' + PUBLISH_URL + '" target="_blank" rel="noopener">Опубликовать вручную</a>' : '') + '</div>';
   }).join('');
   return errNotice('content') + '<div class="h1">Контент</div><div class="row-flex">' + chips + '</div>' +
     '<div class="scroll">' + rows + '</div>' +
-    '<small>Кнопка «Опубликовать сейчас» заработает после подключения автопубликации.</small>';
+    '<small>Посты выходят сами по расписанию.' + (S.admin ? ' Если какой-то не вышел — нажмите «Опубликовать вручную», на открывшейся странице GitHub нажмите «Run workflow» и впишите дату и время слота' : '') + '</small>';
 }
 
 function sold7(productId) {
@@ -572,8 +628,8 @@ function renderBot() {
   if (!b) return errNotice('bot') + '<div class="h1">ИИ-менеджер</div><div class="card empty">ИИ-менеджер ещё не подключён, появится на следующем этапе.</div>';
   var issues = Array.isArray(b.issues) ? b.issues : [];
   var k = [['Обработал обращений', b.handled], ['Оформил заказов', b.orders], ['Отправил ссылок на оплату', b.payLinks], ['Позвал человека', b.calledHuman]];
-  return '<div class="h1">ИИ-менеджер</div><div class="kpis">' + k.map(function (x) {
-    return '<div class="card kpi"><div class="k">' + x[0] + '</div><div class="v">' + esc(x[1] == null ? 0 : x[1]) + '</div></div>';
+  return '<div class="h1">ИИ-менеджер</div><div class="kpis">' + k.map(function (x, i) {
+    return '<div class="card kpi kc' + (i + 1) + '"><div class="k">' + x[0] + '</div><div class="v">' + esc(x[1] == null ? 0 : x[1]) + '</div></div>';
   }).join('') + '</div><div class="card"><div style="font-weight:600;margin-bottom:6px">Где бот позвал человека</div>' +
     (issues.length ? issues.map(function (i) {
       return '<div class="post-row"><div style="display:flex;gap:12px"><b style="width:52px;flex:0 0 auto">' + esc(i.time) + '</b><div><div>' + esc(i.client) + ': «' + esc(i.question) + '»</div><small>' + esc(i.reason) + '</small></div></div></div>';
@@ -640,12 +696,37 @@ function scheduleRender() {
 function renderAll() { renderHeader(); renderDrawer(); doRender(true); }
 
 /* ---------- order card ---------- */
-function cardStatusHTML() {
-  var c = S.card;
-  return ST.map(function (s) {
-    var on = c.status === s[0];
-    return '<button type="button" class="stb' + (on ? ' on b-' + s[0] : '') + '" data-act="card-status" data-st="' + s[0] + '" aria-pressed="' + on + '">' + s[1] + '</button>';
+function validDate(v) { return /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')); }
+function extraHTML(o, st) {
+  var hasSent = !!(o.delivery || o.track), delOpts = '<option value="">— выберите —</option>' + DELIVERY.map(function (d) {
+    return '<option value="' + esc(d) + '"' + (d === o.delivery ? ' selected' : '') + '>' + esc(d) + '</option>';
   }).join('');
+  return '<div class="xblk s-reserve' + (st === 'reserve' ? '' : ' hide') + '" id="x-reserve">' +
+    '<div class="fld"><label for="f-remind">Напомнить (дата) *</label><input id="f-remind" type="date" value="' + esc(validDate(o.remindAt) ? o.remindAt : '') + '"></div>' +
+    '<div class="fld"><label for="f-reserve">Причина</label><input id="f-reserve" type="text" autocomplete="off" placeholder="ждёт пенсию / пособие" value="' + esc(o.reserveNote) + '"></div>' +
+    '<div class="need" id="need-reserve">Без даты напоминания резерв не сохранить.</div></div>' +
+    '<div class="xblk s-sent' + (st === 'sent' || hasSent ? '' : ' hide') + '" id="x-sent">' +
+    '<div class="fld"><label for="f-delivery">Служба доставки *</label><select id="f-delivery">' + delOpts + '</select></div>' +
+    '<div class="fld"><label for="f-track">Трек-номер</label><input id="f-track" type="text" autocomplete="off" value="' + esc(o.track) + '"></div>' +
+    '<div class="need" id="need-sent">Выберите службу доставки и впишите трек-номер (для курьера трек можно не писать).</div></div>' +
+    '<div class="xblk s-cancel' + (st === 'cancel' || o.cancelNote ? '' : ' hide') + '" id="x-cancel">' +
+    '<div class="fld"><label for="f-cancel">Причина отказа (необязательно)</label><input id="f-cancel" type="text" autocomplete="off" value="' + esc(o.cancelNote) + '"></div></div>';
+}
+function fv(id) { var e = document.getElementById(id); return e ? e.value : ''; }
+function showEl(id, on) { var e = document.getElementById(id); if (e) e.classList.toggle('hide', !on); }
+// Keeps the status select, its colour and the status-dependent blocks of the open card in sync.
+function syncExtra() {
+  var c = S.card; if (!c) return;
+  var st = c.status, o = c.orig;
+  var sel = document.getElementById('card-st'), w = document.getElementById('card-stw');
+  if (sel && sel.value !== st) sel.value = st;
+  if (w) w.className = 'stsel big s-' + st;
+  showEl('x-reserve', st === 'reserve');
+  showEl('x-sent', st === 'sent' || !!(o.delivery || o.track));
+  showEl('x-cancel', st === 'cancel' || !!o.cancelNote);
+  showEl('need-reserve', st === 'reserve' && !validDate(fv('f-remind')));
+  var dl = fv('f-delivery');
+  showEl('need-sent', st === 'sent' && !(DELIVERY.indexOf(dl) >= 0 && (dl === 'Курьер' || fv('f-track').trim())));
 }
 function cardHTML() {
   var c = S.card, o = c.orig;
@@ -661,8 +742,9 @@ function cardHTML() {
   var info = c.isNew ? '' : '<small>Создан ' + esc(fmtDate(o.createdAt)) + (o.example ? ' · пример' : '') + (o.stockPending && o.stockDeducted !== true ? ' · остаток спишет админ' : '') + '</small>';
   var payLink = S.admin && S.data.settings && S.data.settings.payLink ? '<button type="button" class="btn" data-act="copy-pay">Копировать ссылку на оплату</button>' : '';
   return '<div class="cardwrap"><div class="panel" role="dialog" aria-modal="true" aria-label="Карточка заказа">' +
-    '<div class="ph"><div class="t">' + title + '</div><button type="button" class="icon-btn" id="card-close" data-act="close-card" aria-label="Закрыть">' + X_SVG + '</button></div>' + info +
-    '<div><div class="muted" style="font-size:13px;margin-bottom:6px">Статус</div><div class="sts" id="card-status">' + cardStatusHTML() + '</div></div>' +
+    '<div class="ph"><div class="t">' + title + '</div><button type="button" class="icon-btn" id="card-close" data-act="close-card" aria-label="Закрыть">' + X_SVG + '</button></div>' +
+    '<div><label class="sr" for="card-st">Статус заказа</label>' + stSelectHTML(c.status, 'id="card-st"', true) + '</div>' +
+    extraHTML(o, c.status) + info +
     '<div class="fld"><label for="f-name">Имя</label><input id="f-name" type="text" autocomplete="off" value="' + esc(o.name) + '"></div>' +
     '<div class="fld"><label for="f-phone">Телефон</label><div class="phone-row"><input id="f-phone" type="text" inputmode="tel" autocomplete="off" value="' + esc(o.phone) + '"><button type="button" class="icon-btn" data-act="copy-phone">' + COPY_SVG + 'Копировать</button></div></div>' +
     '<div class="pair"><div class="fld"><label for="f-city">Город</label><input id="f-city" type="text" autocomplete="off" value="' + esc(o.city) + '"></div>' +
@@ -672,23 +754,24 @@ function cardHTML() {
     '<div class="pair"><div class="fld"><label for="f-qty">Количество</label><input id="f-qty" type="number" inputmode="numeric" min="1" step="1" value="' + esc(num(o.qty) || 1) + '"></div>' +
     '<div class="fld"><label for="f-sum">Сумма, ₸</label><input id="f-sum" type="number" inputmode="decimal" min="0" step="any" value="' + esc(num(o.sum)) + '"></div></div>' +
     '<div class="fld"><label for="f-post">С какого поста</label><input id="f-post" type="text" autocomplete="off" value="' + esc(o.post) + '"></div>' +
-    '<div class="fld"><label for="f-track">Трек Казпочты</label><input id="f-track" type="text" autocomplete="off" value="' + esc(o.track) + '"></div>' +
     '<div class="fld"><label for="f-comment">Комментарий</label><textarea id="f-comment" style="min-height:90px">' + esc(o.comment) + '</textarea></div>' +
     '<div class="row-flex"><button type="button" class="btn pri" id="card-save" data-act="card-save">Сохранить</button>' + payLink +
     (S.admin && !c.isNew ? '<span class="grow"></span><button type="button" class="btn dng" data-act="card-del">Удалить</button>' : '') + '</div>' +
     '<div id="del-area"></div></div></div>';
 }
-function openCard(id) {
+// draftStatus: status picked in the table row that still needs extra fields; it is saved with the card.
+function openCard(id, draftStatus) {
   var o = id ? S.data.orders.filter(function (x) { return x.id === id; })[0] : null;
   var base;
-  if (o) base = Object.assign({}, o);
+  if (o) { base = Object.assign({}, o); base.status = ostat(o); }
   else {
     base = { name: '', phone: '', city: '', address: '', productId: '', productName: '', qty: 1, sum: 0, source: 'Другое', post: '', status: 'new', track: '', comment: '' };
     var ap = activeProducts();
     if (ap.length === 1) { base.productId = ap[0].id; base.productName = ap[0].name; base.sum = num(ap[0].price); }
   }
-  S.card = { id: o ? o.id : null, isNew: !o, status: base.status || 'new', orig: base, busy: false };
+  S.card = { id: o ? o.id : null, isNew: !o, status: draftStatus && STN[draftStatus] ? draftStatus : base.status, orig: base, busy: false };
   $('#card-root').innerHTML = cardHTML();
+  syncExtra();
   var cb = $('#card-close'); if (cb) cb.focus();
 }
 function closeCard() { S.card = null; $('#card-root').innerHTML = ''; if (S.dirty) doRender(true); }
@@ -704,7 +787,8 @@ function readForm() {
   var d = {
     name: g('f-name').trim(), phone: g('f-phone').trim(), city: g('f-city').trim(), address: g('f-address').trim(),
     qty: Math.max(1, Math.round(num(g('f-qty'))) || 1), sum: Math.max(0, num(g('f-sum'))),
-    source: g('f-source'), post: g('f-post').trim(), track: g('f-track').trim(), comment: g('f-comment').trim()
+    source: g('f-source'), post: g('f-post').trim(), track: g('f-track').trim(), comment: g('f-comment').trim(),
+    delivery: g('f-delivery'), remindAt: g('f-remind'), reserveNote: g('f-reserve').trim(), cancelNote: g('f-cancel').trim()
   };
   var pid = g('f-product');
   if (pid !== '__keep') {
@@ -741,7 +825,7 @@ async function stockPatch(o) {
 async function processPending() {
   if (!S.admin || !S.db || S.pendingBusy || !S.loaded.orders || !S.loaded.products) return;
   var list = S.data.orders.filter(function (o) {
-    return o.stockPending === true && o.stockDeducted !== true && (o.status === 'sent' || o.status === 'done') && !S.stockSeen[o.id];
+    return o.stockPending === true && o.stockDeducted !== true && (ostat(o) === 'sent' || ostat(o) === 'done') && !S.stockSeen[o.id];
   });
   if (!list.length) return;
   S.pendingBusy = true;
@@ -761,24 +845,60 @@ async function processPending() {
 }
 
 /* ---------- card actions ---------- */
-async function cardStatus(st) {
-  var c = S.card;
-  if (!c || c.busy) return;
-  if (c.isNew) { c.status = st; $('#card-status').innerHTML = cardStatusHTML(); return; }
-  var cur = S.data.orders.filter(function (x) { return x.id === c.id; })[0] || c.orig;
-  if (cur.status === st) return;
-  c.busy = true;
+function latestOrder(c) { return S.data.orders.filter(function (x) { return x.id === c.id; })[0] || c.orig; }
+// Patch for a status change; becoming «Отправлен» also carries the stock-deduction fields.
+async function statusPatch(cur, st) {
   var patch = { status: st, updatedAt: nowISO() };
   if (st === 'sent' && cur.stockDeducted !== true) Object.assign(patch, await stockPatch(cur));
+  return patch;
+}
+// Returns {msg, id} when the status needs fields that are missing.
+function validateStatus(c, f) {
+  var st = c.status;
+  if (st === 'reserve' && !validDate(f.remindAt)) return { msg: 'для резерва укажите дату «Напомнить»', id: 'f-remind' };
+  if (st === 'sent' && (c.isNew || st !== c.orig.status)) {
+    if (DELIVERY.indexOf(f.delivery) < 0) return { msg: 'выберите службу доставки', id: 'f-delivery' };
+    if (f.delivery !== 'Курьер' && !f.track) return { msg: 'впишите трек-номер', id: 'f-track' };
+  }
+  return null;
+}
+async function cardStatus(st) {
+  var c = S.card;
+  if (!c || c.busy || !STN[st]) { syncExtra(); return; }
+  // New orders and statuses with required fields are only a draft until «Сохранить».
+  if (c.isNew || NEEDS[st]) { c.status = st; syncExtra(); return; }
+  var cur = latestOrder(c);
+  if (ostat(cur) === st) { c.status = st; syncExtra(); return; }
+  c.busy = true;
+  var patch = await statusPatch(cur, st);
   var ok = await run('Статус: ' + STN[st], function () { return S.db.doc('orders/' + c.id).update(patch); });
   c.busy = false;
-  if (ok && S.card === c) { c.status = st; c.orig = Object.assign({}, c.orig, patch); $('#card-status').innerHTML = cardStatusHTML(); }
+  if (ok) { c.status = st; c.orig = Object.assign({}, c.orig, patch); }
+  if (S.card === c) syncExtra();
+}
+// Table row: change the status without opening the card (except statuses that need extra fields).
+async function rowStatus(sel) {
+  var id = sel.dataset.ost, st = sel.value;
+  var o = S.data.orders.filter(function (x) { return x.id === id; })[0];
+  if (!o || !STN[st] || ostat(o) === st) return;
+  sel.blur();
+  if (NEEDS[st]) { openCard(id, st); doRender(true); return; }
+  var patch = await statusPatch(o, st);
+  var ok = await run('Заказ № ' + o.num + ': ' + STN[st], function () { return S.db.doc('orders/' + id).update(patch); });
+  if (ok) Object.assign(o, patch);
+  doRender(true);
 }
 async function saveCard() {
   var c = S.card;
   if (!c || c.busy) return;
   var f = readForm();
   if (!f.name && !f.phone) { toast('Не сохранилось: укажите имя или телефон', 'err'); return; }
+  var bad = validateStatus(c, f);
+  if (bad) {
+    toast('Не сохранилось: ' + bad.msg, 'err');
+    var fe = document.getElementById(bad.id); if (fe) { try { fe.focus(); } catch (x) { /* ignore */ } }
+    return;
+  }
   c.busy = true;
   var btn = $('#card-save'); if (btn) btn.disabled = true;
   var ok = false;
@@ -795,7 +915,9 @@ async function saveCard() {
       var same = (k === 'qty' || k === 'sum') ? num(a) === num(b) : String(a == null ? '' : a) === String(b == null ? '' : b);
       if (!same) patch[k] = a;
     });
-    if (!Object.keys(patch).length) { toast('Изменений нет', 'ok'); c.busy = false; if (btn) btn.disabled = false; return; }
+    var statusChanged = c.status !== o.status;
+    if (!Object.keys(patch).length && !statusChanged) { toast('Изменений нет', 'ok'); c.busy = false; if (btn) btn.disabled = false; return; }
+    if (statusChanged) Object.assign(patch, await statusPatch(Object.assign({}, latestOrder(c), f), c.status));
     patch.updatedAt = nowISO();
     ok = await run('Сохранено', function () { return S.db.doc('orders/' + c.id).update(patch); });
   }
@@ -837,14 +959,13 @@ var ACTIONS = {
   'tab': function (t) { S.tab = t.dataset.tab; S.drawer = false; S.delMgr = null; renderDrawer(); renderHeader(); doRender(true); window.scrollTo(0, 0); },
   'drawer': function () { S.drawer = !S.drawer; renderDrawer(); },
   'drawer-close': function () { S.drawer = false; renderDrawer(); },
-  'filter': function (t) { S.filter = t.dataset.f; doRender(true); },
+  'filter': function (t) { var f = t.dataset.f; S.filter = (f === 'remind' && S.filter === 'remind') ? 'all' : f; doRender(true); },
   'period': function (t) { S.period = t.dataset.p; doRender(true); },
   'content-day': function (t) { S.contentDay = t.dataset.d; doRender(true); },
   'open-order': function (t) { openCard(t.dataset.id); },
   'new-order': function () { openCard(null); },
   'close-card': function () { closeCard(); },
-  'card-status': function (t) { cardStatus(t.dataset.st); },
-  'card-save': function () { saveCard(); },
+    'card-save': function () { saveCard(); },
   'card-del': function () { showDelConfirm(); },
   'card-del-no': function () { $('#del-area').innerHTML = ''; },
   'card-del-yes': function () { deleteCard(); },
@@ -890,6 +1011,7 @@ async function saveFin(pid) {
 
 /* ---------- event wiring ---------- */
 document.addEventListener('click', function (e) {
+  if (e.target.closest && e.target.closest('select')) return; // status selects inside table rows must not open the card
   var t = e.target.closest ? e.target.closest('[data-act]') : null;
   if (!t) return;
   var h = ACTIONS[t.dataset.act];
@@ -899,10 +1021,14 @@ document.addEventListener('input', function (e) {
   var t = e.target;
   if (t.id === 'orders-search') { S.q = t.value; doRender(true); }
   else if (t.id === 'f-qty') autofillSum();
+  else if (t.id === 'f-track') syncExtra();
 });
 document.addEventListener('change', function (e) {
   var t = e.target;
   if (!S.db) return;
+  if (t.dataset && t.dataset.ost) { rowStatus(t); return; }
+  if (t.id === 'card-st') { cardStatus(t.value); return; }
+  if (t.id === 'f-remind' || t.id === 'f-delivery') { syncExtra(); return; }
   if (t.id === 'f-product') { autofillSum(); return; }
   if (t.dataset && t.dataset.fin) { saveFin(t.dataset.fin); return; }
   if (t.id === 'fin-fixed') {
@@ -926,6 +1052,11 @@ document.addEventListener('focusout', function () {
   setTimeout(function () { if (S.dirty && !fieldFocused()) doRender(true); }, 250);
 });
 document.addEventListener('keydown', function (e) {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('orow')) {
+    e.preventDefault();
+    openCard(e.target.dataset.id);
+    return;
+  }
   if (e.key !== 'Escape') return;
   if (S.card) closeCard();
   else if (S.drawer) { S.drawer = false; renderDrawer(); }
