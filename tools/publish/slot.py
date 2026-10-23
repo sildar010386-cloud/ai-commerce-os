@@ -113,6 +113,8 @@ def main(args):
                 run(date, it["time"], json.load(open(q)), q)
         return
     date, hhmm = args[0], args[1]
+    if not (re.fullmatch(r"\d{4}-\d{2}-\d{2}", date) and re.fullmatch(r"\d{2}:\d{2}", hhmm)):
+        sys.exit("usage: slot.py YYYY-MM-DD HH:MM | --due")
     q = f"content/queue/{date}.json"
     run(date, hhmm, json.load(open(q)), q)
 
