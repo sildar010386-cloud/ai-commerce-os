@@ -1,0 +1,71 @@
+# Bikas Home autopublishing: posts owner-approved queue slots on schedule, without Claude.
+# The queue and content live on the working branch: repository variable PUBLISH_BRANCH, or the default below.
+# Security: runs only on schedule or a manual run by someone with write access (no pull_request triggers, so
+# forks never see the secrets); secrets are masked in the public logs; inputs reach the shell only via env.
+name: Publish
+on:
+  schedule:
+    # Almaty = UTC+5. Slots 09:30 10:50 12:10 14:50 16:10 18:50 20:10, each with a backup run 20 min later.
+    - cron: "30,50 4 * * *"
+    - cron: "50 5 * * *"
+    - cron: "10 6 * * *"
+    - cron: "10,30 7 * * *"
+    - cron: "50 9 * * *"
+    - cron: "10 10 * * *"
+    - cron: "10,30 11 * * *"
+    - cron: "50 13 * * *"
+    - cron: "10 14 * * *"
+    - cron: "10,30 15 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Дата слота (например 2026-10-24). Пусто — всё, чему пришло время сегодня"
+        required: false
+      time:
+        description: "Время слота (например 12:10)"
+        required: false
+permissions:
+  contents: write
+concurrency:
+  group: publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ vars.PUBLISH_BRANCH || 'claude/practical-mendel-vjtsd5' }}
+          fetch-depth: 50
+      - name: Publish due slots
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          BIKAS_MUSIC: /tmp/no-private-repo
+          SLOT_DATE: ${{ inputs.date }}
+          SLOT_TIME: ${{ inputs.time }}
+        run: |
+          git config user.name "bikas-autopublish"
+          git config user.email "bikas-autopublish@users.noreply.github.com"
+          if [ -n "$SLOT_DATE" ] && [ -n "$SLOT_TIME" ]; then
+            python3 tools/publish/slot.py "$SLOT_DATE" "$SLOT_TIME"
+          else
+            python3 tools/publish/slot.py --due
+          fi
+      - name: Tell the owner in Telegram if the run failed
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          MANUAL_URL: ${{ github.server_url }}/${{ github.repository }}/actions/workflows/publish.yml
+        run: |
+          curl -sS -o /dev/null -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "disable_web_page_preview=true" \
+            --data-urlencode "text=❌ Автопубликация не сработала.
+          Через 20 минут будет повторная попытка (дубля не будет).
+          Если и она не пройдёт — опубликуйте вручную: ${MANUAL_URL} → Run workflow → Run workflow.
+          Подробности ошибки: ${RUN_URL}"
