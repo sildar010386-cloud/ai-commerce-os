@@ -59,6 +59,6 @@ jobs:
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
             --data-urlencode "disable_web_page_preview=true" \
             --data-urlencode "text=❌ Автопубликация не сработала.
-          Через 20 минут будет повторная попытка (дубля не будет).
-          Если и она не пройдёт — опубликуйте вручную: ${MANUAL_URL} → Run workflow → Run workflow.
+          Через 10 минут будет повторная попытка (дубля не будет), всего до 3 попыток.
+          Можно не ждать и опубликовать вручную: кнопка «Опубликовать сейчас» в CRM или ${MANUAL_URL} → Run workflow.
           Подробности ошибки: ${RUN_URL}"
