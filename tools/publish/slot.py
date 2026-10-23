@@ -14,6 +14,7 @@ import datetime, glob, json, os, re, subprocess, sys, urllib.parse, urllib.reque
 from zoneinfo import ZoneInfo
 
 ALMATY = ZoneInfo("Asia/Almaty")
+MAX_FAILS = 3  # scheduled runs come every 10 minutes: stop retrying a broken slot after ~30 min
 
 
 def sh(*cmd):
@@ -132,9 +133,29 @@ def publish(args):
         if not os.path.exists(q):
             print(f"no queue for {date}")
             return
+        failed = []
         for it in json.load(open(q)):
-            if it["time"] <= hhmm_now and it.get("approved") and not it.get("done"):
-                run(date, it["time"], json.load(open(q)), q)
+            if it["time"] <= hhmm_now and it.get("approved") and not it.get("done") and it.get("fails", 0) < MAX_FAILS:
+                try:
+                    run(date, it["time"], json.load(open(q)), q)
+                except SystemExit as e:
+                    if e.code in (0, None):
+                        continue
+                    failed.append(it["code"])
+                    items = json.load(open(q))
+                    for x in items:
+                        if x["time"] == it["time"]:
+                            x["fails"] = x.get("fails", 0) + 1
+                            last = x["fails"] >= MAX_FAILS
+                    json.dump(items, open(q, "w"), ensure_ascii=False, indent=1)
+                    sync_push(f"{it['code']}: publishing failed")
+                    if last:  # the schedule stops retrying this slot; a manual run (date + time) still publishes it
+                        sh(sys.executable, "tools/telegram/tg.py", "send",
+                           f"❌ {it['time']} · {it['code']} «{it['title']}» не вышел после {MAX_FAILS} попыток, "
+                           "больше автоматически не пробую. Опубликуйте вручную: кнопка «Опубликовать сейчас» в CRM "
+                           "или GitHub → Actions → Publish → Run workflow (дата и время слота).")
+        if failed:
+            sys.exit(f"failed: {', '.join(failed)}")
         return
     date, hhmm = args[0], args[1]
     if not (re.fullmatch(r"\d{4}-\d{2}-\d{2}", date) and re.fullmatch(r"\d{2}:\d{2}", hhmm)):
