@@ -5,7 +5,7 @@
 const GITHUB_REPO = 'sildar010386-cloud/ai-commerce-os';
 const PUBLISH_URL = `https://github.com/${GITHUB_REPO}/actions/workflows/publish.yml`;
 
-const PBKDF2_ITERS = 100000; // Workers WebCrypto accepts at most 100000 iterations
+const PBKDF2_ITERS = 25000; // ~5 ms: the free plan allows 10 ms CPU per request; login throttling covers guessing
 const SESSION_DAYS = 30;
 const MAX_FAILS = 10;
 const LOCK_MIN = 15;

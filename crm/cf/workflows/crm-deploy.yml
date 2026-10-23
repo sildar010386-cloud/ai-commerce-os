@@ -6,7 +6,7 @@ name: CRM deploy
 on:
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write  # only to save the CRM address to crm/url.txt on the working branch
 concurrency:
   group: crm-deploy
   cancel-in-progress: false
@@ -92,8 +92,16 @@ jobs:
             *) echo "::error::bootstrap failed (HTTP $code): $(head -c 300 resp.txt)"; exit 1 ;;
           esac
 
+      - name: Save the CRM address for publishing and the funnel (crm/url.txt)
+        working-directory: .
+        run: |
+          printf '%s\n' "$CRM_URL_FOUND" > crm/url.txt
+          git config user.name "bikas-autopublish"
+          git config user.email "bikas-autopublish@users.noreply.github.com"
+          git add crm/url.txt
+          git diff --cached --quiet || { git commit -q -m "CRM address" && git pull -q --rebase && git push -q origin HEAD; }
+
       - name: Result
         run: |
           echo "CRM is live: $CRM_URL_FOUND"
-          echo "Add the GitHub secret CRM_URL = $CRM_URL_FOUND (plus CRM_API_KEY) so publishing and the funnel can write to the CRM."
           echo "### CRM: $CRM_URL_FOUND" >> "$GITHUB_STEP_SUMMARY"
