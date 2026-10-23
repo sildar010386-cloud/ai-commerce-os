@@ -15,8 +15,15 @@ const STATUSES = ['new', 'accepted', 'pay', 'reserve', 'paid', 'sent', 'done', '
 const DELIVERY = ['Казпочта', 'Курьер', 'СДЭК'];
 const LEAD_SOURCES = ['Threads', 'Instagram', 'TikTok', 'WhatsApp'];
 const CONTENT_STATUSES = ['ждёт', 'вышел', 'в боте', 'ошибка', 'не одобрено'];
-const SETTINGS_KEYS = ['wa1', 'wa2', 'payLink', 'templates'];
-const MANAGER_SETTINGS = ['wa1', 'wa2', 'payLink'];
+const SETTINGS_KEYS = ['wa1', 'wa2', 'payLink', 'templates', 'track_msg', 'track_url'];
+const MANAGER_SETTINGS = ['wa1', 'wa2', 'payLink', 'track_msg', 'track_url'];
+// Shown (and used) while the owner has not changed them in Настройки. Placeholders: {имя} {трек} {ссылка}; {трек} in the URL.
+const DEFAULT_TRACK_MSG = 'Здравствуйте, {имя}! Ваш заказ отправлен Казпочтой. Трек-номер: {трек}. ' +
+  'Где сейчас посылка — по ссылке: {ссылка} Спасибо за покупку!';
+const DEFAULT_TRACK_URL = 'https://post.kz/services/postal/{трек}';
+const SETTING_DEFAULTS = { track_msg: DEFAULT_TRACK_MSG, track_url: DEFAULT_TRACK_URL };
+const TRACK_RE = /^[A-Z]{2}\d{9}[A-Z]{2}$/;
+const KZ_MAX_ITEMS = 500;
 
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; " +
   "frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
@@ -174,7 +181,7 @@ function orderOut(r) {
     id: String(r.id), num: r.num, status: r.status, name: r.name, phone: r.phone, city: r.city, address: r.address,
     productId: r.product_id, productName: r.product_name, qty: r.qty, sum: r.sum, source: r.source, post: r.post,
     comment: r.comment, delivery: r.delivery, track: r.track, remindAt: r.remind_at, reserveNote: r.reserve_note,
-    cancelNote: r.cancel_note, example: !!r.example, stockDeducted: !!r.stock_deducted,
+    cancelNote: r.cancel_note, example: !!r.example, stockDeducted: !!r.stock_deducted, trackSentAt: r.track_sent_at || '',
     createdAt: r.created_at, updatedAt: r.updated_at
   };
 }
@@ -294,6 +301,15 @@ async function createOrder(env, user, b) {
   return row;
 }
 
+// Stock deduction on the transition to «Отправлен». Atomic: deducts only while the order is still marked as not deducted,
+// so the number is subtracted exactly once (patchOrder and the Kazpost import both use this).
+function stockDeductStmts(env, cur, qty) {
+  if (!cur.product_id) return [];
+  return [env.DB.prepare(
+    'UPDATE products SET stock = MAX(0, stock - ?) WHERE id = ? AND EXISTS (SELECT 1 FROM orders WHERE id = ? AND stock_deducted = 0)'
+  ).bind(qty, cur.product_id, cur.id)];
+}
+
 async function patchOrder(env, user, idStr, b, internal) {
   const id = parseInt(idStr, 10);
   if (!(id > 0)) fail(404, 'Заказ не найден');
@@ -317,14 +333,10 @@ async function patchOrder(env, user, idStr, b, internal) {
   if (status !== cur.status) set.status = status;
   const stmts = [];
   if (status === 'sent' && cur.status !== 'sent' && !cur.stock_deducted) {
-    // Atomic: deduct only while the order is still marked as not deducted.
-    if (cur.product_id) {
-      stmts.push(env.DB.prepare(
-        'UPDATE products SET stock = MAX(0, stock - ?) WHERE id = ? AND EXISTS (SELECT 1 FROM orders WHERE id = ? AND stock_deducted = 0)'
-      ).bind(merged.qty || 1, cur.product_id, id));
-    }
+    stmts.push(...stockDeductStmts(env, cur, merged.qty || 1));
     set.stock_deducted = 1;
   }
+  if (changedFields.includes('track') && cur.track_sent_at) set.track_sent_at = ''; // a new track number has not been sent yet
   if (!Object.keys(set).length) return { changed: false };
   set.updated_at = nowIso();
   const names = Object.keys(set);
@@ -344,6 +356,177 @@ async function deleteOrder(env, user, idStr) {
     env.DB.prepare('DELETE FROM orders WHERE id = ?').bind(id),
     auditStmt(env, user.email, 'delete', id, cur.num, '')
   ]);
+}
+
+/* ---------- Kazpost registry import ----------
+   The browser reads the registry PDF (public/kazpost.js) and sends the parcels here. preview matches them with orders,
+   apply marks the chosen orders «Отправлен» (Казпочта + track) through the same stock rule as a manual status change.
+   Names, phones and addresses of the registry are used only inside the request and are never stored or logged. */
+const digitsOf = (s) => String(s == null ? '' : s).replace(/\D/g, '');
+const last10 = (s) => { const d = digitsOf(s); return d.length >= 10 ? d.slice(-10) : ''; };
+const KZ_LETTERS = { 'ә': 'а', 'ғ': 'г', 'қ': 'к', 'ң': 'н', 'ө': 'о', 'ұ': 'у', 'ү': 'у', 'һ': 'х', 'і': 'и', 'ə': 'а', 'ё': 'е', 'й': 'и' };
+// Lower-cased words of a name/address with Kazakh letters mapped to Russian ones.
+function normWords(s) {
+  return String(s == null ? '' : s).toLowerCase().replace(/[әғқңөұүһіəёй]/g, (c) => KZ_LETTERS[c])
+    .replace(/[^a-zа-я0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+}
+function wordMatch(a, b) { // a: word of the CRM name, b: word of the registry name
+  if (a === b) return true;
+  if (a.length === 1) return b.startsWith(a);                                   // initial: «Н.»
+  return Math.min(a.length, b.length) >= 4 && (a.startsWith(b) || b.startsWith(a)) && Math.abs(a.length - b.length) <= 3; // endings: Касымов/Касымова
+}
+function cityInAddress(city, addrNorm) {
+  const w = normWords(city).join(' ');
+  return !!w && addrNorm.includes(w);
+}
+
+function cleanKzItem(raw) {
+  if (!raw || typeof raw !== 'object') fail(400, 'Некорректная строка реестра');
+  const track = typeof raw.track === 'string' ? raw.track.trim().toUpperCase() : '';
+  if (!TRACK_RE.test(track)) fail(400, 'Трек-номер в реестре указан неверно');
+  return { track, name: str(raw.name, 200, 'ФИО'), phone: str(raw.phone, 40, 'Телефон'), address: str(raw.address, 600, 'Адрес') };
+}
+
+async function selectIn(env, sql, ids) { // `sql` contains one %IN% placeholder; D1 allows 100 bound parameters per query
+  const out = [];
+  for (let i = 0; i < ids.length; i += 90) {
+    const part = ids.slice(i, i + 90);
+    const { results } = await env.DB.prepare(sql.replace('%IN%', part.map(() => '?').join(','))).bind(...part).all();
+    out.push(...results);
+  }
+  return out;
+}
+
+async function kazpostPreview(env, b) {
+  if (!Array.isArray(b.items)) fail(400, 'Нужен список items');
+  if (!b.items.length) fail(400, 'В реестре нет посылок');
+  if (b.items.length > KZ_MAX_ITEMS) fail(413, 'Слишком много посылок в реестре');
+  const items = b.items.map(cleanKzItem);
+  const seen = new Set();
+  items.forEach((it) => { if (seen.has(it.track)) fail(400, 'Трек-номера в реестре повторяются'); seen.add(it.track); });
+
+  // Orders that already carry one of these tracks (a repeated upload of the same registry).
+  const held = await selectIn(env, 'SELECT id, num, name, status, track FROM orders WHERE track IN (%IN%)', items.map((i) => i.track));
+  const heldBy = {};
+  held.forEach((o) => { (heldBy[o.track] = heldBy[o.track] || []).push(o); });
+
+  const { results: cand } = await env.DB.prepare(
+    "SELECT id, num, name, phone, city, status FROM orders WHERE example = 0 AND status NOT IN ('cancel', 'done', 'sent') AND track = '' " +
+    'ORDER BY num DESC LIMIT 2000'
+  ).all();
+  const byPhone = {};
+  cand.forEach((o) => { const k = last10(o.phone); if (k) (byPhone[k] = byPhone[k] || []).push(o); });
+  const used = new Set();
+
+  const out = items.map((it) => {
+    const row = { track: it.track, name: it.name, phone: it.phone, address: it.address, match: null, reason: '', already: false };
+    const h = (heldBy[it.track] || []).filter((o) => o.status !== 'cancel');
+    if (h.length) {
+      const o = h[0];
+      row.match = { id: String(o.id), num: o.num, name: o.name };
+      if (o.status === 'sent' || o.status === 'done') { row.already = true; row.reason = 'уже отправлен'; return row; }
+      if (!used.has(o.id)) { used.add(o.id); row.reason = 'трек уже указан в заказе'; return row; }
+      row.match = null;
+    }
+    // 1) by the last 10 digits of the phone; several orders with the same phone: the most recent one
+    const ph = last10(it.phone);
+    const byP = ph ? (byPhone[ph] || []).filter((o) => !used.has(o.id)) : [];
+    if (byP.length) {
+      const o = byP[0]; // cand is sorted by num DESC
+      used.add(o.id);
+      row.match = { id: String(o.id), num: o.num, name: o.name };
+      row.reason = 'по телефону' + (byP.length > 1 ? ' (несколько заказов, выбран последний)' : '');
+      return row;
+    }
+    // 2) by name: every word of the CRM name is found in the registry name; the city must be in the address when the order has one
+    const regWords = normWords(it.name), addrNorm = normWords(it.address).join(' ');
+    const byN = cand.filter((o) => {
+      if (used.has(o.id)) return false;
+      const w = normWords(o.name);
+      if (!w.length || !w.every((x) => regWords.some((y) => wordMatch(x, y)))) return false;
+      const hasCity = normWords(o.city).length > 0, cityOk = hasCity && cityInAddress(o.city, addrNorm);
+      if (w.length < 2) return cityOk;            // a single word is too weak without the city
+      return !hasCity || cityOk;
+    });
+    if (byN.length) {
+      const o = byN[0];
+      used.add(o.id);
+      row.match = { id: String(o.id), num: o.num, name: o.name };
+      row.reason = (normWords(o.city).length ? 'по имени и городу' : 'по имени') + (byN.length > 1 ? ' (несколько совпадений, выбран последний)' : '');
+    } else row.reason = 'не найден';
+    return row;
+  });
+  return json({
+    ok: true, items: out,
+    matched: out.filter((r) => r.match && !r.already).length, already: out.filter((r) => r.already).length,
+    candidates: cand.slice(0, 500).map((o) => ({ id: String(o.id), num: o.num, name: o.name, city: o.city, status: o.status }))
+  });
+}
+
+async function kazpostApply(env, user, b) {
+  if (!Array.isArray(b.pairs)) fail(400, 'Нужен список pairs');
+  if (!b.pairs.length) fail(400, 'Не выбрано ни одного заказа');
+  if (b.pairs.length > KZ_MAX_ITEMS) fail(413, 'Слишком много посылок');
+  const pairs = b.pairs.map((p) => {
+    if (!p || typeof p !== 'object') fail(400, 'Некорректная пара');
+    const track = typeof p.track === 'string' ? p.track.trim().toUpperCase() : '';
+    if (!TRACK_RE.test(track)) fail(400, 'Трек-номер указан неверно');
+    const orderId = typeof p.orderId === 'number' ? p.orderId : parseInt(String(p.orderId), 10);
+    if (!(orderId > 0) || !Number.isSafeInteger(orderId)) fail(400, 'Номер заказа указан неверно');
+    return { track, orderId };
+  });
+  const tr = new Set(), ids = new Set();
+  pairs.forEach((p) => {
+    if (tr.has(p.track)) fail(400, 'Один трек-номер выбран дважды');
+    if (ids.has(p.orderId)) fail(400, 'Один заказ выбран для двух посылок');
+    tr.add(p.track); ids.add(p.orderId);
+  });
+  const rows = await selectIn(env, 'SELECT * FROM orders WHERE id IN (%IN%)', pairs.map((p) => p.orderId));
+  const byId = {};
+  rows.forEach((o) => { byId[o.id] = o; });
+  const others = await selectIn(env, 'SELECT id, num, track FROM orders WHERE track IN (%IN%)', pairs.map((p) => p.track));
+
+  const applied = [], skipped = [];
+  let already = 0;
+  const work = []; // [stmts] per order, so one order's statements always stay in the same batch
+  const ts = nowIso();
+  for (const p of pairs) {
+    const cur = byId[p.orderId];
+    if (!cur) { skipped.push({ track: p.track, orderId: p.orderId, reason: 'Заказ не найден' }); continue; }
+    if (cur.status === 'cancel' || cur.status === 'done') { skipped.push({ track: p.track, orderId: p.orderId, num: cur.num, reason: 'Заказ отменён или уже получен' }); continue; }
+    if (cur.track === p.track && cur.status === 'sent') { already++; continue; }
+    if (cur.status === 'sent' && cur.track) { skipped.push({ track: p.track, orderId: p.orderId, num: cur.num, reason: 'Заказ уже отправлен с другим треком' }); continue; }
+    const other = others.find((o) => o.track === p.track && o.id !== cur.id);
+    if (other) { skipped.push({ track: p.track, orderId: p.orderId, num: cur.num, reason: `Этот трек уже у заказа № ${other.num}` }); continue; }
+    const stmts = [];
+    const set = { status: 'sent', delivery: 'Казпочта', track: p.track, updated_at: ts };
+    if (cur.track !== p.track && cur.track_sent_at) set.track_sent_at = '';
+    if (cur.status !== 'sent' && !cur.stock_deducted) { stmts.push(...stockDeductStmts(env, cur, cur.qty || 1)); set.stock_deducted = 1; }
+    const names = Object.keys(set);
+    stmts.push(env.DB.prepare(`UPDATE orders SET ${names.map((n) => n + ' = ?').join(', ')} WHERE id = ? AND status NOT IN ('cancel', 'done')`)
+      .bind(...names.map((n) => set[n]), cur.id));
+    if (cur.status !== 'sent') stmts.push(auditStmt(env, user.email, 'status', cur.id, cur.num, `${cur.status === 'work' ? 'accepted' : cur.status} -> sent`));
+    stmts.push(auditStmt(env, user.email, 'kazpost', cur.id, cur.num, p.track));
+    work.push(stmts);
+    applied.push({ orderId: String(cur.id), num: cur.num, track: p.track });
+  }
+  // About 25 orders per batch: few round trips to D1 even for a registry of 100+ parcels.
+  for (let i = 0; i < work.length; i += 25) await env.DB.batch(work.slice(i, i + 25).flat());
+  return json({ ok: true, sent: applied.length, already, skipped, applied });
+}
+
+async function markTrackSent(env, user, idStr, b) {
+  const id = parseInt(idStr, 10);
+  const cur = await env.DB.prepare('SELECT id, num, track FROM orders WHERE id = ?').bind(id).first();
+  if (!cur) fail(404, 'Заказ не найден');
+  if (!cur.track) fail(400, 'У заказа нет трек-номера');
+  const clear = b.sent === false;
+  const at = clear ? '' : nowIso();
+  await env.DB.batch([
+    env.DB.prepare('UPDATE orders SET track_sent_at = ? WHERE id = ?').bind(at, id),
+    auditStmt(env, user.email, clear ? 'track_unsent' : 'track_sent', id, cur.num, '')
+  ]);
+  return json({ ok: true, trackSentAt: at });
 }
 
 /* ---------- auth ---------- */
@@ -392,6 +575,7 @@ async function getSettings(env, keys) {
   const out = {};
   keys.forEach((k) => { out[k] = ''; });
   results.forEach((r) => { if (keys.includes(r.key)) out[r.key] = r.value; });
+  keys.forEach((k) => { if (!out[k] && SETTING_DEFAULTS[k]) out[k] = SETTING_DEFAULTS[k]; });
   return out;
 }
 
@@ -596,6 +780,9 @@ async function api(req, env, url) {
     if (m === 'PATCH') return json(Object.assign({ ok: true }, await patchOrder(env, user, mt[1], await readJson(req))));
     if (m === 'DELETE') { requireAdmin(user); await deleteOrder(env, user, mt[1]); return json({ ok: true }); }
   }
+  if ((mt = p.match(/^\/api\/orders\/(\d+)\/track-sent$/)) && m === 'POST') return markTrackSent(env, user, mt[1], await readJson(req));
+  if (p === '/api/kazpost/preview' && m === 'POST') return kazpostPreview(env, await readJson(req));
+  if (p === '/api/kazpost/apply' && m === 'POST') return kazpostApply(env, user, await readJson(req));
   if ((mt = p.match(/^\/api\/orders\/(\d+)\/audit$/)) && m === 'GET') {
     const { results } = await env.DB.prepare('SELECT at, actor, action, detail FROM audit WHERE order_id = ? ORDER BY id DESC LIMIT 50')
       .bind(parseInt(mt[1], 10)).all();
@@ -655,8 +842,12 @@ async function api(req, env, url) {
         const v = typeof b[k] === 'string' ? b[k] : '';
         if (v.length > 20000) fail(400, 'Слишком длинное значение');
         if (k === 'payLink' && v && !/^https?:\/\//i.test(v.trim())) fail(400, 'Ссылка на оплату должна начинаться с https://');
+        if (k === 'track_url' && v.trim() && !(/^https:\/\//i.test(v.trim()) && v.includes('{трек}'))) {
+          fail(400, 'Ссылка для отслеживания должна начинаться с https:// и содержать {трек}');
+        }
+        if (k === 'track_msg' && v.length > 2000) fail(400, 'Шаблон сообщения слишком длинный');
         stmts.push(env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
-          .bind(k, k === 'templates' ? v : v.trim()));
+          .bind(k, k === 'templates' || k === 'track_msg' ? v : v.trim()));
       }
       if (stmts.length) await env.DB.batch(stmts);
       return json({ ok: true });

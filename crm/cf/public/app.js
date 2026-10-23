@@ -20,6 +20,9 @@ var MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'ию�
 var WDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 var CONTENT_STATUS = { 'ждёт': 's-pay', 'вышел': 's-paid', 'в боте': 's-accepted', 'ошибка': 's-cancel', 'не одобрено': 's-done' };
 var POLL_MS = 30000;
+// Defaults of the track message; the owner edits both in Настройки (the server sends the saved values).
+var DEFAULT_TRACK_URL = 'https://post.kz/services/postal/{трек}';
+var DEFAULT_TRACK_MSG = 'Здравствуйте, {имя}! Ваш заказ отправлен Казпочтой. Трек-номер: {трек}. Где сейчас посылка — по ссылке: {ссылка} Спасибо за покупку!';
 
 /* ---------- state ---------- */
 var S = {
@@ -28,7 +31,8 @@ var S = {
   drawer: false, card: null, resetFor: null,
   admin: false, loaded: {}, errors: {},
   data: { orders: [], products: [], finance: {}, content: [], users: [], settings: null, bot: null },
-  dirty: false, loginError: ''
+  dirty: false, loginError: '',
+  kz: null // Kazpost registry import panel (Заказы tab)
 };
 
 /* ---------- helpers ---------- */
@@ -54,6 +58,22 @@ function waDigits(phone) {
   if (d.length === 11 && d.charAt(0) === '8') d = '7' + d.slice(1);
   else if (d.length === 10) d = '7' + d;
   return d.length >= 10 && d.length <= 15 ? d : '';
+}
+// Tracking link for a Kazpost parcel: the template from Настройки with {трек} replaced (URL-encoded). '' when it cannot be built.
+function trackUrl(track) {
+  var tpl = (S.data.settings && S.data.settings.track_url) || DEFAULT_TRACK_URL;
+  if (!track || !/^https:\/\//i.test(tpl)) return '';
+  return tpl.split('{трек}').join(encodeURIComponent(track));
+}
+function trackMessage(o) {
+  var tpl = (S.data.settings && S.data.settings.track_msg) || DEFAULT_TRACK_MSG;
+  return tpl.split('{имя}').join(String(o.name || '').trim()).split('{трек}').join(o.track || '').split('{ссылка}').join(trackUrl(o.track))
+    .replace(/,\s*!/g, '!');
+}
+function hasKzTrack(o) { return !!(o && o.track && o.delivery === 'Казпочта'); }
+function trackLinkHTML(o) {
+  var u = hasKzTrack(o) ? trackUrl(o.track) : '';
+  return u ? ' <a class="trk-link" href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">Отследить</a>' : '';
 }
 var toastTimer = null;
 function toast(msg, kind) {
@@ -242,7 +262,10 @@ function renderOrders() {
     ? '<button type="button" class="remind s-pay' + (S.filter === 'remind' ? ' on' : '') + '" data-act="filter" data-f="remind"><span>Сегодня напомнить: ' + due.length + '</span><small>' + (S.filter === 'remind' ? 'показать все' : 'показать') + '</small></button>' : '';
   var rows = list.map(function (o) {
     var st = ostat(o), sub = '';
-    if (st === 'sent' && (o.delivery || o.track)) sub = '<small class="dl">' + esc([o.delivery, o.track].filter(Boolean).join(' · ')) + '</small>';
+    if (st === 'sent' && (o.delivery || o.track)) {
+      sub = '<small class="dl">' + esc([o.delivery, o.track].filter(Boolean).join(' · ')) + trackLinkHTML(o) +
+        (o.trackSentAt ? ' <span class="trk-ok">трек отправлен ✓</span>' : '') + '</small>';
+    }
     else if (st === 'reserve' && o.remindAt) sub = '<small class="dl' + (o.remindAt <= today ? ' due' : '') + '">напомнить ' + esc(fmtDay(o.remindAt)) + '</small>';
     return '<div class="orow s-' + st + (o.example ? ' ex' : '') + '" role="button" tabindex="0" data-act="open-order" data-id="' + esc(o.id) + '">' +
       '<div class="c-num dim">№ ' + esc(o.num != null ? o.num : '—') + '</div>' +
@@ -253,8 +276,10 @@ function renderOrders() {
       '<div class="c-src">' + esc(o.source || '') + '</div>' +
       '<div class="c-st">' + stSelectHTML(st, 'data-ost="' + esc(o.id) + '" aria-label="Статус заказа № ' + esc(o.num != null ? o.num : '') + '"', false) + sub + '</div></div>';
   }).join('');
-  return errNotice('orders') + plaque +
-    '<div class="row-flex">' + chips + '<span class="grow"></span><button type="button" class="btn pri" data-act="new-order">+ Новый заказ</button></div>' +
+  return errNotice('orders') + plaque + kzPanelHTML() +
+    '<div class="row-flex">' + chips + '<span class="grow"></span><button type="button" class="btn" data-act="kz-open">Загрузить реестр Казпочты</button>' +
+    '<input type="file" id="kz-file" class="hide" accept="application/pdf,.pdf" aria-label="PDF-реестр Казпочты">' +
+    '<button type="button" class="btn pri" data-act="new-order">+ Новый заказ</button></div>' +
     '<div><label class="sr" for="orders-search">Поиск</label><input id="orders-search" type="search" placeholder="Поиск: имя, телефон, город" value="' + esc(S.q) + '" autocomplete="off"></div>' +
     '<div class="otbl"><div class="otbl-in"><div class="ohead"><div>№</div><div>Дата</div><div>Клиент</div><div>Товар</div><div>Сумма</div><div>Откуда</div><div>Статус</div></div>' +
     (rows || '<div class="empty">' + (S.filter === 'remind' ? 'На сегодня напоминаний нет.' : (S.data.orders.length ? 'Ничего не найдено.' : 'Заказов пока нет. Нажмите «+ Новый заказ».')) + '</div>') +
@@ -461,6 +486,10 @@ function renderSettings() {
     '<div class="fld"><label for="set-wa2">WhatsApp запасной</label><input id="set-wa2" type="text" inputmode="tel" autocomplete="off" value="' + esc(s.wa2) + '" placeholder="+7 ..."></div>' +
     '<div class="fld"><label for="set-payLink">Ссылка на оплату</label><input id="set-payLink" type="text" autocomplete="off" value="' + esc(s.payLink) + '" placeholder="https://..."></div>' +
     '<div class="fld"><label for="set-templates">Шаблоны ответов</label><textarea id="set-templates">' + esc(s.templates) + '</textarea></div>' +
+    '<div class="fld"><label for="set-track_msg">Шаблон сообщения с трек-номером</label><textarea id="set-track_msg" class="ta90">' + esc(s.track_msg || DEFAULT_TRACK_MSG) + '</textarea>' +
+    '<small>Подставляется: {имя} — имя клиента, {трек} — трек-номер, {ссылка} — ссылка для отслеживания.</small></div>' +
+    '<div class="fld"><label for="set-track_url">Ссылка для отслеживания</label><input id="set-track_url" type="text" autocomplete="off" value="' + esc(s.track_url || DEFAULT_TRACK_URL) + '" placeholder="https://.../{трек}">' +
+    '<small>Должна начинаться с https:// и содержать {трек} — туда подставится номер посылки.</small></div>' +
     '<div><button type="button" class="btn pri" data-act="set-save">Сохранить</button></div></div>';
 }
 
@@ -598,6 +627,8 @@ function cardHTML() {
     '<div class="fld"><label for="f-name">Имя</label><input id="f-name" type="text" autocomplete="off" value="' + esc(o.name) + '"></div>' +
     '<div class="fld"><label for="f-phone">Телефон</label><div class="phone-row"><input id="f-phone" type="text" inputmode="tel" autocomplete="off" value="' + esc(o.phone) + '"><button type="button" class="icon-btn" data-act="copy-phone">' + COPY_SVG + 'Копировать</button></div></div>' +
     '<div><a class="pill-wa" id="wa-link" target="_blank" rel="noopener noreferrer">Написать в WhatsApp</a></div>' +
+    (!c.isNew && hasKzTrack(o) ? '<div class="row-flex trk-tools"><button type="button" class="btn" data-act="send-track" data-id="' + esc(o.id) + '">Отправить трек в WhatsApp</button>' +
+      trackLinkHTML(o) + ' <span class="trk-ok" id="trk-mark">' + (o.trackSentAt ? 'трек отправлен ✓' : '') + '</span></div>' : '') +
     '<div class="pair"><div class="fld"><label for="f-city">Город</label><input id="f-city" type="text" autocomplete="off" value="' + esc(o.city) + '"></div>' +
     '<div class="fld"><label for="f-source">Откуда</label><select id="f-source">' + srcOpts + '</select></div></div>' +
     '<div class="fld"><label for="f-address">Адрес доставки</label><input id="f-address" type="text" autocomplete="off" value="' + esc(o.address) + '"></div>' +
@@ -632,7 +663,7 @@ async function loadHistory(id) {
     var d = await api('GET', '/api/orders/' + encodeURIComponent(id) + '/audit');
     var el = document.getElementById('hist');
     if (!el || !S.card || S.card.id !== id) return;
-    var names = { create: 'создан', lead: 'создан из комментария', status: 'статус', edit: 'изменены поля', delete: 'удалён' };
+    var names = { create: 'создан', lead: 'создан из комментария', status: 'статус', edit: 'изменены поля', delete: 'удалён', kazpost: 'отправлен по реестру Казпочты', track_sent: 'трек отправлен клиенту', track_unsent: 'отметка «трек отправлен» снята' };
     el.innerHTML = (d.audit || []).slice(0, 8).map(function (a) {
       var det = a.action === 'status' ? String(a.detail).split(' -> ').map(function (k) { return STN[k] || k; }).join(' → ') : '';
       return '<div>' + esc(fmtDate(a.at)) + ' · ' + esc(String(a.actor).replace(/^hook:/, 'авто: ')) + ' · ' + esc(names[a.action] || a.action) + (det ? ': ' + esc(det) : '') + '</div>';
@@ -755,6 +786,147 @@ function copyText(text, okMsg, inputId) {
   } catch (e) { fail(); }
 }
 
+// Copies text synchronously inside the click (so the focus is still on the page), falls back to the async clipboard API.
+function copyToClipboard(text) {
+  var ok = false, prev = document.activeElement;
+  try {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (prev && prev.focus) prev.focus();
+  } catch (e) { ok = false; }
+  if (ok) return Promise.resolve(true);
+  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return false; });
+  return Promise.resolve(false);
+}
+
+/* ---------- Kazpost registry import ---------- */
+function orderOpt(c, sel) {
+  return '<option value="' + esc(c.id) + '"' + (sel ? ' selected' : '') + '>№ ' + esc(c.num) + ' · ' + esc(c.name || 'Без имени') + (c.city ? ' · ' + esc(c.city) : '') + '</option>';
+}
+function kzFound() { return S.kz.items.filter(function (r) { return r.orderId; }).length; }
+function kzRowHTML(r, i) {
+  var who = '<b>' + esc(r.name || '—') + '</b><small>' + esc(r.address || '') + '</small>';
+  if (r.already) {
+    return '<div class="kzrow done"><div class="kz-trk">' + esc(r.track) + '<small>уже отправлен</small></div><div class="kz-reg">' + who +
+      '</div><div class="kz-ord">№ ' + esc(r.match ? r.match.num : '') + ' · ' + esc(r.match ? r.match.name : '') + '</div></div>';
+  }
+  var cands = S.kz.candidates, has = {};
+  var opts = '<option value="">— пропустить —</option>' + cands.map(function (c) { has[c.id] = 1; return orderOpt(c, c.id === r.orderId); }).join('');
+  if (r.match && !has[r.match.id]) opts += orderOpt(r.match, r.match.id === r.orderId);
+  var crm = r.orderId ? ('<small class="kz-arrow">→ ' + esc(kzOrderLabel(r.orderId)) + '</small>') : '';
+  return '<div class="kzrow ' + (r.orderId ? 'ok' : 'no') + '"><div class="kz-trk">' + esc(r.track) + '<small>' + esc(r.orderId ? r.reason : 'не найден') + '</small></div>' +
+    '<div class="kz-reg">' + who + crm + '</div>' +
+    '<div class="kz-ord"><label class="sr" for="kz-sel-' + i + '">Заказ для посылки ' + esc(r.track) + '</label><select id="kz-sel-' + i + '" data-kz="' + i + '">' + opts + '</select></div></div>';
+}
+function kzOrderLabel(id) {
+  var c = S.kz.candidates.filter(function (x) { return x.id === id; })[0];
+  if (!c) { c = S.kz.items.map(function (r) { return r.match; }).filter(function (m) { return m && m.id === id; })[0]; }
+  return c ? '№ ' + c.num + ' · ' + (c.name || 'Без имени') : '';
+}
+function kzSentCount() {
+  var n = 0;
+  S.kz.result.applied.forEach(function (a) { var o = S.data.orders.filter(function (x) { return x.id === a.orderId; })[0]; if (o && o.trackSentAt) n++; });
+  return n;
+}
+function kzPanelHTML() {
+  var k = S.kz;
+  if (!k) return '';
+  var head = function (title) {
+    return '<div class="row-flex"><div class="fw6">' + title + '</div><span class="grow"></span><button type="button" class="btn sm" data-act="kz-close">Закрыть</button></div>';
+  };
+  if (k.phase === 'read') return '<div class="card kz col12">' + head('Реестр Казпочты') + '<div class="muted">Читаем файл ' + esc(k.fileName) + '…</div></div>';
+  if (k.phase === 'preview') {
+    var n = kzFound();
+    return '<div class="card kz col12">' + head('Реестр Казпочты: найдено <b>' + n + '</b> из ' + k.items.length) +
+      (k.skippedBlocks ? '<div class="notice">Не удалось разобрать посылок: ' + k.skippedBlocks + '. Проверьте файл.</div>' : '') +
+      '<small>Файл: ' + esc(k.fileName) + (k.total ? ' · сумма в реестре ' + fmt(k.total) : '') + '. Проверьте пары и при необходимости выберите заказ вручную или «пропустить».</small>' +
+      '<div class="kzlist">' + k.items.map(kzRowHTML).join('') + '</div>' +
+      '<div class="row-flex"><button type="button" class="btn pri" data-act="kz-apply"' + (n && !k.busy ? '' : ' disabled') + '>Отметить отправленными (' + n + ')</button>' +
+      '<button type="button" class="btn" data-act="kz-close">Отмена</button></div></div>';
+  }
+  var res = k.result, rows = res.applied.map(function (a) {
+    var o = S.data.orders.filter(function (x) { return x.id === a.orderId; })[0];
+    if (!o) return '';
+    return '<div class="kzrow send"><div class="kz-trk">№ ' + esc(o.num) + '<small>' + esc(a.track) + '</small></div>' +
+      '<div class="kz-reg"><b>' + esc(o.name || 'Без имени') + '</b><small>' + esc(o.city || '') + '</small></div>' +
+      '<div class="kz-ord row-flex"><button type="button" class="btn' + (o.trackSentAt ? '' : ' pri') + '" data-act="send-track" data-id="' + esc(o.id) + '">' +
+      (o.trackSentAt ? 'Отправить ещё раз' : 'Отправить трек в WhatsApp') + '</button>' + (o.trackSentAt ? '<span class="trk-ok">трек отправлен ✓</span>' : '') + '</div></div>';
+  }).join('');
+  var notes = (res.already ? '<div class="muted fs14">Уже были отправлены раньше: ' + res.already + '.</div>' : '') +
+    res.skipped.map(function (x) { return '<div class="notice">Посылка ' + esc(x.track) + (x.num ? ' (заказ № ' + esc(x.num) + ')' : '') + ' пропущена: ' + esc(x.reason) + '.</div>'; }).join('');
+  return '<div class="card kz col12">' + head('Отправлено: <b>' + res.sent + '</b>') + notes +
+    (res.applied.length ? '<div class="fw6 mt8">Разослать треки <span class="kz-count">отправлено ' + kzSentCount() + ' из ' + res.applied.length + '</span></div>' +
+      '<small>Кнопка копирует текст и открывает чат WhatsApp клиента: вставьте текст и отправьте.</small><div class="kzlist">' + rows + '</div>' : '') + '</div>';
+}
+async function kzLoadFile(input) {
+  var f = input.files && input.files[0];
+  input.value = '';
+  if (!f) return;
+  if (f.size > 10 * 1024 * 1024) { toast('Файл слишком большой (больше 10 МБ)', 'err'); return; }
+  if (!window.Kazpost) { toast('Модуль чтения реестра не загрузился. Обновите страницу.', 'err'); return; }
+  S.kz = { phase: 'read', fileName: f.name }; doRender(true);
+  try {
+    var text = await window.Kazpost.extractPdfText(await f.arrayBuffer());
+    var parsed = window.Kazpost.parseKazpostDetailed(text);
+    if (!parsed.items.length) throw new Error('в файле не найдено ни одной посылки. Это точно реестр Казпочты в PDF?');
+    var d = await api('POST', '/api/kazpost/preview', { items: parsed.items });
+    S.kz = {
+      phase: 'preview', fileName: f.name, total: parsed.total, skippedBlocks: parsed.skipped, candidates: d.candidates || [], busy: false,
+      items: d.items.map(function (r) { return Object.assign({}, r, { orderId: r.match && !r.already ? r.match.id : '' }); })
+    };
+  } catch (e) {
+    S.kz = null;
+    toast('Не удалось прочитать реестр: ' + (e.message || 'ошибка файла'), 'err');
+  }
+  doRender(true);
+}
+async function kzApply() {
+  var k = S.kz;
+  if (!k || k.phase !== 'preview' || k.busy) return;
+  var pairs = [], seen = {}, dup = null;
+  k.items.forEach(function (r) {
+    if (!r.orderId || r.already) return;
+    if (seen[r.orderId]) dup = r.orderId;
+    seen[r.orderId] = 1;
+    pairs.push({ track: r.track, orderId: r.orderId });
+  });
+  if (!pairs.length) { toast('Не выбрано ни одного заказа', 'err'); return; }
+  if (dup) { toast('Один заказ выбран для двух посылок: ' + kzOrderLabel(dup), 'err'); return; }
+  if (!window.confirm('Отметить отправленными заказы: ' + pairs.length + '? Статус станет «Отправлен», остаток на складе уменьшится.')) return;
+  k.busy = true; doRender(true);
+  try {
+    var d = await api('POST', '/api/kazpost/apply', { pairs: pairs });
+    S.kz = { phase: 'done', result: { sent: d.sent, already: d.already, skipped: d.skipped || [], applied: d.applied || [] } };
+    await Promise.all([load('orders'), load('products')]);
+    toast('Отправлено: ' + d.sent, 'ok');
+  } catch (e) {
+    k.busy = false;
+    toast('Не сохранилось: ' + e.message, 'err');
+  }
+  doRender(true);
+}
+function sendTrack(id) {
+  var o = S.data.orders.filter(function (x) { return x.id === id; })[0];
+  if (!o || !o.track) { toast('У заказа нет трек-номера', 'err'); return; }
+  var wa = waDigits(o.phone);
+  if (!wa) { toast('У заказа нет номера для WhatsApp', 'err'); return; }
+  var text = trackMessage(o);
+  var copied = copyToClipboard(text); // copy first (while the page has focus), then open the chat: no text in the link
+  window.open('https://wa.me/' + wa, '_blank', 'noopener');
+  copied.then(function (ok) {
+    if (!ok) { toast('Не удалось скопировать — скопируйте текст вручную', 'err'); window.prompt('Скопируйте текст сообщения', text); return null; }
+    toast('Текст скопирован — вставьте в чат', 'ok');
+    return api('POST', '/api/orders/' + encodeURIComponent(id) + '/track-sent', { sent: true }).then(function (d) {
+      o.trackSentAt = d.trackSentAt || nowISO();
+      var mark = document.getElementById('trk-mark'); if (mark && S.card && S.card.id === id) mark.textContent = 'трек отправлен ✓';
+      doRender(true);
+    });
+  }).catch(function (e) { toast('Текст скопирован, но отметка не сохранилась: ' + e.message, 'err'); });
+}
+
 /* ---------- data loading ---------- */
 var LOADERS = {
   orders: ['GET', '/api/orders', function (d) { S.data.orders = d.orders || []; }],
@@ -804,7 +976,7 @@ function goLogin() {
   resetSession();
 }
 function resetSession() {
-  S.auth = false; S.user = null; S.admin = false; S.loaded = {}; S.errors = {}; S.card = null; S.drawer = false;
+  S.auth = false; S.user = null; S.admin = false; S.loaded = {}; S.errors = {}; S.card = null; S.drawer = false; S.kz = null;
   S.data = { orders: [], products: [], finance: {}, content: [], users: [], settings: null, bot: null };
   $('#card-root').innerHTML = '';
   renderAll();
@@ -862,6 +1034,10 @@ var ACTIONS = {
   'publish': function (t) { doPublish(t.dataset.date, t.dataset.time); },
   'open-order': function (t) { openCard(t.dataset.id); },
   'new-order': function () { openCard(null); },
+  'kz-open': function () { var f = document.getElementById('kz-file'); if (f) f.click(); },
+  'kz-close': function () { S.kz = null; doRender(true); },
+  'kz-apply': function () { kzApply(); },
+  'send-track': function (t) { sendTrack(t.dataset.id); },
   'close-card': function () { closeCard(); },
   'card-save': function () { saveCard(); },
   'card-del': function () { showDelConfirm(); },
@@ -906,7 +1082,10 @@ var ACTIONS = {
     if (ok) doRender(true);
   },
   'set-save': async function () {
-    var data = { wa1: textField('set-wa1'), wa2: textField('set-wa2'), payLink: textField('set-payLink'), templates: rawField('set-templates') };
+    var data = { wa1: textField('set-wa1'), wa2: textField('set-wa2'), payLink: textField('set-payLink'), templates: rawField('set-templates'), track_msg: rawField('set-track_msg'), track_url: textField('set-track_url') };
+    if (data.track_url && !(/^https:\/\//i.test(data.track_url) && data.track_url.indexOf('{трек}') >= 0)) {
+      toast('Не сохранилось: ссылка для отслеживания должна начинаться с https:// и содержать {трек}', 'err'); return;
+    }
     var ok = await run('Настройки сохранены', function () { return api('PUT', '/api/settings', data); });
     if (ok) await load('settings');
   }
@@ -921,7 +1100,7 @@ async function saveFin(pid) {
 
 /* ---------- event wiring ---------- */
 document.addEventListener('click', function (e) {
-  if (e.target.closest && e.target.closest('select')) return; // status selects inside table rows must not open the card
+  if (e.target.closest && e.target.closest('select, a')) return; // status selects and links inside table rows must not open the card
   var t = e.target.closest ? e.target.closest('[data-act]') : null;
   if (!t) return;
   var h = ACTIONS[t.dataset.act];
@@ -940,6 +1119,12 @@ document.addEventListener('input', function (e) {
 document.addEventListener('change', function (e) {
   var t = e.target;
   if (!S.auth) return;
+  if (t.id === 'kz-file') { kzLoadFile(t); return; }
+  if (t.dataset && t.dataset.kz !== undefined && S.kz && S.kz.items) {
+    S.kz.items[parseInt(t.dataset.kz, 10)].orderId = t.value;
+    doRender(true);
+    return;
+  }
   if (t.dataset && t.dataset.ost) { rowStatus(t); return; }
   if (t.id === 'card-st') { cardStatus(t.value); return; }
   if (t.id === 'f-remind' || t.id === 'f-delivery') { syncExtra(); return; }

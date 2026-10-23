@@ -223,3 +223,25 @@ table.t td input{max-width:130px}
 
 .ta90{min-height:90px}
 .bg-c1{background:var(--c1)}.bg-c2{background:var(--c2)}.bg-c3{background:var(--c3)}.bg-c4{background:var(--c4)}.bg-c5{background:var(--c5)}
+
+/* Kazpost registry import */
+.kz{border-left:4px solid var(--accent)}
+.kzlist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.kzrow{display:grid;grid-template-columns:190px 1.4fr 1.2fr;gap:6px 12px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line2);background:var(--card);box-shadow:inset 4px 0 0 var(--line)}
+.kzrow:last-child{border-bottom:0}
+.kzrow.ok{background:var(--s-accepted-row);box-shadow:inset 4px 0 0 var(--s-accepted-ink)}
+.kzrow.no{background:var(--s-pay-row);box-shadow:inset 4px 0 0 var(--s-pay)}
+.kzrow.done{background:var(--s-done-row);box-shadow:inset 4px 0 0 var(--s-done)}
+.kzrow.send{background:var(--card);box-shadow:inset 4px 0 0 var(--s-sent)}
+.kzrow small{display:block;overflow-wrap:anywhere}
+.kz-trk{font-weight:600;font-size:14px;overflow-wrap:anywhere}
+.kz-reg b{display:block;font-weight:600;overflow-wrap:anywhere}
+.kz-arrow{color:var(--s-accepted-ink)}
+.kz-ord select{width:100%}
+.kz-count{margin-left:8px;font-weight:400;font-size:14px;color:var(--muted)}
+.trk-ok{color:var(--ok);font-weight:600;font-size:13px}
+.trk-link{font-weight:600}
+.trk-tools{gap:12px}
+@media (max-width:720px){
+ .kzrow{grid-template-columns:1fr}
+}
