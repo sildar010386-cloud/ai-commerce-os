@@ -71,7 +71,8 @@ def upload(method, chat, fields, files):
 
 
 def owner():
-    chat = load().get("chat_id")
+    # GitHub Actions (no access to the private repo): the chat id comes from the TELEGRAM_CHAT_ID secret
+    chat = os.environ.get("TELEGRAM_CHAT_ID") or load().get("chat_id")
     if not chat:
         sys.exit("owner has not sent /start to the bot yet")
     return chat
