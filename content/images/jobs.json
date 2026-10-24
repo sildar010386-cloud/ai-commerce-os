@@ -36,7 +36,7 @@
   "h": 1280
  },
  {
-  "prompt": "Open suitcase with neatly packed colorful clothes on a hotel bed, bright travel mood, vivid colors, no people, no text, no appliance",
+  "prompt": "Open suitcase with neatly packed colorful clothes on a hotel bed, bright travel mood, vivid colors, no people, no text, no appliance. Absolutely no devices, no appliances, no electronics on the nightstand.",
   "out": "content/threads/T-120/bg.jpg",
   "w": 1024,
   "h": 1280
@@ -66,7 +66,7 @@
   "h": 1280
  },
  {
-  "prompt": "Tiny newborn onesies, cardigans and socks neatly arranged on a soft white blanket, pastel mint and yellow colors, bright, vivid, no people, no text, no appliance",
+  "prompt": "Tiny newborn onesies, cardigans and socks neatly arranged on a soft white blanket, pastel mint and yellow colors, bright, vivid, no people, no text, no appliance. Plain fabric without any labels, prints, letters or text.",
   "out": "content/threads/T-125/bg.jpg",
   "w": 1024,
   "h": 1280
@@ -108,7 +108,7 @@
   "h": 1280
  },
  {
-  "prompt": "Clothes laid out on a bright bed ready for ironing, colorful shirts and a dress, vivid cheerful colors, no people, no text, no appliance",
+  "prompt": "Clothes laid out on a bright bed ready for ironing, colorful shirts and a dress, vivid cheerful colors, no people, no text, no appliance. Absolutely no iron, no steamer, no appliance of any kind anywhere.",
   "out": "content/threads/T-132/bg.jpg",
   "w": 1024,
   "h": 1280
@@ -144,7 +144,7 @@
   "h": 1280
  },
  {
-  "prompt": "Bright photo of a pair of jeans lying flat with a few coins, a lipstick and a paper receipt spilling out of the pocket onto a pastel background, vivid colors, no people, no text",
+  "prompt": "Bright photo of a pair of jeans lying flat with a few coins, a lipstick and a paper receipt spilling out of the pocket onto a pastel background, vivid colors, no people, no text. No labels, no tags, no text, no letters anywhere.",
   "out": "content/threads/T-138/1.jpg",
   "w": 1024,
   "h": 1280
@@ -362,11 +362,11 @@
   "out": "content/carousels/K-17/src/02.jpg"
  },
  {
-  "prompt": "Nail file and nail clippers on a pastel towel, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "prompt": "Nail file and nail clippers on a pastel towel, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people. Plain tools without any engraving, labels, letters or text.",
   "out": "content/carousels/K-17/src/03.jpg"
  },
  {
-  "prompt": "Jar of foot cream and a small bottle of cuticle oil on a white towel with a flower, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "prompt": "Jar of foot cream and a small bottle of cuticle oil on a white towel with a flower, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people. Plain unlabeled jar and bottle, no labels, no letters, no text.",
   "out": "content/carousels/K-17/src/04.jpg"
  },
  {
