@@ -8,7 +8,7 @@ Existing outputs are skipped, so a re-run only makes what is missing. Each pictu
 so this runs in GitHub Actions (.github/workflows/images.yml), which commits the pictures to the working branch.
 Owner rule: no AI-drawn product - our steamer comes only from real footage.
 """
-import json, os, subprocess, sys, tempfile, urllib.error, urllib.request
+import json, os, shutil, subprocess, sys, tempfile, urllib.error, urllib.request
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 sys.path.insert(0, os.path.abspath(ROOT))
@@ -23,9 +23,13 @@ def generate(prompt, out, w=1024, h=960):
     with urllib.request.urlopen(req, timeout=120) as r, tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
         f.write(r.read())
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
-    # cover-crop the square FLUX picture to the slide size
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", f.name, "-vf",
-                    f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}", "-q:v", "2", out], check=True)
+    # cover-crop the square FLUX picture to the slide size (GitHub runners have no ffmpeg: Pillow there)
+    if shutil.which("ffmpeg"):
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", f.name, "-vf",
+                        f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}", "-q:v", "2", out], check=True)
+    else:
+        from PIL import Image, ImageOps
+        ImageOps.fit(Image.open(f.name).convert("RGB"), (w, h), Image.LANCZOS).save(out, quality=92)
     os.unlink(f.name)
 
 
