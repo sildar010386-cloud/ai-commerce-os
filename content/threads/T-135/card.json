@@ -1,0 +1,10 @@
+{
+ "bg": "bg.jpg",
+ "frame": "content/carousels/K-02/src/p2.jpg",
+ "frame_pos": "55% 50%",
+ "frame_zoom": 125,
+ "plaque": "2 в 1",
+ "title": "Находка\nдля дома",
+ "box": "2 в 1, доска не нужна, доставка бесплатно",
+ "accent": "#FF6B6B"
+}

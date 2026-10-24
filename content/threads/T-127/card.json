@@ -1,0 +1,10 @@
+{
+ "bg": "bg.jpg",
+ "frame": "content/carousels/K-02/src/p2.jpg",
+ "frame_pos": "55% 50%",
+ "frame_zoom": 125,
+ "plaque": "Греется\n9 секунд",
+ "title": "Гладильщица\nполучается",
+ "box": "Греется за 9 секунд, доска не нужна",
+ "accent": "#C6F432"
+}

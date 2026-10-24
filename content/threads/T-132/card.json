@@ -1,0 +1,10 @@
+{
+ "bg": "bg.jpg",
+ "frame": "content/carousels/K-02/src/p5.jpg",
+ "frame_pos": "30% 50%",
+ "frame_zoom": 125,
+ "plaque": "9 секунд",
+ "title": "Любимый\nотпариватель",
+ "box": "Компактный, греется за 9 секунд",
+ "accent": "#FFD60A"
+}

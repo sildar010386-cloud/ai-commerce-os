@@ -1,0 +1,10 @@
+{
+ "bg": "bg.jpg",
+ "frame": "content/carousels/K-02/src/p2.jpg",
+ "frame_pos": "55% 50%",
+ "frame_zoom": 125,
+ "plaque": "Без гладильной\nдоски",
+ "title": "Рубашка как\nновенькая",
+ "box": "Отпаривает прямо на вешалке, доска не нужна",
+ "accent": "#FFD60A"
+}

@@ -1,0 +1,10 @@
+{
+ "bg": "bg.jpg",
+ "frame": "content/carousels/K-02/src/p2.jpg",
+ "frame_pos": "55% 50%",
+ "frame_zoom": 125,
+ "plaque": "Бесплатная доставка\nпо Казахстану",
+ "title": "Находка\n10 из 10",
+ "box": "Греется за 9 секунд, доставка бесплатная",
+ "accent": "#5AC8FA"
+}
