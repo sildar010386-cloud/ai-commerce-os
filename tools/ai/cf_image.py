@@ -15,10 +15,8 @@ sys.path.insert(0, os.path.abspath(ROOT))
 from tools.crm.client import crm_url  # noqa: E402
 
 
-def generate(prompt, out, w=1024, h=960, seed=None):
+def generate(prompt, out, w=1024, h=960):
     body = {"prompt": prompt}
-    if seed is not None:
-        body["seed"] = seed
     req = urllib.request.Request(crm_url() + "/api/hooks/image", data=json.dumps(body).encode(), method="POST",
                                  headers={"Content-Type": "application/json", "X-Api-Key": os.environ["CRM_API_KEY"],
                                           "User-Agent": "bikas-images/1"})
@@ -39,7 +37,7 @@ def main(jobs_file):
         if os.path.exists(out):
             continue
         try:
-            generate(j["prompt"], out, j.get("w", 1024), j.get("h", 960), j.get("seed"))
+            generate(j["prompt"], out, j.get("w", 1024), j.get("h", 960))
             made += 1
             print("made", j["out"])
         except (urllib.error.URLError, subprocess.CalledProcessError, OSError) as e:

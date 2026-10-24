@@ -708,10 +708,9 @@ async function imageHook(env, b) {
   if (!env.AI) fail(501, 'Workers AI не подключён');
   const prompt = str(b.prompt, 2000, 'prompt');
   if (!prompt) fail(400, 'Пустой prompt');
-  const seed = Number.isInteger(b.seed) ? b.seed : Math.floor(Math.random() * 1e9);
   let out;
   try {
-    out = await env.AI.run('@cf/black-forest-labs/flux-1-schnell', { prompt, steps: 8, seed });
+    out = await env.AI.run('@cf/black-forest-labs/flux-1-schnell', { prompt, steps: 8 });  // the model takes no seed
   } catch (e) {  // key-protected machine endpoint: the reason helps fix quota/permission problems
     fail(502, 'Workers AI: ' + String((e && e.message) || e).slice(0, 300));
   }
