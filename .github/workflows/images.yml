@@ -21,7 +21,9 @@ jobs:
       - name: Make the pictures
         env:
           CRM_API_KEY: ${{ secrets.CRM_API_KEY }}
-        run: python3 tools/ai/cf_image.py content/images/jobs.json
+        run: |
+          pip install --quiet pillow
+          python3 tools/ai/cf_image.py content/images/jobs.json
       - name: Commit the pictures
         if: always()
         run: |
