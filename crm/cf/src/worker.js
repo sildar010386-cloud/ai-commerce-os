@@ -701,6 +701,20 @@ async function createUser(env, b, role) {
   return lg;
 }
 
+/* ---------- AI images (free Workers AI quota) ----------
+   tools/ai/cf_image.py asks for carousel/post pictures here: FLUX.1 schnell on Cloudflare Workers AI
+   (binding AI in wrangler.toml). Returns the JPEG bytes; the caller crops to the slide size. */
+async function imageHook(env, b) {
+  if (!env.AI) fail(501, 'Workers AI не подключён');
+  const prompt = str(b.prompt, 2000, 'prompt');
+  if (!prompt) fail(400, 'Пустой prompt');
+  const seed = Number.isInteger(b.seed) ? b.seed : Math.floor(Math.random() * 1e9);
+  const out = await env.AI.run('@cf/black-forest-labs/flux-1-schnell', { prompt, steps: 8, seed });
+  if (!out || !out.image) fail(502, 'Генерация не удалась');
+  const bytes = Uint8Array.from(atob(out.image), (c) => c.charCodeAt(0));
+  return new Response(bytes, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store' } });
+}
+
 /* ---------- router ---------- */
 async function api(req, env, url) {
   const m = req.method, p = url.pathname;
@@ -721,6 +735,7 @@ async function api(req, env, url) {
     if (p === '/api/hooks/content-sync') return contentSync(env, b);
     if (p === '/api/hooks/content-status') return contentStatus(env, b);
     if (p === '/api/hooks/bot-stats') return botStatsHook(env, b);
+    if (p === '/api/hooks/image') return imageHook(env, b);
     fail(404, 'Не найдено');
   }
 

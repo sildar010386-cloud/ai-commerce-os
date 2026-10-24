@@ -21,6 +21,10 @@ migrations_dir = "migrations"
 [triggers]
 crons = ["*/5 4-15 * * *", "0 4 * * *"]
 
+# Workers AI (free daily quota): FLUX.1 schnell pictures for posts and carousels (worker.js imageHook).
+[ai]
+binding = "AI"
+
 [vars]
 # Branch that holds the publish workflow (used by the manual-publish button).
 GH_DISPATCH_REF = "claude/ai-ecommerce-automation-3n1lgz"
