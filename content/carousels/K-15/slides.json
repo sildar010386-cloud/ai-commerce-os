@@ -1,0 +1,57 @@
+{
+ "accent": "#FFB703",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Чем отмыть плиту, если всё уже въелось",
+   "text": "3 шага. Про последний забывают →",
+   "prompt": "Kitchen stove top with baked-on grease stains and a sponge beside it, sunny kitchen, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Узнай, из чего плита",
+   "text": "Эмаль, нержавейка и стеклокерамика моются по-разному. Жёсткая мочалка царапает эмаль и стеклокерамику.",
+   "prompt": "Three different stove surfaces side by side: white enamel, stainless steel and black glass-ceramic, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🔎",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Дай средству поработать",
+   "text": "Нанеси средство для жира или пасту из соды с водой, подожди 10-15 минут и только потом три.",
+   "prompt": "A sponge and a bowl of baking soda paste on a kitchen counter next to a stove, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "⏳",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Стеклокерамика: скребок",
+   "text": "Тёплую (не горячую) плиту обработай средством и аккуратно сними нагар специальным скребком.",
+   "prompt": "A glass-ceramic hob being scraped clean with a special scraper at a low angle, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "✨",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка по поверхностям",
+   "items": [
+    {
+     "icon": "⚪",
+     "text": "Эмаль: паста из соды, мягкая губка"
+    },
+    {
+     "icon": "🔩",
+     "text": "Нержавейка: средство для жира, вдоль волокон"
+    },
+    {
+     "icon": "⬛",
+     "text": "Стеклокерамика: средство и скребок"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, у кого плита «уже не отмывается».\nКакая у вас плита? Пишите в комментариях"
+  }
+ ]
+}

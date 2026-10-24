@@ -1,0 +1,59 @@
+{
+ "accent": "#FF6B35",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Погладила рубашку прямо на вешалке",
+   "text": "Лайфхак, после которого доску не достаю. Покажу, как →",
+   "prompt": "Crisp white shirt on a wooden hanger hanging on a bright wardrobe door, coral background, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Греется за 9 секунд",
+   "text": "Включила, и через 9 секунд можно гладить.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p5.jpg",
+   "note": "Реальный кадр K-02/src/p5.jpg (экран нагрева), скопировать в src/02.jpg",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Доску не достаю",
+   "text": "Рубашка висит на вешалке, доска остаётся в кладовке.",
+   "prompt": "Bedroom corner with shirts on hangers on a clothes rail and a neat bed, warm light, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "👔",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "2 в 1",
+   "text": "Прижала, и гладит как утюг. Повела, и отпаривает.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg (прижат к ткани), скопировать в src/04.jpg",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: где гладить без доски",
+   "items": [
+    {
+     "icon": "👔",
+     "text": "Вешалка: гладим прямо на ней"
+    },
+    {
+     "icon": "🛏️",
+     "text": "Кровать: гладим на ней"
+    },
+    {
+     "icon": "📦",
+     "text": "Поездка: складывается в маленькую коробку"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто до сих пор достаёт доску.\nХотите такой же — напишите «ПАР» в комментариях\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

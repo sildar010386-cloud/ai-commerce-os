@@ -1,0 +1,57 @@
+{
+ "accent": "#FFC300",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Приблуды, которые реально облегчают уборку",
+   "text": "3 вещи, которые экономят время. Последнюю часто забывают →",
+   "prompt": "Cleaning caddy basket with colorful brushes, sponges and microfiber cloths on a sunny kitchen counter, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Микрофибра",
+   "text": "Собирает пыль и жир, достаточно воды. Стирается и служит долго.",
+   "prompt": "Stack of rainbow-colored microfiber cloths on a white counter, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧽",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Узкая щётка для швов",
+   "text": "Достаёт туда, куда не пролезает губка: швы плитки, вокруг крана.",
+   "prompt": "A narrow brush cleaning white tile grout lines near a chrome tap, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🪥",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Корзинка с ручкой для средств",
+   "text": "Весь набор в одной руке, не бегаешь по квартире за тряпкой.",
+   "prompt": "Cleaning caddy with spray bottles and cloths standing in a bright bathroom, vivid, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧺",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: что для чего",
+   "items": [
+    {
+     "icon": "🧽",
+     "text": "Микрофибра: пыль, поверхности"
+    },
+    {
+     "icon": "🪥",
+     "text": "Узкая щётка: швы, краны"
+    },
+    {
+     "icon": "🧺",
+     "text": "Корзинка: весь набор в одной руке"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто любит уборку с приблудами.\nА какая приблуда нужна вам? Пишите в комментариях"
+  }
+ ]
+}

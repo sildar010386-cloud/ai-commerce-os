@@ -1,0 +1,57 @@
+{
+ "accent": "#9B5DE5",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "3 футболки в гардеробе: а как же стирка?",
+   "text": "Как живут те, у кого вещей мало. Последняя формула всё упрощает →",
+   "prompt": "Small neat capsule wardrobe with a few colorful t-shirts and jeans on hangers and shelves, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Стираем по загрузке",
+   "text": "Копим бельё до полной машинки: меньше воды и электричества, меньше стирок.",
+   "prompt": "Laundry basket with colorful clothes beside a washing machine in a bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧺",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Не всё стирать после одного дня",
+   "text": "Джинсы, свитера и верхняя одежда носятся дольше футболок. Проветрила и повесила.",
+   "prompt": "Jeans and a knit sweater airing on a sunny balcony rail, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "👖",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Формула «5 на неделю»",
+   "text": "5 футболок, 2-3 низа, одна стирка в неделю. Хватает, чтобы не стирать каждый день.",
+   "prompt": "Seven neatly folded colorful t-shirts stacked on a wooden shelf, bright, minimal, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🗓️",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: стирка при малом гардеробе",
+   "items": [
+    {
+     "icon": "🧺",
+     "text": "Машинка: полная загрузка"
+    },
+    {
+     "icon": "👖",
+     "text": "Джинсы, свитера: проветрить"
+    },
+    {
+     "icon": "🗓️",
+     "text": "Ритм: раз в неделю"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто мечтает о капсульном гардеробе.\nСколько футболок у вас? Пишите в комментариях"
+  }
+ ]
+}

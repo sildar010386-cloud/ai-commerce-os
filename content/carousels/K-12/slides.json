@@ -1,0 +1,59 @@
+{
+ "accent": "#2EC4B6",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Гениальная идея для тех, кто не любит доску",
+   "text": "Теперь глажу прямо на кровати. Покажу, как →",
+   "prompt": "Light bedroom with a neatly made bed and a pile of colorful dresses on it, sunny morning, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Доску не достаю",
+   "text": "Раньше доска стояла посреди комнаты. Теперь её не нужно доставать.",
+   "prompt": "Bright empty corner of a room with a clean floor and window light, pastel colors, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🛏️",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2 в 1",
+   "text": "Прижала, и гладит как утюг. Повела, и отпаривает.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg (прижат к ткани), скопировать в src/03.jpg",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Греется за 9 секунд",
+   "text": "Включила, и через 9 секунд можно гладить.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p5.jpg",
+   "note": "Реальный кадр K-02/src/p5.jpg (экран нагрева), скопировать в src/04.jpg",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: глажка без доски",
+   "items": [
+    {
+     "icon": "🛏️",
+     "text": "Кровать: вместо доски"
+    },
+    {
+     "icon": "⏱️",
+     "text": "9 секунд: и можно гладить"
+    },
+    {
+     "icon": "📦",
+     "text": "Коробка: складывается маленькая"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто ненавидит гладильную доску.\nХотите такой же — напишите «ПАР» в комментариях\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

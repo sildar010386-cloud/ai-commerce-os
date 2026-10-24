@@ -1,0 +1,63 @@
+{
+ "accent": "#06D6A0",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Гениальная находка 10/10: почему я не удержалась",
+   "text": "3 причины. Последняя понравится всем →",
+   "prompt": "Kraft parcel box with a ribbon at an apartment door, sunny bright light, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Греется за 9 секунд",
+   "text": "Включила, и через 9 секунд можно гладить.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p5.jpg",
+   "note": "Реальный кадр K-02/src/p5.jpg (экран нагрева), скопировать в src/02.jpg",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2 в 1",
+   "text": "Прижала, и гладит как утюг. Повела, и отпаривает.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg (прижат к ткани), скопировать в src/03.jpg",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Доставка бесплатная",
+   "text": "Казпочтой по всему Казахстану, платить за доставку не нужно.",
+   "prompt": "A parcel box on a bright doorstep next to a potted plant, sunny day, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "📦",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "10/10: из чего складывается оценка",
+   "items": [
+    {
+     "icon": "⏱️",
+     "text": "9 секунд: нагрев"
+    },
+    {
+     "icon": "🔁",
+     "text": "2 в 1: отпариватель и утюг"
+    },
+    {
+     "icon": "🚫",
+     "text": "Без гладильной доски"
+    },
+    {
+     "icon": "📦",
+     "text": "Бесплатная доставка Казпочтой"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто любит находки 10/10.\nХотите такой же — напишите «ПАР» в комментариях\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

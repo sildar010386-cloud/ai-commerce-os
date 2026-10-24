@@ -1,0 +1,61 @@
+{
+ "accent": "#FF70A6",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Педикюр дома без записи на 8 часов",
+   "text": "3 шага по порядку. Последний продлевает эффект →",
+   "prompt": "Pastel pink spa still life with nail polish bottles, a fluffy towel and a foot bath with flower petals, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Размягчи кожу",
+   "text": "Тёплая ванночка 5-10 минут: кожа мягче, ногти проще обрабатывать.",
+   "prompt": "A foot bath with warm water and pink rose petals on a bathroom floor, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🛁",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Форма ногтей: прямо",
+   "text": "Края ногтей на ногах лучше оставить прямыми и не закруглять углы. Так реже врастают.",
+   "prompt": "Nail file and nail clippers on a pastel towel, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "💅",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Крем в самом конце",
+   "text": "Втирай крем в стопы и масло в кутикулу. Кожа остаётся мягкой дольше.",
+   "prompt": "Jar of foot cream and a small bottle of cuticle oil on a white towel with a flower, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧴",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: порядок педикюра",
+   "items": [
+    {
+     "icon": "🧼",
+     "text": "Лак: снять"
+    },
+    {
+     "icon": "🛁",
+     "text": "Ванночка: 5-10 минут"
+    },
+    {
+     "icon": "💅",
+     "text": "Пилка: прямой край"
+    },
+    {
+     "icon": "🧴",
+     "text": "Крем: в самом конце"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто записана на педикюр на восемь часов.\nКакой шаг любите больше всего? Пишите в комментариях"
+  }
+ ]
+}

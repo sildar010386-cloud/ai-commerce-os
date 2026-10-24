@@ -1,0 +1,57 @@
+{
+ "accent": "#34C759",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Со «свинюшки» в чистюли: что реально сработало",
+   "text": "3 привычки без генеральных уборок. Последняя самая ленивая →",
+   "prompt": "Sunny tidy living room with a cozy blanket on the sofa and a fresh flower in a vase, calm and clean mood, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Одна зона вместо всей квартиры",
+   "text": "Выбери один угол: стол, раковину или комод. Навела порядок, и уже заметно.",
+   "prompt": "Kitchen counter half sparkling clean with a sponge and a lemon, bright airy kitchen, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧽",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Взяла вещь, вернула вещь",
+   "text": "Чашка со стола сразу в раковину. Пять секунд сейчас, и завала потом меньше.",
+   "prompt": "Neat hallway with colorful jackets on hooks and shoes in a row, sunny, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧺",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Чистая раковина на ночь",
+   "text": "Вымыла посуду, протёрла раковину. Утром заходишь на чистую кухню, и день начинается спокойнее.",
+   "prompt": "Shiny clean kitchen sink with a small flower in a glass, soft morning light, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🌙",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: чистота без аврала",
+   "items": [
+    {
+     "icon": "☀️",
+     "text": "Утро: заправить кровать"
+    },
+    {
+     "icon": "🍽️",
+     "text": "День: чашка сразу в раковину"
+    },
+    {
+     "icon": "🌙",
+     "text": "Вечер: раковина пустая"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто говорит «опять завал».\nА какая привычка помогла вам? Пишите в комментариях"
+  }
+ ]
+}

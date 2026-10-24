@@ -1,0 +1,61 @@
+{
+ "accent": "#00B4D8",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Порядок уборки, чтобы не делать дважды",
+   "text": "3 правила и шпаргалка. Последнее многие делают наоборот →",
+   "prompt": "Sparkling clean modern living room full of sunlight with a yellow microfiber cloth and a blue spray bottle on the coffee table, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Сначала вещи и мусор",
+   "text": "Собираем то, что лежит не на месте, выносим мусор. Иначе пыль остаётся под вещами.",
+   "prompt": "Wicker basket collecting scattered items in a bright living room, tidy-up moment, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧺",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Пыль сверху вниз",
+   "text": "Пыль падает вниз. Сначала полки и шкафы, потом поверхности пониже.",
+   "prompt": "A hand with a yellow microfiber cloth wiping a high white shelf in a bright room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧽",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Пол в самом конце",
+   "text": "От дальней комнаты к выходу. Чистое не затопчем.",
+   "prompt": "Bright hallway with a shiny clean floor reflecting sunlight, a blue mop and bucket at the side, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧹",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: порядок уборки",
+   "items": [
+    {
+     "icon": "🧺",
+     "text": "Вещи и мусор: сначала"
+    },
+    {
+     "icon": "🧽",
+     "text": "Пыль: сверху вниз"
+    },
+    {
+     "icon": "🪟",
+     "text": "Стёкла и зеркала: до пола"
+    },
+    {
+     "icon": "🧹",
+     "text": "Пол: последним, к выходу"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто моет полы по два раза.\nС чего начинаете уборку вы? Пишите в комментариях"
+  }
+ ]
+}
