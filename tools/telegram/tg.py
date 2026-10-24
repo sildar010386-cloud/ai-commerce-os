@@ -2,6 +2,7 @@
 
   tg.py send "text"                 message to the owner
   tg.py video FILE.mp4 "caption"    video with a caption (<= 1024 chars)
+  tg.py photo A.jpg "caption"       one photo with a caption (<= 1024 chars)
   tg.py photos A.jpg B.jpg ...      album (2-10 photos)
   tg.py file FILE "caption"         any document
   tg.py inbox                       new messages from the owner since the last call (attached files are saved
@@ -132,6 +133,8 @@ def main(cmd, args):
     elif cmd == "video":
         upload("sendVideo", owner(), {"caption": args[1] if len(args) > 1 else "", "supports_streaming": "true"},
                {"video": args[0]})
+    elif cmd == "photo":
+        upload("sendPhoto", owner(), {"caption": args[1] if len(args) > 1 else ""}, {"photo": args[0]})
     elif cmd == "file":
         upload("sendDocument", owner(), {"caption": args[1] if len(args) > 1 else ""}, {"document": args[0]})
     elif cmd == "photos":
