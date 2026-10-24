@@ -709,7 +709,12 @@ async function imageHook(env, b) {
   const prompt = str(b.prompt, 2000, 'prompt');
   if (!prompt) fail(400, 'Пустой prompt');
   const seed = Number.isInteger(b.seed) ? b.seed : Math.floor(Math.random() * 1e9);
-  const out = await env.AI.run('@cf/black-forest-labs/flux-1-schnell', { prompt, steps: 8, seed });
+  let out;
+  try {
+    out = await env.AI.run('@cf/black-forest-labs/flux-1-schnell', { prompt, steps: 8, seed });
+  } catch (e) {  // key-protected machine endpoint: the reason helps fix quota/permission problems
+    fail(502, 'Workers AI: ' + String((e && e.message) || e).slice(0, 300));
+  }
   if (!out || !out.image) fail(502, 'Генерация не удалась');
   const bytes = Uint8Array.from(atob(out.image), (c) => c.charCodeAt(0));
   return new Response(bytes, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store' } });

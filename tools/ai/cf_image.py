@@ -44,7 +44,8 @@ def main(jobs_file):
             print("made", j["out"])
         except (urllib.error.URLError, subprocess.CalledProcessError, OSError) as e:
             failed.append(j["out"])
-            print("failed", j["out"], type(e).__name__, getattr(e, "code", ""))
+            detail = e.read().decode("utf-8", "replace")[:300] if isinstance(e, urllib.error.HTTPError) else ""
+            print("failed", j["out"], type(e).__name__, getattr(e, "code", ""), detail)
     print(f"{made} made, {len(failed)} failed")
     if failed and not made:
         sys.exit(1)
