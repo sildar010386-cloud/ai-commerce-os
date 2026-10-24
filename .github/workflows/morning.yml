@@ -1,0 +1,32 @@
+# Bikas Home morning report (owner rule: 09:00 Almaty): yesterday's Threads stats and today's schedule to the bot.
+# Started at 09:00 by the CRM's Cloudflare cron (punctual); GitHub's own schedule at 09:20 is the backup.
+# tools/stats/morning.py sends at most once per day (marker file), so two runs never send two reports.
+name: Morning report
+on:
+  schedule:
+    - cron: "20 4 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: morning
+  cancel-in-progress: false
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ vars.PUBLISH_BRANCH || 'claude/practical-mendel-vjtsd5' }}
+          fetch-depth: 20
+      - name: Send the morning report
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          BIKAS_MUSIC: /tmp/no-private-repo
+        run: |
+          git config user.name "bikas-autopublish"
+          git config user.email "bikas-autopublish@users.noreply.github.com"
+          python3 tools/stats/morning.py
