@@ -932,6 +932,8 @@ async function api(req, env, url) {
    GitHub starts its own scheduled runs 10-40 min late, so a Cloudflare cron (wrangler.toml [triggers]) checks every
    5 minutes whether an approved slot is due and still waiting, and if so starts the publish workflow right away.
    GitHub's schedule stays as the backup; publish.yml runs one at a time and never posts a done slot twice. */
+const MORNING_CRON = '0 4 * * *'; // must match wrangler.toml [triggers]
+
 async function autoPublish(env) {
   if (!env.GH_DISPATCH_TOKEN) return;
   const almaty = new Date(Date.now() + 5 * 3600 * 1000).toISOString();
@@ -956,9 +958,23 @@ async function autoPublish(env) {
   ).bind(String(Date.now())).run();
 }
 
+// 09:00 Almaty: start the morning report workflow (tools/stats/morning.py sends it once per day).
+async function startMorningReport(env) {
+  if (!env.GH_DISPATCH_TOKEN) return;
+  const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/morning.yml/dispatches`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.GH_DISPATCH_TOKEN}`, Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'bikas-crm', 'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ ref: env.GH_DISPATCH_REF || 'claude/ai-ecommerce-automation-3n1lgz' })
+  });
+  if (resp.status !== 204) console.error('morning report dispatch failed:', resp.status);
+}
+
 export default {
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(autoPublish(env));
+    ctx.waitUntil(event.cron === MORNING_CRON ? startMorningReport(env) : autoPublish(env));
   },
 
   async fetch(req, env) {
