@@ -6,7 +6,7 @@ with a friendly invitation and a clean wa.me link (owner rule: no UTM, no prefil
 
 Runs on GitHub Actions every 15 minutes (.github/workflows/funnel.yml on the default branch), no Claude needed.
 Stateless: a comment counts as handled when @bikas.home already replied to it, so a re-run never answers twice.
-Settings (WhatsApp number, reply variants): content/funnel/settings.json. Threads has no DM API, so the link goes
+Settings (WhatsApp number, trigger words, reply variants): content/funnel/settings.json. Threads has no DM API, so the link goes
 in a public reply. Longer comments that merely contain the word are left to the regular comment replies.
 """
 import json, os, re, subprocess, sys
@@ -22,7 +22,7 @@ CFG = json.load(open(os.path.join(ROOT, "content", "funnel", "settings.json")))
 
 def is_keyword(text):
     words = re.findall(r"[a-zа-яё0-9]+", (text or "").lower())
-    return 0 < len(words) <= CFG["max_words"] and CFG["keyword"] in words
+    return 0 < len(words) <= CFG["max_words"] and any(k in words for k in CFG["keywords"])
 
 
 def new_leads():
@@ -51,7 +51,7 @@ def main(dry):
         subprocess.run([sys.executable, os.path.join(ROOT, "tools", "telegram", "tg.py"), "send",
                         f"🔥 Threads: @{c['user']} написал «{c['text']}» под постом «{c['post']}».\n"
                         f"Ответили ссылкой на WhatsApp (+{CFG['whatsapp']}) — ждите сообщения.\n{c['permalink']}"])
-    print(f"{len(leads)} new «{CFG['keyword']}» comment(s)")
+    print(f"{len(leads)} new keyword comment(s)")
 
 
 if __name__ == "__main__":

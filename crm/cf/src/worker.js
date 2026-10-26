@@ -719,6 +719,24 @@ async function imageHook(env, b) {
   return new Response(bytes, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store' } });
 }
 
+/* ---------- AI comment replies (free Workers AI quota) ----------
+   tools/threads/autoreply.py sends {system, post, comment}; the model answers with one short reply or SKIP. */
+async function replyHook(env, b) {
+  if (!env.AI) fail(501, 'Workers AI не подключён');
+  const system = str(b.system, 4000, 'system'), post = str(b.post, 1000, 'post'), comment = str(b.comment, 1000, 'comment');
+  if (!system || !comment) fail(400, 'Пустой запрос');
+  let out;
+  try {
+    out = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+      messages: [{ role: 'system', content: system }, { role: 'user', content: `Пост: ${post}\nКомментарий: ${comment}` }],
+      max_tokens: 160, temperature: 0.6
+    });
+  } catch (e) {
+    fail(502, 'Workers AI: ' + String((e && e.message) || e).slice(0, 300));
+  }
+  return json({ reply: String((out && out.response) || '').trim() });
+}
+
 /* ---------- router ---------- */
 async function api(req, env, url) {
   const m = req.method, p = url.pathname;
@@ -740,6 +758,7 @@ async function api(req, env, url) {
     if (p === '/api/hooks/content-status') return contentStatus(env, b);
     if (p === '/api/hooks/bot-stats') return botStatsHook(env, b);
     if (p === '/api/hooks/image') return imageHook(env, b);
+    if (p === '/api/hooks/reply') return replyHook(env, b);
     fail(404, 'Не найдено');
   }
 
