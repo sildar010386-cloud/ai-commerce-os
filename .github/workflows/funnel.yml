@@ -1,4 +1,5 @@
-# Bikas Home funnel step 1: reply to «пар» comments in Threads with the WhatsApp link, without Claude.
+# Bikas Home funnel step 1: reply to «пар» comments in Threads with the WhatsApp link, then answer the other
+# new comments (tools/threads/autoreply.py), without Claude.
 # Code and settings come from the working branch (repository variable PUBLISH_BRANCH, or the default below).
 # Read-only: nothing is committed; a comment counts as handled once @bikas.home has replied to it.
 name: Funnel
@@ -6,6 +7,11 @@ on:
   schedule:
     - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Только показать ответы, ничего не публиковать (yes/no)"
+        required: false
+        default: "no"
 permissions:
   contents: read
 concurrency:
@@ -31,6 +37,16 @@ jobs:
           CRM_API_KEY: ${{ secrets.CRM_API_KEY }}
           BIKAS_MUSIC: /tmp/no-private-repo
         run: python3 tools/threads/funnel.py
+      - name: Reply to the other new comments (rules + free Workers AI)
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          CRM_API_KEY: ${{ secrets.CRM_API_KEY }}
+          BIKAS_MUSIC: /tmp/no-private-repo
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ "$DRY_RUN" = "yes" ]; then python3 tools/threads/autoreply.py --dry-run; else python3 tools/threads/autoreply.py; fi
       - name: Tell the owner in Telegram if the run failed
         if: failure()
         env:
