@@ -29,7 +29,7 @@ Opus в Claude in Chrome расходует дневной лимит владе
 Шаг 2. На каждой площадке: до 6 лайков и до 6 комментариев.
 - Тема: стирка, пятна, глажка, уход за одеждой, уборка, порядок и хранение, лайфхаки для дома; в Threads ещё посты-вопросы про быт («Девочки, …?»).
 - Только личные посты людей. Рекламу магазинов, посты с артикулами и промокодами пропускай.
-- Посты свежие (Threads до 2 дней, Instagram и TikTok до 14 дней), на русском, лучше Казахстан и СНГ, разные авторы. Не повторяй авторов, которых мы уже комментировали (24–25.10): mereyyykkaaa, ne_takaya_ne_takaya, tsibina_mary, our_family_albuuum, redesign_buro, iren_trosha, momlife.home, marina_zhukova_bloger, elena_rozum_n, kkibardin, ne_mama72, ivanatalie, dalcldalcl, sergejlossew, katrishalone, gakkugai, pingvinaal, olgakurbanova, aigerima_amirbekova, nadinblog24, olga_antilova, natasha_kopylova, how.itworkk, ankertita_, tetianac2, victoria_my_home, the.tinix, asemesenkyzy, sara028873.
+- Посты свежие (Threads до 2 дней, Instagram и TikTok до 14 дней), на русском, лучше Казахстан и СНГ, разные авторы. Не повторяй авторов, которых мы уже комментировали (24–26.10): mereyyykkaaa, ne_takaya_ne_takaya, tsibina_mary, our_family_albuuum, redesign_buro, iren_trosha, momlife.home, marina_zhukova_bloger, elena_rozum_n, kkibardin, ne_mama72, ivanatalie, dalcldalcl, sergejlossew, katrishalone, gakkugai, pingvinaal, olgakurbanova, aigerima_amirbekova, nadinblog24, olga_antilova, natasha_kopylova, how.itworkk, ankertita_, tetianac2, victoria_my_home, the.tinix, asemesenkyzy, sara028873, zloy_pisaka, demonenok2424, odesskiy_resnichnik, mirviktoria, lisitsa.a_, avve.angie, abd.dianaa, yabodra, magic_clean_hava, valiakhmetoo, dnevnik_domohaziaiki, clean.mama25, eliya.az17, oikjnmzql0y, zoyazabey, nurzkee, milla_utepbaeva, cleanpolya.co.
 - Комментарий от имени магазина: 1–2 предложения про ЭТОТ пост — полезный совет по уходу за вещами или уборке, поддержка, лёгкий вопрос автору (примерно в каждом втором). Не придумывай личный опыт («я купила», «у меня муж»), не выдавай себя за покупателя.
 - Наш товар упоминай только если автор сам спрашивает про отпариватель или глажку, и честно: «У нас в магазине есть ручной отпариватель, если интересно — расскажем». Без цены и ссылок.
 
@@ -167,3 +167,8 @@ Opus в Claude in Chrome расходует дневной лимит владе
 - Threads 6/6, Instagram 6/6, TikTok 6/6 (лайки/комментарии), все проверены на странице; предупреждений нет; «пар» и вопросов о цене нет.
 - TikTok: прямая ссылка на видео — 403, через страницу хэштега открывается; автоплей переключает видео — ставить на паузу перед вводом (один комментарий ушёл со второй попытки, чужим не попал).
 - Ответы на наши комментарии: ne_mama72 (IG), ne.veschi, mi_shali, polechka_polechka, ubery.cleansol, Alla Kostiuk (TikTok).
+
+### 2026-10-26 — прогрев (Sonnet)
+- Threads 6/6, Instagram 6/6, TikTok 6/6; товар упомянут один раз (автор сам спрашивал про глажку); предупреждений нет; «пар» нет.
+- TikTok: автоплей сбивал клики, два комментария ушли со второй попытки, дублей нет. Хэштеги забиты рекламой с артикулами — помогает поиск по видео с фильтром по дате.
+- Ответы на наши комментарии: yabodra, olgakurbanova, ne_mama72 (IG); Enot_87 под нашим видео 13.10 («мне парень подарил такой, удобный»).
