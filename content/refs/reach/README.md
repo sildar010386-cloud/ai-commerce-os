@@ -1,0 +1,4 @@
+# Reach reels about online retail (Claude in Chrome, 2026-10-27)
+
+26 TikTok reels ≥100K views found (Instagram search returned nothing). Most are WB pickup-point (ПВЗ) client stories and CCTV clips (theme 9) — not our business model and not ours to copy (other people's CCTV). Themes 1, 2, 3, 5, 7 (trust, prepayment, Kazpost, expectation/reality, reviews) had no Russian reels ≥100K.
+Selected for transcription (links_2026-10-27.txt): r01 bopetay.kz «Kaspi.kz — это что такое?» 880.6K; r02 bopetay.kz returns 114.9K; r03 mawqen «один день kaspi селлера» 175.6K; r04 mawqen FAQ 109.5K; r05 aigerim_yuristkz «14 дней — магазин обязан вернуть деньги?» 482.8K; r06 egor_egregor «брак за 2 дня» 163.2K; r07 egor_egregor «Как сотрудник ищет товар» 468.6K; r08 natali_rumy client check 2.6M; r09 vbvbvb12344 «неадекватные клиенты» 1.1M.
