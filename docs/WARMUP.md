@@ -24,12 +24,12 @@ Opus в Claude in Chrome расходует дневной лимит владе
 
 Шаг 0. В каждой вкладке проверь ник: работаем ТОЛЬКО с @bikas.home. Если вкладки нет — открой площадку сам; если вошли в другой аккаунт — на этой площадке ничего не делай и напиши об этом.
 
-Шаг 1. Instagram и TikTok: посмотри комментарии под НАШИМИ публикациями за последние 2 дня. Если кто-то написал «пар», спросил цену или где купить — сам не отвечай, напиши мне первой строкой отчёта (ник, публикация, текст). Про zhanykulovruslan («Пар», 11.10) я знаю — не сообщай. В Threads наши комментарии не трогай — там отвечает другой Claude.
+Шаг 1. Instagram и TikTok: посмотри комментарии под НАШИМИ публикациями за последние 2 дня. Если кто-то написал «пар», спросил цену или где купить — сам не отвечай, напиши мне первой строкой отчёта (ник, публикация, текст). Про zhanykulovruslan («Пар», 11.10) я знаю — не сообщай. В Threads наши комментарии не трогай — там отвечает бот.
 
 Шаг 2. На каждой площадке: до 6 лайков и до 6 комментариев.
 - Тема: стирка, пятна, глажка, уход за одеждой, уборка, порядок и хранение, лайфхаки для дома; в Threads ещё посты-вопросы про быт («Девочки, …?»).
 - Только личные посты людей. Рекламу магазинов, посты с артикулами и промокодами пропускай.
-- Посты свежие (Threads до 2 дней, Instagram и TikTok до 14 дней), на русском, лучше Казахстан и СНГ, разные авторы. Не повторяй авторов, которых мы уже комментировали (24–26.10): mereyyykkaaa, ne_takaya_ne_takaya, tsibina_mary, our_family_albuuum, redesign_buro, iren_trosha, momlife.home, marina_zhukova_bloger, elena_rozum_n, kkibardin, ne_mama72, ivanatalie, dalcldalcl, sergejlossew, katrishalone, gakkugai, pingvinaal, olgakurbanova, aigerima_amirbekova, nadinblog24, olga_antilova, natasha_kopylova, how.itworkk, ankertita_, tetianac2, victoria_my_home, the.tinix, asemesenkyzy, sara028873, zloy_pisaka, demonenok2424, odesskiy_resnichnik, mirviktoria, lisitsa.a_, avve.angie, abd.dianaa, yabodra, magic_clean_hava, valiakhmetoo, dnevnik_domohaziaiki, clean.mama25, eliya.az17, oikjnmzql0y, zoyazabey, nurzkee, milla_utepbaeva, cleanpolya.co.
+- Посты свежие (Threads до 2 дней, Instagram и TikTok до 14 дней), на русском, лучше Казахстан и СНГ, разные авторы. Не повторяй авторов, которых мы уже комментировали (24–27.10): mereyyykkaaa, ne_takaya_ne_takaya, tsibina_mary, our_family_albuuum, redesign_buro, iren_trosha, momlife.home, marina_zhukova_bloger, elena_rozum_n, kkibardin, ne_mama72, ivanatalie, dalcldalcl, sergejlossew, katrishalone, gakkugai, pingvinaal, olgakurbanova, aigerima_amirbekova, nadinblog24, olga_antilova, natasha_kopylova, how.itworkk, ankertita_, tetianac2, victoria_my_home, the.tinix, asemesenkyzy, sara028873, zloy_pisaka, demonenok2424, odesskiy_resnichnik, mirviktoria, lisitsa.a_, avve.angie, abd.dianaa, yabodra, magic_clean_hava, valiakhmetoo, dnevnik_domohaziaiki, clean.mama25, eliya.az17, oikjnmzql0y, zoyazabey, nurzkee, milla_utepbaeva, cleanpolya.co, innochka.ptashechka, qlo__op, vsem_znakom, vorontsova.foto, okeyluba, olga_pro_poryadok, raya_isanbayy, olya_domamur, dianastankevicch, krotova_elenaa, diolekhnovich29, uytnayapolina, gulyahom, kosuhova_olesya.
 - Комментарий от имени магазина: 1–2 предложения про ЭТОТ пост — полезный совет по уходу за вещами или уборке, поддержка, лёгкий вопрос автору (примерно в каждом втором). Не придумывай личный опыт («я купила», «у меня муж»), не выдавай себя за покупателя.
 - Наш товар упоминай только если автор сам спрашивает про отпариватель или глажку, и честно: «У нас в магазине есть ручной отпариватель, если интересно — расскажем». Без цены и ссылок.
 
@@ -172,3 +172,9 @@ Opus в Claude in Chrome расходует дневной лимит владе
 - Threads 6/6, Instagram 6/6, TikTok 6/6; товар упомянут один раз (автор сам спрашивал про глажку); предупреждений нет; «пар» нет.
 - TikTok: автоплей сбивал клики, два комментария ушли со второй попытки, дублей нет. Хэштеги забиты рекламой с артикулами — помогает поиск по видео с фильтром по дате.
 - Ответы на наши комментарии: yabodra, olgakurbanova, ne_mama72 (IG); Enot_87 под нашим видео 13.10 («мне парень подарил такой, удобный»).
+
+### 2026-10-27 — прогрев (Sonnet)
+- Threads 4/4, Instagram 5/5, TikTok 5/5 (лайки/комментарии): свежих личных постов мало, ниша забита рекламой с артикулами WB. Предупреждений нет, «пар» нет.
+- TikTok: прямые ссылки на видео дают 403 — открывать через страницу автора или хэштега.
+- Ответы на наши комментарии: abd.dianaa, dnevnik_domohaziaiki, yabodra (IG); АННА, ne.veschi, mi_shali (TikTok).
+- Старый комментарий в TikTok «Пока просто присматриваюсь к таким штукам для дома 😊» (ответ mi_shali, 18.10) всё ещё висит — владельцу удалить вручную.
