@@ -1,6 +1,6 @@
 # T-138 · охват · перевод залетевшего англоязычного поста
 
-Статус: черновик на одобрение (пакет 29.10).
+Статус: **опубликовано 2026-10-29 20:10 Алматы** (одобрено владельцем): https://www.threads.com/@bikas.home/post/DfFTIwvkbXE.
 Источник: @notmaggieriden https://www.threads.com/@notmaggieriden/post/Dej0P3gFVKp · лайки 38735 · ответы 905 · репосты 683 (англоязычный Threads, перевод; владелец 22.10).
 Оригинал (EN): «Hill I will die on: it is the responsibility of the human taking off their pants to check pockets, NOT the person doing the laundry.»
 Примечание к переводу: Перевод максимально буквальный; идиома «Hill I will die on» передана как «Буду стоять насмерть», регистр (НЕ) сохранён.
