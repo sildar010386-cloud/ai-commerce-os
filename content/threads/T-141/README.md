@@ -1,6 +1,6 @@
 # T-141 · охват · перевод залетевшего англоязычного поста
 
-Статус: черновик на одобрение (пакет 30.10).
+Статус: **опубликовано 2026-10-30 14:50 Алматы** (одобрено владельцем): https://www.threads.com/@bikas.home/post/DfHTUEJG0al.
 Источник: @caffeinated_mama3 https://www.threads.com/@caffeinated_mama3/post/DewMs7XESFG · лайки 55899 · ответы 678 · репосты 212 (англоязычный Threads, перевод; владелец 22.10).
 Оригинал (EN): «It’s my coworker’s birthday, so I bought her a cheesecake. We’re not particularly close. We don’t even text. But last year, she mentioned that her husband buys her an ice cream cake every birthday because that’s what the kids like. She prefers cheesecake. Anyway, she’s getting cheesecake for her birthday this year.»
 Примечание к переводу: Перевод максимально буквальный, ничего не сокращено и не переставлено; пост длиннее обычных (около 6 предложений).
