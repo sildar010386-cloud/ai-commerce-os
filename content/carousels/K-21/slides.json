@@ -1,0 +1,61 @@
+{
+ "accent": "#7B5CFF",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Если сыпать порошка побольше: что будет с бельём",
+   "text": "3 последствия. Про третье почти не думают →",
+   "prompt": "Washing machine detergent drawer overflowing with white foam and powder in a bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Бельё жёсткое и тусклое",
+   "text": "Лишний порошок плохо вымывается и остаётся в ткани. Бельё становится жёстким и сероватым.",
+   "prompt": "A stack of dull greyish folded cotton laundry next to a scoop of white washing powder on a table, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧺",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Риск для кожи",
+   "text": "Остатки средства в ткани могут раздражать кожу, особенно чувствительную.",
+   "prompt": "Close-up of a soft white cotton shirt collar with a few grains of washing powder on a clean table, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🤲",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Запах из машинки",
+   "text": "Остатки порошка копятся в лотке и барабане, и появляется неприятный запах.",
+   "prompt": "Detergent drawer pulled out of a washing machine with white powder residue, bright laundry room, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "👃",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: сколько порошка сыпать",
+   "items": [
+    {
+     "icon": "📦",
+     "text": "Дозу бери с упаковки"
+    },
+    {
+     "icon": "🧺",
+     "text": "Неполная загрузка: меньше"
+    },
+    {
+     "icon": "👕",
+     "text": "Чуть запачкано: меньше"
+    },
+    {
+     "icon": "👃",
+     "text": "Бельё пахнет резко: меньше"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто сыплет порошок на глаз.\nКак сыпете: на глаз или по упаковке? Пишите в комментариях"
+  }
+ ]
+}

@@ -376,5 +376,53 @@
  {
   "prompt": "Close-up of colorful dresses and shirts on hangers in a bright closet, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
   "out": "content/carousels/K-18/src/03.jpg"
+ },
+ {
+  "prompt": "Neat stack of fluffy colorful terry towels next to a washing machine in a clean bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-19/src/01.jpg"
+ },
+ {
+  "prompt": "Close-up of a black t-shirt covered with white lint fibers next to a fluffy white terry towel, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-19/src/02.jpg"
+ },
+ {
+  "prompt": "Close-up of a metal zipper of a jacket caught on the loops of a colorful terry towel, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-19/src/03.jpg"
+ },
+ {
+  "prompt": "Fluffy white towel with a bottle of fabric softener without label and drops of water on a bright surface, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-19/src/04.jpg"
+ },
+ {
+  "prompt": "Washing machine detergent drawer overflowing with white foam and powder in a bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-21/src/01.jpg"
+ },
+ {
+  "prompt": "A stack of dull greyish folded cotton laundry next to a scoop of white washing powder on a table, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-21/src/02.jpg"
+ },
+ {
+  "prompt": "Close-up of a soft white cotton shirt collar with a few grains of washing powder on a clean table, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-21/src/03.jpg"
+ },
+ {
+  "prompt": "Detergent drawer pulled out of a washing machine with white powder residue, bright laundry room, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-21/src/04.jpg"
+ },
+ {
+  "prompt": "Fresh folded white and pastel laundry with a sprig of lavender on a bright wooden table, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-23/src/01.jpg"
+ },
+ {
+  "prompt": "Open front-loading washing machine drum with fresh colorful laundry inside, bright laundry room, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-23/src/02.jpg"
+ },
+ {
+  "prompt": "Colorful clothes drying on a rack near an open sunny window with light curtains, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-23/src/03.jpg"
+ },
+ {
+  "prompt": "Clean washing machine door with a rubber seal and a soft microfiber cloth beside it, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-23/src/04.jpg"
  }
 ]

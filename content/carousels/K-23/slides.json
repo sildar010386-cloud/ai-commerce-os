@@ -1,0 +1,65 @@
+{
+ "accent": "#2EC4B6",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Как сделать, чтобы бельё пахло свежо дольше",
+   "text": "Дело не только в порошке. Что ещё важно →",
+   "prompt": "Fresh folded white and pastel laundry with a sprig of lavender on a bright wooden table, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Не оставляй мокрое в барабане",
+   "text": "Достань бельё сразу после стирки. Влажное и закрытое, оно быстро начинает пахнуть затхло.",
+   "prompt": "Open front-loading washing machine drum with fresh colorful laundry inside, bright laundry room, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧺",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Суши до конца и на воздухе",
+   "text": "Расправь вещи на сушилке в проветриваемом месте. Убирай в шкаф только полностью сухими.",
+   "prompt": "Colorful clothes drying on a rack near an open sunny window with light curtains, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🌬️",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Чисти манжету и лоток",
+   "text": "Протирай резиновую манжету и лоток для порошка. Там копится налёт, и запах переходит на бельё.",
+   "prompt": "Clean washing machine door with a rubber seal and a soft microfiber cloth beside it, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧼",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: свежесть белья",
+   "items": [
+    {
+     "icon": "🧺",
+     "text": "Достать сразу"
+    },
+    {
+     "icon": "🌬️",
+     "text": "Сушить до конца"
+    },
+    {
+     "icon": "🧼",
+     "text": "Манжета и лоток: протирать"
+    },
+    {
+     "icon": "🧴",
+     "text": "Порошок: по упаковке"
+    },
+    {
+     "icon": "🚪",
+     "text": "Шкаф: с воздухом, саше можно"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, у кого бельё пахнет не так свежо, как хочется.\nГде сушите бельё: на балконе или в комнате? Пишите в комментариях"
+  }
+ ]
+}
