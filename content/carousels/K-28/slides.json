@@ -1,0 +1,63 @@
+{
+ "accent": "#4361EE",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Собиралась нести рубашки мужа в химчистку, пока не увидела это",
+   "text": "Что я увидела, на следующих слайдах →",
+   "prompt": "Row of crisp white and light blue men's shirts on hangers in a bright wardrobe, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Рубашки копятся",
+   "text": "Гора мятых рубашек, а нести их в химчистку каждый раз неохота.",
+   "prompt": "Stack of wrinkled white and blue men's shirts piled on a chair in a bright bedroom, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "👔",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Греется за 9 секунд",
+   "text": "Включила, и через 9 секунд можно гладить. Прямо на вешалке.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p2.jpg",
+   "note": "Реальный кадр K-02/src/p2.jpg (отпариватель целиком на розовом), скопировать в src/03.jpg",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "2 в 1: гладит и отпаривает",
+   "text": "Воротник прижала, и гладит как утюг. По рубашке повела, и отпаривает.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg (прижат к ткани), скопировать в src/04.jpg",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: рубашки дома",
+   "items": [
+    {
+     "icon": "👔",
+     "text": "Рубашку повесить на вешалку"
+    },
+    {
+     "icon": "⏱️",
+     "text": "Подождать 9 секунд"
+    },
+    {
+     "icon": "🔥",
+     "text": "Воротник: прижать"
+    },
+    {
+     "icon": "💨",
+     "text": "Остальное: повести"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто гладит рубашки мужа.\nХотите такой же — напишите «ПАР» в комментариях\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

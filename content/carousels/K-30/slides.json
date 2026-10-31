@@ -1,0 +1,63 @@
+{
+ "accent": "#FB5607",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Правила, которые должен знать каждый, у кого есть рубашки",
+   "text": "Первое правило тебя удивит →",
+   "prompt": "Neat shelf with folded colorful shirts and a small plant in a bright wardrobe, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Мятая рубашка перед выходом",
+   "text": "Школа, офис, встреча: мятый воротник видно сразу.",
+   "prompt": "Wrinkled light blue shirt hanging on a wardrobe door in a bright bedroom, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "😬",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Правило 1: доска не нужна",
+   "text": "Прижала, и гладит как утюг. Повела, и отпаривает.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg (прижат к ткани), скопировать в src/03.jpg",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Правило 2: гладим на вешалке",
+   "text": "2 в 1: рубашка висит, отпариватель греется 9 секунд.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p2.jpg",
+   "note": "Реальный кадр K-02/src/p2.jpg (отпариватель целиком на розовом), скопировать в src/04.jpg",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: правила для рубашек",
+   "items": [
+    {
+     "icon": "1️⃣",
+     "text": "Доска: не нужна"
+    },
+    {
+     "icon": "2️⃣",
+     "text": "Вешалка: гладим прямо на ней"
+    },
+    {
+     "icon": "3️⃣",
+     "text": "Нагрев: 9 секунд"
+    },
+    {
+     "icon": "4️⃣",
+     "text": "2 в 1: гладит и отпаривает"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто собирает всех в школу и в офис.\nХотите такой же — напишите «ПАР» в комментариях\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

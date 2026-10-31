@@ -1,0 +1,63 @@
+{
+ "accent": "#F72585",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Почему никто не говорит, что доска для глажки больше не нужна?",
+   "text": "Особенно если в квартире и так тесно →",
+   "prompt": "Small bright cozy apartment room with a sofa and a tall wardrobe, tidy and spacious feel, sunny window, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Доска занимает место",
+   "text": "Стоит в углу и мешает. А гладить всё равно надо.",
+   "prompt": "Narrow bright hallway cluttered with a laundry basket, boxes and a tall folded ironing board against the wall, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "😤",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Складывается в маленькую коробку",
+   "text": "Вместо большой доски: маленькая коробка.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p4.jpg",
+   "note": "Реальный кадр K-02/src/p4.jpg (маленькая коробка), скопировать в src/03.jpg",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Прижала: гладит. Повела: отпаривает",
+   "text": "2 в 1, и гладильная доска больше не нужна.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg (прижат к ткани), скопировать в src/04.jpg",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: доска или отпариватель",
+   "items": [
+    {
+     "icon": "📐",
+     "text": "Доска: занимает место"
+    },
+    {
+     "icon": "📦",
+     "text": "Отпариватель: маленькая коробка"
+    },
+    {
+     "icon": "⏱️",
+     "text": "Нагрев: 9 секунд"
+    },
+    {
+     "icon": "🔁",
+     "text": "Гладит и отпаривает: 2 в 1"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, у кого в квартире тесно.\nХотите такой же — напишите «ПАР» в комментариях\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

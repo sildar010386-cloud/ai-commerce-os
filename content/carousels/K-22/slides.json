@@ -1,0 +1,63 @@
+{
+ "accent": "#00B4D8",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Фишка, о которой молчат: доска не нужна",
+   "text": "Ты ещё гладишь на доске? Листай →",
+   "prompt": "Bright cozy living room with a row of colorful shirts and dresses on hangers on a rail by a sunny window, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Ради одной рубашки целая доска",
+   "text": "Достать, разложить, подождать, убрать. И так каждый раз.",
+   "prompt": "Folded ironing board leaning in a narrow apartment hallway next to a pile of wrinkled colorful shirts, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "😩",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Прижала: гладит как утюг",
+   "text": "Повела: отпаривает. Рубашка прямо на вешалке.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg (прижат к ткани), скопировать в src/03.jpg",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Греется за 9 секунд",
+   "text": "Включила, и через 9 секунд можно гладить.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p2.jpg",
+   "note": "Реальный кадр K-02/src/p2.jpg (отпариватель целиком на розовом), скопировать в src/04.jpg",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: что делать вместо доски",
+   "items": [
+    {
+     "icon": "1️⃣",
+     "text": "Повесить вещь на вешалку"
+    },
+    {
+     "icon": "2️⃣",
+     "text": "Включить: греется 9 секунд"
+    },
+    {
+     "icon": "3️⃣",
+     "text": "Прижать, и гладит как утюг"
+    },
+    {
+     "icon": "4️⃣",
+     "text": "Повести, и отпаривает"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто всё ещё гладит на доске.\nХотите такой же — напишите «ПАР» в комментариях\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

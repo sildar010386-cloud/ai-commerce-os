@@ -1,0 +1,63 @@
+{
+ "accent": "#B5179E",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Не знаю, кто это придумал, но это гениально: 2 в 1",
+   "text": "Утюг и пар в одном приборе →",
+   "prompt": "Bright minimalist bedroom with a freshly made bed, colorful folded clothes and morning sunlight, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Раньше: утюг, доска и возня",
+   "text": "Один прибор для складок, другой для глажки, и ещё доска.",
+   "prompt": "Bright bedroom in morning rush: unmade bed with a wrinkled dress and a wrinkled shirt laid on it, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "😵",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Прижала: гладит. Повела: отпаривает",
+   "text": "Утюг и пар в одном приборе, 2 в 1.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg (прижат к ткани), скопировать в src/03.jpg",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Греется за 9 секунд",
+   "text": "И доска не нужна: можно прямо на вешалке или на кровати.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p5.jpg",
+   "note": "Реальный кадр K-02/src/p5.jpg (экран нагрева), скопировать в src/04.jpg",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: что даёт 2 в 1",
+   "items": [
+    {
+     "icon": "🔥",
+     "text": "Прижал: гладит как утюг"
+    },
+    {
+     "icon": "💨",
+     "text": "Повёл: отпаривает"
+    },
+    {
+     "icon": "🚫",
+     "text": "Без доски"
+    },
+    {
+     "icon": "⏱️",
+     "text": "Нагрев: 9 секунд"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто ценит удобные вещи дома.\nХотите такой же — напишите «ПАР» в комментариях\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

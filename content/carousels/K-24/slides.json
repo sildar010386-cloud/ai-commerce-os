@@ -1,0 +1,63 @@
+{
+ "accent": "#8AC926",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Раньше говорила: никогда не куплю отпариватель",
+   "text": "«Утюга же хватает». Что изменилось, на следующих слайдах →",
+   "prompt": "Cheerful woven laundry basket with neatly folded colorful clothes on a bright sunny balcony, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Утюга хватает. Пока вещей гора",
+   "text": "Доска, шнур, ожидание: каждый раз заново.",
+   "prompt": "Overflowing laundry basket full of wrinkled colorful clothes in a bright room, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧺",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Греется за 9 секунд",
+   "text": "Вот это меня и переубедило: включила, и через 9 секунд можно гладить.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p5.jpg",
+   "note": "Реальный кадр K-02/src/p5.jpg (экран нагрева), скопировать в src/03.jpg",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Гладит без доски",
+   "text": "2 в 1: прижала, и гладит как утюг. Повела, и отпаривает.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg (прижат к ткани), скопировать в src/04.jpg",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: что меня переубедило",
+   "items": [
+    {
+     "icon": "🧺",
+     "text": "Раньше: доска и ожидание"
+    },
+    {
+     "icon": "⏱️",
+     "text": "Теперь: 9 секунд"
+    },
+    {
+     "icon": "🔁",
+     "text": "2 в 1: утюг и пар"
+    },
+    {
+     "icon": "🚫",
+     "text": "Доска не нужна"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто тоже говорила «никогда».\nХотите такой же — напишите «ПАР» в комментариях\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}
