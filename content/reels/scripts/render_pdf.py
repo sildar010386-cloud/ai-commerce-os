@@ -34,7 +34,7 @@ section{{page-break-inside:avoid}} .break{{page-break-before:always}} ul{{margin
 <div class=break></div>{body}</body></html>"""
 out_html = src.rsplit(".", 1)[0] + ".html"
 open(out_html, "w").write(doc)
-chrome = glob.glob("/opt/pw-browsers/chromium-*/chrome-linux/chrome")[0]
+chrome = (glob.glob("/opt/pw-browsers/chromium-*/chrome-linux/chrome") + glob.glob("/opt/pw-browsers/chromium*/chrome-linux64/chrome") + glob.glob("/opt/pw-browsers/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell"))[0]
 pdf = src.rsplit(".", 1)[0] + ".pdf"
 subprocess.run([chrome, "--headless", "--no-sandbox", "--disable-gpu", "--no-pdf-header-footer",
                 f"--print-to-pdf={pdf}", "file://" + os.path.abspath(out_html)], check=True, capture_output=True)
