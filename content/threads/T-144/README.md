@@ -1,6 +1,6 @@
 # T-144 · охват · перевод залетевшего англоязычного поста
 
-Статус: черновик на одобрение (пакет 31.10).
+Статус: **опубликовано 2026-10-31 09:30 Алматы** (одобрено владельцем): https://www.threads.com/@bikas.home/post/DfJTioPDYTi.
 Источник: @alamokie https://www.threads.com/@alamokie/post/DexPLEKj29m · лайки 29493 · ответы 476 · репосты 66 (англоязычный Threads, перевод; владелец 22.10).
 Оригинал (EN): «Did you know a single pedicure can take up to eight hours these days? My husband, who is coming home to me and our two young children today after seven days on the road, couldn’t believe it either. Sadly 9 a.m to 5 p.m. was the only appointment time available for this Saturday. 🥲»
 Примечание к переводу: Перевод максимально буквальный, «today» → «сегодня» и «this Saturday» → «эту субботу» сохранены; верно только при публикации в субботу 31.10, на другой день не переносить.
