@@ -61,7 +61,9 @@ def report(today):
 
 
 def main(args):
-    today = datetime.datetime.now(ALMATY).strftime("%Y-%m-%d")
+    # the report is about the evening's day: a late run after midnight (GitHub delays, 2026-10-31 ran at 01:25)
+    # still reports the day that just ended and plans the day that has just started
+    today = (datetime.datetime.now(ALMATY) - datetime.timedelta(hours=6)).strftime("%Y-%m-%d")
     text = report(today)
     print(text)
     if "--print" in args:

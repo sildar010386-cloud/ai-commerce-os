@@ -971,6 +971,7 @@ async function api(req, env, url) {
    5 minutes whether an approved slot is due and still waiting, and if so starts the publish workflow right away.
    GitHub's schedule stays as the backup; publish.yml runs one at a time and never posts a done slot twice. */
 const MORNING_CRON = '0 4 * * *'; // must match wrangler.toml [triggers]
+const EVENING_CRON = '0 17 * * *'; // 22:00 Almaty; GitHub's own schedule ran 3.5 h late on 2026-10-31
 
 async function autoPublish(env) {
   if (!env.GH_DISPATCH_TOKEN) return;
@@ -996,10 +997,10 @@ async function autoPublish(env) {
   ).bind(String(Date.now())).run();
 }
 
-// 09:00 Almaty: start the morning report workflow (tools/stats/morning.py sends it once per day).
-async function startMorningReport(env) {
+// 09:00 / 22:00 Almaty: start the morning / evening report workflow (each script sends at most once per day).
+async function startReport(env, workflow) {
   if (!env.GH_DISPATCH_TOKEN) return;
-  const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/morning.yml/dispatches`, {
+  const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/${workflow}/dispatches`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${env.GH_DISPATCH_TOKEN}`, Accept: 'application/vnd.github+json',
@@ -1007,12 +1008,14 @@ async function startMorningReport(env) {
     },
     body: JSON.stringify({ ref: env.GH_DISPATCH_REF || 'claude/ai-ecommerce-automation-3n1lgz' })
   });
-  if (resp.status !== 204) console.error('morning report dispatch failed:', resp.status);
+  if (resp.status !== 204) console.error(workflow + ' dispatch failed:', resp.status);
 }
 
 export default {
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(event.cron === MORNING_CRON ? startMorningReport(env) : autoPublish(env));
+    const job = event.cron === MORNING_CRON ? startReport(env, 'morning.yml')
+      : event.cron === EVENING_CRON ? startReport(env, 'evening.yml') : autoPublish(env);
+    ctx.waitUntil(job);
   },
 
   async fetch(req, env) {
