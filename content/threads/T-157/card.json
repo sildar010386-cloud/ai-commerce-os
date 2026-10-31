@@ -1,0 +1,10 @@
+{
+ "bg": "bg.jpg",
+ "frame": "content/carousels/K-02/src/p5.jpg",
+ "frame_pos": "30% 50%",
+ "frame_zoom": 125,
+ "plaque": "Нагрев\n9 секунд",
+ "title": "Супер\nудобный",
+ "box": "Греется за 9 секунд",
+ "accent": "#5AC8FA"
+}

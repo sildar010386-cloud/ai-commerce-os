@@ -1,0 +1,10 @@
+{
+ "bg": "bg.jpg",
+ "frame": "content/carousels/K-02/src/p2.jpg",
+ "frame_pos": "55% 50%",
+ "frame_zoom": 125,
+ "plaque": "Нагрев\n9 секунд",
+ "title": "Подарок\nсвекрови",
+ "box": "2 в 1, доска не нужна",
+ "accent": "#FF6B6B"
+}

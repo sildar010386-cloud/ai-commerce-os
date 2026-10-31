@@ -1,0 +1,61 @@
+{
+ "accent": "#4361EE",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Почему тряпка размазывает грязь, а не собирает",
+   "text": "3 причины. Последняя в самой тряпке →",
+   "prompt": "Bright clean kitchen floor with a bucket of water and a mop leaning nearby, glossy tiles, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Пол не подмели",
+   "text": "Если сразу мыть пол с мусором и пылью, мокрая пыль превращается в грязь. Сначала пропылесось или подмети.",
+   "prompt": "Broom and dustpan with a little pile of dust on a bright tiled floor, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧹",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Вода уже мутная",
+   "text": "Грязная вода только размазывает грязь по полу. Полощи тряпку чаще и меняй воду, когда она помутнела.",
+   "prompt": "Bucket of cloudy dirty water next to a bucket of clear water on a bright floor, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "💧",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Тряпка не та",
+   "text": "Микрофибра собирает грязь лучше старой хлопковой тряпки. И отжимай хорошо: слишком мокрая оставляет разводы.",
+   "prompt": "Colorful microfiber cloth being wrung out above a bucket, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧽",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: мытьё пола",
+   "items": [
+    {
+     "icon": "🧹",
+     "text": "Сначала подмести или пылесос"
+    },
+    {
+     "icon": "💧",
+     "text": "Воду менять, когда мутная"
+    },
+    {
+     "icon": "🧽",
+     "text": "Микрофибра вместо старой тряпки"
+    },
+    {
+     "icon": "🪣",
+     "text": "Отжимать хорошо"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто моет весь пол одной водой.\nМеняете воду, пока моете пол? Да или нет? Пишите в комментариях"
+  }
+ ]
+}

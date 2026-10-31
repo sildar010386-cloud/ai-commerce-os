@@ -1,0 +1,10 @@
+{
+ "bg": "bg.jpg",
+ "frame": "content/carousels/K-02/src/p3.jpg",
+ "frame_pos": "40% 50%",
+ "frame_zoom": 125,
+ "plaque": "Без гладильной\nдоски",
+ "title": "Весь шкаф\nровный",
+ "box": "Всё ровное без доски",
+ "accent": "#34C759"
+}

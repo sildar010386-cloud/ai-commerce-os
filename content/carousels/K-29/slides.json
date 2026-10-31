@@ -1,0 +1,61 @@
+{
+ "accent": "#8AC926",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Если после стирки появились пятна: 3 причины",
+   "text": "Третью причину не видно сразу →",
+   "prompt": "Folded fresh laundry in a basket next to a front-load washing machine in a bright laundry room, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Средство прямо на вещи",
+   "text": "Кондиционер или жидкое средство, вылитые прямо на одежду, оставляют пятна. Лей их в лоток.",
+   "prompt": "Bottle of liquid laundry detergent without label pouring onto a folded shirt, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧴",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Барабан забит под завязку",
+   "text": "Если набить машину до отказа, средство плохо вымывается и остаётся на ткани. Оставляй место, чтобы бельё свободно двигалось.",
+   "prompt": "Open washing machine drum filled to the brim with colorful clothes, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧺",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Грязная машина",
+   "text": "Налёт в барабане, на резиновой манжете и в лотке может попадать на вещи. Протирай манжету и лоток, а барабан время от времени очищай специальным средством.",
+   "prompt": "Rubber door seal of a washing machine being wiped with a cloth, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧽",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: пятна после стирки",
+   "items": [
+    {
+     "icon": "🧴",
+     "text": "Средство: в лоток, не на вещи"
+    },
+    {
+     "icon": "🧺",
+     "text": "Барабан: не набивать"
+    },
+    {
+     "icon": "🧽",
+     "text": "Манжета и лоток: протирать"
+    },
+    {
+     "icon": "🔄",
+     "text": "Барабан: чистить средством"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто льёт кондиционер прямо на вещи.\nКогда вы чистили стиралку в последний раз? Пишите в комментариях"
+  }
+ ]
+}

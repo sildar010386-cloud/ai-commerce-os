@@ -1,0 +1,61 @@
+{
+ "accent": "#FF9F1C",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Почему на белых кроссовках остаются рыжие разводы",
+   "text": "3 причины. Последнюю знают не все →",
+   "prompt": "Pair of clean white sneakers on a bright light surface next to a bucket of soapy water and a soft brush, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Грязная вода сохнет внутри",
+   "text": "Грязная вода пропитывает ткань и стельку и высыхает рыжим пятном. Набей кроссовки белой бумагой и меняй её, пока не перестанет мокнуть.",
+   "prompt": "Inside of a white sneaker stuffed with crumpled white paper on a bright table, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "📄",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Остатки мыла в ткани",
+   "text": "Если мыло или порошок плохо смыть, они тоже высыхают пятнами. Полощи, пока вода не станет чистой.",
+   "prompt": "White sneaker held under clear running water in a bright bathroom sink with soap foam, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🚿",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Батарея и солнце",
+   "text": "Быстрая сушка на батарее или на солнце закрепляет разводы, а белая резина может пожелтеть. Суши при комнатной температуре, подальше от тепла.",
+   "prompt": "Pair of white sneakers drying on a rack in a bright airy room near a window with soft light, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "☀️",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: белые кроссовки",
+   "items": [
+    {
+     "icon": "🚿",
+     "text": "Полоскать: до чистой воды"
+    },
+    {
+     "icon": "📄",
+     "text": "Белая бумага: внутрь, менять"
+    },
+    {
+     "icon": "🌬",
+     "text": "Сушка: при комнатной температуре"
+    },
+    {
+     "icon": "🚫",
+     "text": "Батарея и солнце: нет"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто сушит кроссовки на батарее.\nСушите кроссовки на батарее? Да или нет? Пишите в комментариях"
+  }
+ ]
+}

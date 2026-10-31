@@ -1,0 +1,10 @@
+{
+ "bg": "bg.jpg",
+ "frame": "content/carousels/K-02/src/p3.jpg",
+ "frame_pos": "40% 50%",
+ "frame_zoom": 125,
+ "plaque": "2 в 1\nбез доски",
+ "title": "Раньше\nне верила",
+ "box": "Греется за 9 секунд, гладит без доски",
+ "accent": "#BF9BFF"
+}

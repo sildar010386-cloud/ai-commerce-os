@@ -1,0 +1,61 @@
+{
+ "accent": "#E63946",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Как не перепутать три отдела в лотке стиралки",
+   "text": "Третий отдел знают не все →",
+   "prompt": "Pulled-out detergent drawer of a washing machine with three empty compartments, bright laundry room, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "I (или 1): предварительная",
+   "text": "На большинстве машин этот отдел для предварительной стирки. Порошок сюда сыплют, только если включаешь такую программу.",
+   "prompt": "Close-up of the first compartment of a washing machine detergent drawer with a scoop of powder, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧴",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "II: основная стирка",
+   "text": "Сюда идёт порошок или гель для обычной стирки. Это отдел, которым мы пользуемся чаще всего.",
+   "prompt": "Close-up of the main compartment of a washing machine detergent drawer filled with washing powder, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧺",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Цветок или звезда: кондиционер",
+   "text": "Отдел с цветком или звёздочкой для кондиционера. Лей не выше отметки max. Сверьтесь с инструкцией: у вашей машины символы могут быть другими.",
+   "prompt": "Compartment of a washing machine drawer with a flower symbol and blue fabric softener being poured, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🌸",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: лоток стиралки",
+   "items": [
+    {
+     "icon": "🧴",
+     "text": "I: предварительная стирка"
+    },
+    {
+     "icon": "🧺",
+     "text": "II: основная стирка"
+    },
+    {
+     "icon": "🌸",
+     "text": "Цветок: кондиционер"
+    },
+    {
+     "icon": "📖",
+     "text": "Сверить с инструкцией"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто не уверена, куда лить кондиционер.\nЗнали про третий отдел? Да или нет? Пишите в комментариях"
+  }
+ ]
+}
