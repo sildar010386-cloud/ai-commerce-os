@@ -9,4 +9,4 @@
 Забудьте про духи 😂 чем вы стираете одежду, что люди вас останавливают и спрашивают, какими духами вы пахнете?? Мне нужен порошок, ароматические гранулы, кондиционер, салфетки для сушилки, ВЕСЬ РЕЦЕПТ. Не жадничайте 😭
 
 ## Картинка
-Файл `1.jpg`, яркая картинка без текста и без крупных лиц, товар не показываем. Prompt (FLUX, EN): Bright photo of laundry detergent, fabric softener bottle and a glass jar of colorful scent beads next to fresh folded clothes, vivid saturated colors, no people, no text, no brand labels
+Файл `1.jpg`, яркая картинка без текста и без крупных лиц, товар не показываем. Prompt (FLUX, EN): Bright photo of fresh folded colorful clothes next to plain unlabeled glass bottles of blue and pink liquid and a jar of colorful scent beads, no labels, vivid saturated colors, no people, no text

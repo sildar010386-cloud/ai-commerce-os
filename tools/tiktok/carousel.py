@@ -20,7 +20,9 @@ import glob, html, os, re, subprocess, sys, tempfile
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "content", "threads")
 FONTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
-BROWSER = (glob.glob("/opt/pw-browsers/chromium_headless_shell-*/chrome-linux/headless_shell") or ["chromium"])[0]
+BROWSER = (glob.glob("/opt/pw-browsers/chromium_headless_shell-*/chrome-linux/headless_shell")
+           + glob.glob("/opt/pw-browsers/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell")
+           or ["chromium"])[0]
 CTA = "Напишите «ПАР» в комментариях — ответим в личные сообщения"
 MAX_SLIDES = 10
 

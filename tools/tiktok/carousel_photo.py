@@ -19,7 +19,9 @@ import glob, html, json, math, os, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FONTS = os.path.join(HERE, "fonts")
-BROWSER = (glob.glob("/opt/pw-browsers/chromium_headless_shell-*/chrome-linux/headless_shell") or ["chromium"])[0]
+BROWSER = (glob.glob("/opt/pw-browsers/chromium_headless_shell-*/chrome-linux/headless_shell")
+           + glob.glob("/opt/pw-browsers/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell")
+           or ["chromium"])[0]
 
 CSS = """
 @font-face{font-family:M;src:url(F/montserrat-cyrillic-600-normal.woff2);font-weight:600}

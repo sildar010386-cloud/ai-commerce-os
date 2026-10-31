@@ -11,4 +11,4 @@
 Муж, с отрешённым и затравленным взглядом: «Столько способов приготовить яйца. Столько. Способов».
 
 ## Картинка
-Файл `1.jpg`, яркая картинка без текста и без крупных лиц, товар не показываем. Prompt (FLUX, EN): Bright kitchen photo of a frying pan on a stove next to an open box of baking soda and a yellow sponge, vivid saturated colors, no people, no text
+Файл `1.jpg`, яркая картинка без текста и без крупных лиц, товар не показываем. Prompt (FLUX, EN): Bright kitchen photo of a burnt frying pan on a stove next to a white ceramic bowl of baking soda powder and a yellow sponge, no packaging, no labels, vivid saturated colors, no people, no text
