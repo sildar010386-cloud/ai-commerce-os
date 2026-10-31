@@ -109,7 +109,15 @@ def inbox():
             continue
         item = {"date": m.get("date"), "text": m.get("text") or m.get("caption") or ""}
         if m.get("voice") or m.get("audio"):
-            item["voice"] = transcribe((m.get("voice") or m.get("audio"))["file_id"])
+            v = m.get("voice") or m.get("audio")
+            try:  # keep the audio itself too: owner voice-overs go into reels
+                path = call("getFile", file_id=v["file_id"])["file_path"]
+                os.makedirs(DOWNLOADS, exist_ok=True)
+                item["audio_file"] = os.path.join(DOWNLOADS, f"{u['update_id']}_{v.get('file_name') or os.path.basename(path)}")
+                urllib.request.urlretrieve(f"https://api.telegram.org/file/bot{TOKEN}/{path}", item["audio_file"])
+            except Exception as e:
+                item["file_error"] = str(e)[:200]
+            item["voice"] = transcribe(v["file_id"])
         if m.get("photo") or m.get("video") or m.get("document"):
             item["attachment"] = True
             # the update is consumed here, so save the file now: the Bot API serves files up to 20 MB
