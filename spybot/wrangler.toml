@@ -1,0 +1,10 @@
+# Telegram receiver for @Ildar_Food_bot (product scout for the bikas-target project).
+# Separate from the CRM (bikas-crm): its own name, no D1, no cron. Deployed by .github/workflows/spybot-deploy.yml.
+# Secrets (set by the workflow, never in this repo): TG_TOKEN, OWNER_CHAT_ID, GH_TOKEN, TG_WEBHOOK_SECRET.
+name = "ildar-spy-bot"
+main = "src/worker.js"
+compatibility_date = "2024-11-01"
+workers_dev = true
+
+[vars]
+GH_REPO = "sildar010386-cloud/bikas-target"

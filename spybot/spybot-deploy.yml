@@ -1,0 +1,96 @@
+# Deploys the separate Worker "ildar-spy-bot" (Telegram @Ildar_Food_bot -> repository_dispatch in bikas-target)
+# into the same Cloudflare account as the CRM. Manual run only. Does NOT touch bikas-crm (other name, no D1, no cron).
+# Copy of .github/workflows/spybot-deploy.yml on the default branch.
+# Secrets reach the shell only through env (never through ${{ }} inside run scripts) and are never printed.
+name: Spy bot deploy
+on:
+  workflow_dispatch:
+    inputs:
+      set_webhook:
+        description: "Switch @Ildar_Food_bot webhook to the worker (yes/no)"
+        default: "yes"
+permissions:
+  contents: read
+concurrency:
+  group: spybot-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: spybot
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SPY_TG_TOKEN: ${{ secrets.SPY_TG_TOKEN }}
+      SPY_GH_TOKEN: ${{ secrets.SPY_GH_TOKEN }}
+      OWNER_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      SET_WEBHOOK: ${{ inputs.set_webhook }}
+      WRANGLER_SEND_METRICS: "false"
+      WRANGLER: wrangler@3.114.17
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ vars.PUBLISH_BRANCH || 'claude/practical-mendel-vjtsd5' }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check that the required secrets are set
+        run: |
+          missing=""
+          for v in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SPY_TG_TOKEN SPY_GH_TOKEN OWNER_CHAT_ID; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then echo "::error::Missing GitHub secrets:$missing (OWNER_CHAT_ID comes from TELEGRAM_CHAT_ID)"; exit 1; fi
+
+      - name: Check the bot token and the GitHub token (no secrets printed)
+        run: |
+          curl -s "https://api.telegram.org/bot$SPY_TG_TOKEN/getMe" | jq -r '"bot: @" + (.result.username // "TOKEN NOT ACCEPTED")'
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $SPY_GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" https://api.github.com/repos/sildar010386-cloud/bikas-target)
+          echo "GitHub token sees bikas-target: HTTP $code"
+          [ "$code" = "200" ] || { echo "::error::SPY_GH_TOKEN has no access to sildar010386-cloud/bikas-target"; exit 1; }
+
+      - name: Deploy the Worker
+        run: |
+          npx --yes "$WRANGLER" deploy 2>&1 | tee deploy.log
+          url=$(grep -oE 'https://[A-Za-z0-9._-]+\.workers\.dev' deploy.log | head -n1)
+          [ -n "$url" ] || { echo "::error::workers.dev URL not found in the deploy log"; exit 1; }
+          echo "SPY_URL=$url" >> "$GITHUB_ENV"
+
+      - name: Set Worker secrets (names only in the log)
+        run: |
+          secret=$(openssl rand -hex 24)
+          echo "::add-mask::$secret"
+          echo "WEBHOOK_SECRET=$secret" >> "$GITHUB_ENV"
+          printf '%s' "$SPY_TG_TOKEN" | npx --yes "$WRANGLER" secret put TG_TOKEN
+          printf '%s' "$OWNER_CHAT_ID" | npx --yes "$WRANGLER" secret put OWNER_CHAT_ID
+          printf '%s' "$SPY_GH_TOKEN" | npx --yes "$WRANGLER" secret put GH_TOKEN
+          printf '%s' "$secret" | npx --yes "$WRANGLER" secret put TG_WEBHOOK_SECRET
+          npx --yes "$WRANGLER" secret list 2>/dev/null | jq -r '.[].name' || true
+
+      - name: Health check (GET / must answer ok)
+        run: |
+          body=""
+          for i in 1 2 3 4 5 6; do body=$(curl -s "$SPY_URL/" || true); [ "$body" = "ok" ] && break; sleep 5; done
+          echo "GET $SPY_URL/ -> $body"
+          [ "$body" = "ok" ] || { echo "::error::health check failed"; exit 1; }
+
+      - name: Switch the bot webhook to the worker
+        if: env.SET_WEBHOOK == 'yes'
+        run: |
+          jq -n --arg u "$SPY_URL/tg" --arg s "$WEBHOOK_SECRET" \
+            '{url: $u, secret_token: $s, allowed_updates: ["message"], drop_pending_updates: true}' > hook.json
+          curl -s -X POST "https://api.telegram.org/bot$SPY_TG_TOKEN/setWebhook" -H 'Content-Type: application/json' \
+            -d @hook.json | jq -c '{ok, description}'
+          rm -f hook.json
+
+      - name: Result (webhook info, token never printed)
+        run: |
+          curl -s "https://api.telegram.org/bot$SPY_TG_TOKEN/getWebhookInfo" \
+            | jq -c '.result | {url, pending_update_count, last_error_message, allowed_updates}'
+          echo "### ildar-spy-bot: $SPY_URL" >> "$GITHUB_STEP_SUMMARY"
