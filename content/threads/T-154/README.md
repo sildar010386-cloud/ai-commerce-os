@@ -1,6 +1,6 @@
 # T-154 · охват · перевод залетевшего англоязычного поста
 
-Статус: черновик на одобрение (пакет 01–07.11).
+Статус: **опубликовано 2026-11-02 09:30 Алматы** (одобрено владельцем): https://www.threads.com/@bikas.home/post/DfOdICDlrBl.
 Источник: @rebeccahereandthere https://www.threads.com/@rebeccahereandthere/post/Dd_2wWEFta_ · лайки 4393 · ответы 432 · репосты 82 (англоязычный Threads, перевод; владелец 22.10).
 Оригинал (EN): «If I can smell your laundry from the street, you’re using way too much detergent»
 Примечание к переводу: Перевод буквальный; «detergent» передано как «порошка» (так говорят у нас). Точка в конце не ставится, как в оригинале. Начинается с «Если».
