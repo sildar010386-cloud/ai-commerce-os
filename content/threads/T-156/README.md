@@ -1,6 +1,6 @@
 # T-156 · охват · перевод залетевшего англоязычного поста
 
-Статус: черновик на одобрение (пакет 01–07.11).
+Статус: **опубликовано 2026-11-02 14:50 Алматы** (одобрено владельцем): https://www.threads.com/@bikas.home/post/DfPBxSenPnO.
 Правка 02.11: перефразировано на 20–30 % по решению владельца.
 Источник: @tuhbia https://www.threads.com/@tuhbia/post/DdhrtPAFvkn · лайки 3718 · ответы 108 · репосты 115 (англоязычный Threads, перевод; владелец 22.10).
 Оригинал (EN): «it really annoys me how much of sewing is actually ironing»
