@@ -381,11 +381,11 @@ function renderContent() {
   if (!items.length) return errNotice('content') + '<div class="h1">Контент</div><div class="card empty">План появится после одобрения пакета.</div>';
   var days = {};
   items.forEach(function (c) { if (c.date) days[c.date] = 1; });
-  var keys = Object.keys(days).sort();
-  if (!S.contentDay || !days[S.contentDay]) {
-    var t = todayP(), tk = t ? t.key : '';
-    S.contentDay = days[tk] ? tk : (keys.filter(function (k) { return k >= tk; })[0] || keys[keys.length - 1]);
-  }
+  var all = Object.keys(days).sort(), t = todayP(), tk = t ? t.key : '';
+  // owner 2026-11-02: past days are clutter - show today first and the days ahead only
+  var keys = all.filter(function (k) { return !tk || k >= tk; });
+  if (!keys.length) keys = all.slice(-1);
+  if (!S.contentDay || keys.indexOf(S.contentDay) < 0) S.contentDay = keys[0];
   var chips = keys.map(function (k) {
     return '<button type="button" class="chip' + (S.contentDay === k ? ' on' : '') + '" data-act="content-day" data-d="' + esc(k) + '">' + esc(dayLabel(k)) + '</button>';
   }).join('');
