@@ -1,0 +1,63 @@
+{
+ "accent": "#FFD166",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Через 25 лет брака я поняла: любит меня только свекровь",
+   "text": "Она одна была против нашего брака, а отпариватель подарила тоже она →",
+   "prompt": "Cozy kitchen table with a tea set, a plate of baursaks and a wrapped gift box with satin ribbon, warm sunny light, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Выходной и гора глажки",
+   "text": "Рубашки, платья, школьная форма. Доска, утюг, шнур, и так каждую неделю.",
+   "prompt": "Cozy living room on a weekend morning, a basket overflowing with wrinkled clothes beside a sofa, a folded ironing board by the wall, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "😩",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Нагревается за 9 секунд",
+   "text": "Подарок свекрови: включила, и через 9 секунд можно гладить.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p5.jpg",
+   "note": "Реальный кадр K-02/src/p5.jpg (крупный план с дисплеем), скопировать в src/03.jpg",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Без доски: прижала и гладит",
+   "text": "2 в 1: прижала, и гладит как утюг. Повела, и отпаривает. Прямо на вешалке.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg (прижат к ткани), скопировать в src/04.jpg",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: что умеет подарок",
+   "items": [
+    {
+     "icon": "⏱️",
+     "text": "9 секунд: нагрев"
+    },
+    {
+     "icon": "🔁",
+     "text": "2 в 1: гладит и отпаривает"
+    },
+    {
+     "icon": "🚫",
+     "text": "Без гладильной доски"
+    },
+    {
+     "icon": "📦",
+     "text": "Складывается в маленькую коробку"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто любит полезные подарки.\nНапишите «ПАР» в комментариях — менеджер свяжется с вами и всё расскажет\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

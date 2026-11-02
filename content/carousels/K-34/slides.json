@@ -1,0 +1,63 @@
+{
+ "accent": "#FF5D8F",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Находка 10/10: я просто не смогла пройти мимо",
+   "text": "Причин несколько. Последняя решила всё →",
+   "prompt": "Bright sunny entryway with an open kraft cardboard box with colorful tissue paper on a wooden bench next to a doormat, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Раньше: доска, шнур и ожидание",
+   "text": "Пока утюг нагреется, пока разложишь доску, уже и время ушло. И так каждый раз.",
+   "prompt": "Wrinkled colorful dress and shirt draped over a chair in a bright hallway, a folded ironing board leaning on the wall, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "😩",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Нагревается за 9 секунд",
+   "text": "Включила, и через 9 секунд уже можно гладить.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p2.jpg",
+   "note": "Реальный кадр K-02/src/p2.jpg (отпариватель целиком на розовом), скопировать в src/03.jpg",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "2 в 1, и доска не нужна",
+   "text": "Прижала, и гладит как утюг. Повела, и отпаривает.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg (прижат к ткани), скопировать в src/04.jpg",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: за что 10/10",
+   "items": [
+    {
+     "icon": "⏱️",
+     "text": "9 секунд: нагрев"
+    },
+    {
+     "icon": "🔁",
+     "text": "2 в 1: гладит и отпаривает"
+    },
+    {
+     "icon": "🚫",
+     "text": "Без гладильной доски"
+    },
+    {
+     "icon": "📦",
+     "text": "Бесплатная доставка Казпочтой"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто любит находки 10/10.\nНапишите «ПАР» в комментариях — менеджер свяжется с вами и всё расскажет\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

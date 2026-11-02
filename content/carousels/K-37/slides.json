@@ -1,0 +1,61 @@
+{
+ "accent": "#57CC99",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Почему полотенца нельзя стирать вместе с одеждой",
+   "text": "3 причины. Про последнюю знают не все →",
+   "prompt": "Pile of fresh colorful bath towels in a wicker basket by a sunny window with an eucalyptus branch, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Ворсинки на тёмной одежде",
+   "text": "Махровые полотенца сильно линяют ворсом, и он остаётся на тёмных вещах.",
+   "prompt": "Black socks and a dark t-shirt covered with white lint next to a white fluffy towel, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🖤",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Затяжки от молний",
+   "text": "Молнии, крючки и пуговицы цепляют петли махры, и на полотенцах появляются затяжки.",
+   "prompt": "Extreme close-up of looped terry cloth fibers with one pulled thread, soft light, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🔒",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. После кондиционера хуже впитывают",
+   "text": "Кондиционер оставляет на волокнах плёнку, и полотенце хуже впитывает воду. Лучше стирать без него.",
+   "prompt": "Water droplets beading on a smooth towel surface next to a glass of water on a bright table, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "💧",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: как стирать полотенца",
+   "items": [
+    {
+     "icon": "🧺",
+     "text": "Отдельно от одежды"
+    },
+    {
+     "icon": "🖤",
+     "text": "Тёмные и светлые: отдельно"
+    },
+    {
+     "icon": "🔒",
+     "text": "Вещи с молниями: отдельно"
+    },
+    {
+     "icon": "🚫",
+     "text": "Кондиционер: не добавлять"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто стирает всё одной загрузкой.\nА вы стираете полотенца отдельно? Да или нет? Пишите в комментариях"
+  }
+ ]
+}

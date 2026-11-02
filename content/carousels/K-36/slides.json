@@ -1,0 +1,63 @@
+{
+ "accent": "#F9844A",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Почему это лучшая покупка для гардероба",
+   "text": "Просто шик. Причины на следующих слайдах →",
+   "prompt": "Clothes rail with rainbow-colored dresses and shirts on hangers next to a bright window with green plants, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Той в субботу, а платье мятое",
+   "text": "Хочешь надеть любимое, а оно мятое. Доставать доску ради одной вещи лень, а времени нет.",
+   "prompt": "Wrinkled festive dress hanging on a wardrobe door in a bright bedroom, a pair of shoes on the floor, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "😩",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Доску доставать не нужно",
+   "text": "Прижала, и гладит как утюг. Повела, и отпаривает. Платье остаётся на вешалке.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg (прижат к ткани), скопировать в src/03.jpg",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Нагревается за 9 секунд",
+   "text": "Включила, и через 9 секунд можно гладить.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p5.jpg",
+   "note": "Реальный кадр K-02/src/p5.jpg (крупный план с дисплеем), скопировать в src/04.jpg",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: гардероб без доски",
+   "items": [
+    {
+     "icon": "👗",
+     "text": "Платья: прямо на вешалке"
+    },
+    {
+     "icon": "👔",
+     "text": "Рубашки: прямо на вешалке"
+    },
+    {
+     "icon": "⏱️",
+     "text": "Нагрев: 9 секунд"
+    },
+    {
+     "icon": "🚫",
+     "text": "Доска: не нужна"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, у кого гардероб полон платьев и рубашек.\nНапишите «ПАР» в комментариях — менеджер свяжется с вами и всё расскажет\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

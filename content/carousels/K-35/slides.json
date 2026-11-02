@@ -1,0 +1,61 @@
+{
+ "accent": "#C77DFF",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Если педикюр в салоне на 8 часов: сделай его дома",
+   "text": "3 шага. Последний продлевает эффект →",
+   "prompt": "Bright bathroom shelf with colorful nail polish bottles without labels, a soft pink towel and a foot file, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Сначала ванночка",
+   "text": "Тёплая ванночка 5-10 минут размягчает кожу, и ногти проще обработать.",
+   "prompt": "Warm foot bath basin with water and rose petals on a bright bathroom floor next to a fluffy towel, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🛁",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Форма ногтей: ровная",
+   "text": "На ногах края лучше оставлять прямыми, без закруглённых уголков. Так ногти реже врастают.",
+   "prompt": "Close-up of a glass nail file and nail clippers on a pink towel, soft light, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "💅",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Крем в самом конце",
+   "text": "Крем для стоп и масло для кутикулы наноси в конце: кожа дольше остаётся мягкой.",
+   "prompt": "Jar of foot cream without label and a small bottle of cuticle oil next to a white towel, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧴",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: порядок педикюра",
+   "items": [
+    {
+     "icon": "🧼",
+     "text": "Лак: снять"
+    },
+    {
+     "icon": "🛁",
+     "text": "Ванночка: 5-10 минут"
+    },
+    {
+     "icon": "💅",
+     "text": "Пилка: прямой край"
+    },
+    {
+     "icon": "🧴",
+     "text": "Крем и масло: в конце"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто записана на педикюр на полдня.\nКакой шаг любите больше всего? Пишите в комментариях"
+  }
+ ]
+}

@@ -684,5 +684,77 @@
  {
   "prompt": "Bright photo of a bucket of water, a floor mop and a glass jar of coarse salt on a wooden floor in a sunny room, vivid colors, no people, no text",
   "out": "content/threads/T-183/1.jpg"
+ },
+ {
+  "prompt": "Gas stove top with burners and baked-on grease splatters in a sunny kitchen, a bright yellow sponge and an unlabeled spray bottle beside it, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-33/src/01.jpg"
+ },
+ {
+  "prompt": "Two stove surfaces side by side: a white enamel hob and a brushed stainless steel hob, a soft sponge on the counter, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-33/src/02.jpg"
+ },
+ {
+  "prompt": "Stove top covered with a thick white baking soda paste, a retro egg timer and a soft sponge nearby, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-33/src/03.jpg"
+ },
+ {
+  "prompt": "Black glass-ceramic hob, half shiny clean and half with burnt residue, a razor scraper tool resting on it, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-33/src/04.jpg"
+ },
+ {
+  "prompt": "Bright sunny entryway with an open kraft cardboard box with colorful tissue paper on a wooden bench next to a doormat, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-34/src/01.jpg"
+ },
+ {
+  "prompt": "Wrinkled colorful dress and shirt draped over a chair in a bright hallway, a folded ironing board leaning on the wall, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-34/src/02.jpg"
+ },
+ {
+  "prompt": "Bright bathroom shelf with colorful nail polish bottles without labels, a soft pink towel and a foot file, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-35/src/01.jpg"
+ },
+ {
+  "prompt": "Warm foot bath basin with water and rose petals on a bright bathroom floor next to a fluffy towel, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-35/src/02.jpg"
+ },
+ {
+  "prompt": "Close-up of a glass nail file and nail clippers on a pink towel, soft light, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-35/src/03.jpg"
+ },
+ {
+  "prompt": "Jar of foot cream without label and a small bottle of cuticle oil next to a white towel, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-35/src/04.jpg"
+ },
+ {
+  "prompt": "Clothes rail with rainbow-colored dresses and shirts on hangers next to a bright window with green plants, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-36/src/01.jpg"
+ },
+ {
+  "prompt": "Wrinkled festive dress hanging on a wardrobe door in a bright bedroom, a pair of shoes on the floor, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-36/src/02.jpg"
+ },
+ {
+  "prompt": "Pile of fresh colorful bath towels in a wicker basket by a sunny window with an eucalyptus branch, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-37/src/01.jpg"
+ },
+ {
+  "prompt": "Black socks and a dark t-shirt covered with white lint next to a white fluffy towel, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-37/src/02.jpg"
+ },
+ {
+  "prompt": "Extreme close-up of looped terry cloth fibers with one pulled thread, soft light, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-37/src/03.jpg"
+ },
+ {
+  "prompt": "Water droplets beading on a smooth towel surface next to a glass of water on a bright table, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-37/src/04.jpg"
+ },
+ {
+  "prompt": "Cozy kitchen table with a tea set, a plate of baursaks and a wrapped gift box with satin ribbon, warm sunny light, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-38/src/01.jpg"
+ },
+ {
+  "prompt": "Cozy living room on a weekend morning, a basket overflowing with wrinkled clothes beside a sofa, a folded ironing board by the wall, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-38/src/02.jpg"
  }
 ]
