@@ -1,6 +1,6 @@
 # T-159 · охват · перевод залетевшего англоязычного поста
 
-Статус: черновик на одобрение (пакет 01–07.11).
+Статус: **опубликовано 2026-11-03 09:30 Алматы** (одобрено владельцем): https://www.threads.com/@bikas.home/post/DfRB6cMF6XY.
 Правка 02.11: перефразировано на 20–30 % по решению владельца.
 Источник: @iamfaithb_ https://www.threads.com/@iamfaithb_/post/DeNERbOieMI · лайки 1234 · ответы 149 · репосты 60 (англоязычный Threads, перевод; владелец 22.10).
 Оригинал (EN): «Forget perfume 😂 what are y’all washing your clothes with that has people stopping you asking what you’re wearing?? I need the detergent, scent beads, fabric softener, dryer sheets THE WHOLE RECIPE. Don’t gatekeep 😭»
