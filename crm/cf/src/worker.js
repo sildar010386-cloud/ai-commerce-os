@@ -940,7 +940,8 @@ function spendInsertStmts(env, rows, source) {
 }
 
 // Inserts the missing 'auto' ad_spend rows of every campaign up to min(today, upToDate) (and its end_date). Existing rows, manual ones included, are never touched.
-// A campaign starts the day after its last row (or at start_date, at most 400 days back). Skipped quietly when already done today unless opts.force.
+// Every missing day from start_date (at most 400 days back) is filled. Skipped quietly when already done today unless opts.force;
+// a run that lacked a USD rate clears the "done today" mark so the next read retries.
 // Never throws: accrual problems are logged and the page keeps working.
 async function ensureAccrued(env, upToDate, opts) {
   try { return await accrueAds(env, upToDate, opts || {}); } catch (e) { console.error('ads accrual failed'); return { ok: false, inserted: 0 }; }
@@ -953,20 +954,20 @@ async function accrueAds(env, upToDate, opts) {
     if (done && done.value === today) return { ok: true, skipped: true, inserted: 0 };
   }
   const { results: camps } = await env.DB.prepare('SELECT * FROM ad_campaigns').all();
-  const { results: lastRows } = await env.DB.prepare('SELECT campaign_id, MAX(date) AS d FROM ad_spend GROUP BY campaign_id').all();
-  const last = {};
-  (lastRows || []).forEach((r) => { last[r.campaign_id] = r.d; });
   const floor = addDays(upTo, -(AD_BACKFILL_DAYS - 1));
+  // Every day that has NO row yet is filled (not only the days after the latest row): a USD day skipped for want of a rate, or a
+  // day before a manual edit, is accrued as soon as a rate is known. Existing rows (auto or manual) are never touched.
+  const { results: haveRows } = await env.DB.prepare('SELECT campaign_id, date FROM ad_spend WHERE date >= ?').bind(floor).all();
+  const have = new Set((haveRows || []).map((r) => r.campaign_id + '|' + r.date));
   const plan = [];
   for (const c of camps || []) {
     if (!c.active && !c.end_date) continue;
-    let from = c.start_date > floor ? c.start_date : floor;
-    if (last[c.id] && addDays(last[c.id], 1) > from) from = addDays(last[c.id], 1);
+    const from = c.start_date > floor ? c.start_date : floor;
     const to = c.end_date && c.end_date < upTo ? c.end_date : upTo;
     if (from > to) continue;
     const days = [];
-    for (let d = from; d <= to; d = addDays(d, 1)) days.push(d);
-    plan.push({ c, days });
+    for (let d = from; d <= to; d = addDays(d, 1)) if (!have.has(c.id + '|' + d)) days.push(d);
+    if (days.length) plan.push({ c, days });
   }
   const usdDays = [];
   plan.forEach((p) => { if (p.c.currency === 'USD') usdDays.push(...p.days); });
@@ -977,12 +978,14 @@ async function accrueAds(env, upToDate, opts) {
     for (const d of days) {
       if (c.currency === 'KZT') { rows.push({ campaignId: c.id, date: d, amountOrig: c.daily_amount, currency: 'KZT', rate: 1, amountKzt: money2(c.daily_amount) }); continue; }
       const r = rates.get(d);
-      if (!r) { incomplete = true; break; } // no rate at all yet: stop here, so the days stay in order, and retry on the next call
+      if (!r) { incomplete = true; continue; } // no rate for this day yet: leave it empty and retry on the next call
       rows.push({ campaignId: c.id, date: d, amountOrig: c.daily_amount, currency: 'USD', rate: r.rate, amountKzt: money2(c.daily_amount * r.rate) });
     }
   }
   const stmts = spendInsertStmts(env, rows, 'auto');
   if (!incomplete && upTo === today) stmts.push(env.DB.prepare("INSERT INTO settings (key, value) VALUES ('ads_accrued_on', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(today));
+  // Some USD days had no rate: forget "done today" so the next read retries (an earlier run today may have marked it).
+  if (incomplete) stmts.push(env.DB.prepare("DELETE FROM settings WHERE key = 'ads_accrued_on'"));
   if (stmts.length) await env.DB.batch(stmts);
   return { ok: true, inserted: rows.length, incomplete };
 }
@@ -1295,6 +1298,8 @@ async function api(req, env, url) {
           .bind(k, k === 'templates' || k === 'track_msg' ? v : v.trim()));
       }
       if (stmts.length) await env.DB.batch(stmts);
+      // A new manual dollar rate: accrue the USD days that were waiting for a rate right away.
+      if (user.role === 'admin' && 'usd_manual' in b) await ensureAccrued(env, undefined, { force: true });
       return json({ ok: true });
     }
   }

@@ -323,6 +323,28 @@ test('manual rate 500 on a USD 50/day campaign: 25000 per day', { skip }, async 
   await admin('DELETE', `/api/ads/campaigns/${id}`);
 });
 
+test('no rate at first (all sources down, page already opened today), manual rate set later: the waiting USD days are accrued, a manual day is kept', { skip }, async () => {
+  await db.prepare('DELETE FROM fx_rates').run();
+  outbound = async () => new Response('down', { status: 503 });
+  await jget('/api/ads/campaigns');                              // a read today marks the day as done before the campaign exists
+  const r = await admin('POST', '/api/ads/campaigns', { productId: p2, label: 'NoRate', currency: 'USD', dailyAmount: 50, startDate: day(-2) });
+  const id = (await r.json()).id;
+  assert.equal((await spendRows(day(-2), day(0))).filter((x) => x.campaignId === id).length, 0);   // nothing without a rate
+  assert.equal((await admin('PUT', `/api/ads/spend/${id}/${day(0)}`, { amountOrig: 40 })).status >= 400, true); // no rate for a manual day either
+  await admin('PUT', '/api/settings', { usd_manual: '500' });     // the owner types the rate
+  const rows = (await spendRows(day(-2), day(0))).filter((x) => x.campaignId === id);
+  assert.deepEqual(rows.map((x) => x.date), [-2, -1, 0].map(day));
+  assert.ok(rows.every((x) => x.amountKzt === 25000 && x.source === 'auto'));  // 50 $ x 500 = 25000 a day
+  assert.equal((await admin('PUT', `/api/ads/spend/${id}/${day(-1)}`, { amountOrig: 40 })).status, 200);
+  await db.prepare("DELETE FROM ad_spend WHERE campaign_id = ? AND date = ?").bind(id, day(-2)).run(); // a gap BEFORE a manual day
+  await db.prepare("DELETE FROM settings WHERE key = 'ads_accrued_on'").run();
+  const again = (await spendRows(day(-2), day(0))).filter((x) => x.campaignId === id);
+  assert.deepEqual(again.map((x) => [x.date, x.amountKzt, x.source]), [[day(-2), 25000, 'auto'], [day(-1), 20000, 'manual'], [day(0), 25000, 'auto']]);
+  outbound = defaultOutbound;
+  await admin('PUT', '/api/settings', { usd_manual: '' });
+  await admin('DELETE', `/api/ads/campaigns/${id}`);
+});
+
 test('campaign validation', { skip }, async () => {
   for (const bad of [{ currency: 'EUR' }, { dailyAmount: -1 }, { productId: 'nope' }, { startDate: '2026-13-40' }, { label: 'x'.repeat(61) }]) {
     const r = await admin('POST', '/api/ads/campaigns', Object.assign({ productId: p1, currency: 'USD', dailyAmount: 1 }, bad));
