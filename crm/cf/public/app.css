@@ -302,6 +302,9 @@ details.adv input{margin-top:6px}
 .qrhint{flex:1 1 220px;font-size:14px;line-height:1.5}
 .ws-script{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;min-height:220px;white-space:pre;overflow:auto}
 .ws-status{font-size:15px}
+.ws-opt{border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.ws-opt-h{font-weight:700;font-size:16px}
+.ws-steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14px}
 @media (max-width:900px){
  .chats{grid-template-columns:1fr}
  .chat-list{max-height:none}

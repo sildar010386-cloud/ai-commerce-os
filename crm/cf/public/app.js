@@ -33,6 +33,7 @@ var S = {
   drawer: false, card: null, resetFor: null,
   admin: false, loaded: {}, errors: {},
   data: { orders: [], products: [], finance: {}, content: [], users: [], settings: null, bot: null, numbers: [], targets: [], server: null },
+  winDownloaded: false, // the Windows installer was downloaded in this session
   serverScript: '', // initialization script shown once after «Создать ключ подключения» (kept in memory only)
   chat: null, waConnected: false,
   dirty: false, loginError: '',
@@ -1208,10 +1209,17 @@ async function recStart() {
     clearInterval(R.timer);
     R.stream.getTracks().forEach(function (t) { t.stop(); });
     if (R.cancelled || C.rec !== R) return;
-    R.blob = new Blob(R.chunks, { type: R.mime });
-    if (!R.blob.size) { C.rec = null; repaintFoot(); toast('Запись получилась пустой', 'err'); return; }
-    R.url = URL.createObjectURL(R.blob); R.mode = 'preview';
-    repaintFoot();
+    var raw = new Blob(R.chunks, { type: R.mime });
+    if (!raw.size) { C.rec = null; repaintFoot(); toast('Запись получилась пустой', 'err'); return; }
+    // Chrome records WebM/Opus; WhatsApp wants Ogg/Opus. Repack in the browser (no re-encoding, nothing to install on the connector's computer).
+    var done = function (blob) {
+      if (R.cancelled || C.rec !== R) return;
+      R.blob = blob;
+      R.url = URL.createObjectURL(R.blob); R.mode = 'preview';
+      repaintFoot();
+    };
+    if (window.OggMux) window.OggMux.toOggBlob(raw).then(done, function () { done(raw); });
+    else done(raw);
   };
   R.timer = setInterval(function () {
     R.secs = Math.min(MAX_REC_SECS, Math.floor((Date.now() - R.started) / 1000));
@@ -1321,14 +1329,14 @@ function chatsPoll() {
   if (S.chat.openId != null) chatsRefreshThread();
 }
 
-/* ---------- Settings: «Сервер WhatsApp» (QR connector on a free VM) ---------- */
+/* ---------- Settings: «Подключение WhatsApp» (QR connector: Windows laptop or Linux server) ---------- */
 var SRV_STATE_TEXT = {
   open: 'WhatsApp подключён', qr: 'ждёт сканирования QR-кода', connecting: 'подключается к WhatsApp…', closed: 'связь с WhatsApp прервалась, пробует снова',
   logged_out: 'номер отвязан, ждёт новый QR-код', banned: 'WhatsApp не пускает этот номер (возможно, он заблокирован)', relinking: 'переподключение…'
 };
 function serverStatusHTML(sv) {
-  if (!sv || !sv.installed) return '<b class="neg">Не установлен</b> <small>Создайте ключ и вставьте скрипт в настройки сервера.</small>';
-  if (!sv.lastSeenAt) return '<b class="neg">Не установлен</b> <small>Ключ создан, ждём первый запуск сервера.</small>';
+  if (!sv || !sv.installed) return '<b class="neg">Не установлен</b> <small>Выберите, где будет работать подключение, и следуйте подсказке ниже.</small>';
+  if (!sv.lastSeenAt) return '<b class="neg">Не установлен</b> <small>Ключ создан, ждём первый запуск программы.</small>';
   var line = sv.online ? '<b class="pos">На связи</b>' : '<b class="neg">Нет связи ' + (sv.minutesAgo != null ? sv.minutesAgo + ' мин' : '') + '</b>';
   var det = [];
   if (sv.state && sv.online) det.push(SRV_STATE_TEXT[sv.state] || sv.state);
@@ -1339,25 +1347,39 @@ function serverStatusHTML(sv) {
 function waServerInner() {
   var sv = S.data.server;
   var h = '<div class="ws-status" id="ws-status">' + (sv ? serverStatusHTML(sv) : 'Загружаем…') + '</div>';
-  if (sv && sv.relinkPending && !sv.qr) h += '<div class="notice">Идёт переподключение: сервер отвязывает старый номер и покажет QR-код (обычно до минуты).</div>';
+  if (sv && sv.relinkPending && !sv.qr) h += '<div class="notice">Идёт переподключение: программа отвязывает старый номер и покажет QR-код (обычно до минуты).</div>';
   if (sv && sv.qr) {
     h += '<div class="qrbox"><img src="' + esc(sv.qr) + '" width="320" height="320" alt="QR-код для привязки WhatsApp">' +
       '<div class="qrhint"><b>Отсканируйте QR-код телефоном</b><br>WhatsApp Business → ⋮ → Связанные устройства → Привязать устройство.<br>' +
       '<small>Код обновляется сам, страницу перезагружать не нужно.</small></div></div>';
   }
+  // Option 1: this Windows computer
+  h += '<div class="ws-opt"><div class="ws-opt-h">На этом компьютере (Windows)</div>' +
+    '<div class="muted fs14">Подойдёт, если сервера нет: подключение работает на вашем ноутбуке. Права администратора не нужны, ставится только для вашего пользователя Windows.</div>' +
+    '<ol class="ws-steps"><li>Нажмите кнопку и сохраните файл <b>BikasWhatsApp-setup.cmd</b> (браузер может спросить, оставить ли файл: выберите «Сохранить» или «Оставить»).</li>' +
+    '<li>Откройте файл двойным щелчком. Если Windows покажет «Windows защитила ваш компьютер», нажмите «Подробнее» → «Выполнить в любом случае».</li>' +
+    '<li>Подождите 2–5 минут, пока в чёрном окне не появится «Готово». Потом здесь появится QR-код.</li></ol>' +
+    '<div class="muted fs14">Что произойдёт: установщик скачает нужные программы в папку %LOCALAPPDATA%\\BikasWhatsApp, настроит автозапуск при входе в Windows и запустит подключение. ' +
+    '<b>Ноутбук должен быть включён и в интернете, иначе сообщения не дойдут до CRM:</b> ночью, пока он выключен, WhatsApp хранит сообщения и отдаёт их при следующем включении. ' +
+    'Файл содержит секретный ключ: никому его не отправляйте. Повторный запуск файла обновляет и чинит установку, сохранённый вход в WhatsApp не удаляется.</div>' +
+    (S.winDownloaded && !(sv && sv.online) ? '<div class="notice"><b>Файл скачан.</b> Откройте его из папки «Загрузки» двойным щелчком. Когда установщик напишет «Готово», здесь появится QR-код.</div>' : '') +
+    '<div class="row-flex"><button type="button" class="btn' + (sv && sv.installed ? '' : ' pri') + '" data-act="ws-win">Скачать установщик для Windows</button></div></div>';
+  // Option 2: Linux server
+  h += '<div class="ws-opt"><div class="ws-opt-h">На сервере (Linux)</div>' +
+    '<div class="muted fs14">Для небольшого бесплатного сервера, который работает круглосуточно (Google Cloud, Oracle).</div>';
   if (S.serverScript) {
     h += '<div class="notice"><b>Скрипт показан один раз.</b> Он содержит секретный ключ: никому его не отправляйте. Если потеряли, создайте новый ключ (старый перестанет работать).</div>' +
       '<div class="fld"><label for="ws-script">Скрипт для сервера</label><textarea id="ws-script" class="ws-script" readonly spellcheck="false">' + esc(S.serverScript) + '</textarea>' +
       '<small>Вставьте скрипт в настройки сервера. Google Cloud: Compute Engine → ваша машина → Изменить → «Автоматизация» → «Скрипт запуска» (Startup script). Oracle Cloud: Create instance → Show advanced options → Management → Initialization script. Скрипт безопасно запускается при каждой загрузке сервера. Установка занимает несколько минут, потом здесь появится QR-код.</small></div>' +
       '<div class="row-flex"><button type="button" class="btn pri" data-act="ws-copy">Скопировать скрипт</button><button type="button" class="btn" data-act="ws-hide">Скрыть скрипт</button></div>';
   }
-  h += '<div class="row-flex"><button type="button" class="btn' + (sv && sv.installed ? '' : ' pri') + '" data-act="ws-key">Создать ключ подключения</button>' +
-    '<button type="button" class="btn dng" data-act="ws-relink"' + (sv && sv.installed ? '' : ' disabled') + '>Переподключить на другой номер</button></div>';
+  h += '<div class="row-flex"><button type="button" class="btn" data-act="ws-key">Создать ключ подключения</button></div></div>';
+  h += '<div class="row-flex"><button type="button" class="btn dng" data-act="ws-relink"' + (sv && sv.installed ? '' : ' disabled') + '>Переподключить на другой номер</button></div>';
   return h;
 }
 function waServerHTML() {
   if (!S.admin) return '';
-  return '<div class="h1">Сервер WhatsApp</div><div class="card col14"><div class="muted fs14">Небольшой сервер (бесплатный тариф облака) держит один подключённый номер WhatsApp (как «Связанное устройство») и передаёт сообщения в CRM. ' +
+  return '<div class="h1">Подключение WhatsApp</div><div class="card col14"><div class="muted fs14">Программа-подключение держит один номер WhatsApp (как «Связанное устройство», по QR-коду, как WhatsApp Web) и передаёт сообщения в CRM. Выберите, где она будет работать. ' +
     'Номер заблокировали? Нажмите «Переподключить на другой номер» и отсканируйте QR-код другим телефоном: все ссылки /wa переключатся на новый номер.</div>' +
     '<div class="col14" id="ws-box">' + waServerInner() + '</div></div>';
 }
@@ -1620,6 +1642,25 @@ var ACTIONS = {
       await serverRefresh();
       toast('Ключ создан. Скрипт показан один раз — скопируйте его.', 'ok');
       var el = document.getElementById('ws-script'); if (el) el.scrollIntoView({ block: 'center' });
+    } catch (e) { toast('Не получилось: ' + e.message, 'err'); }
+  },
+  'ws-win': async function () {
+    var sv = S.data.server;
+    if (sv && sv.installed && !window.confirm('Создать новый ключ и скачать установщик? Старый ключ сразу перестанет работать: уже установленное подключение (на другом компьютере или сервере) придётся поставить заново новым файлом. Продолжить?')) return;
+    try {
+      var res;
+      try { res = await fetch('/api/wa-server/windows-installer', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}' }); }
+      catch (e) { throw new Error('нет связи с сервером'); }
+      if (res.status === 401) { goLogin(); return; }
+      if (!res.ok) { var er = null; try { er = await res.json(); } catch (x) { er = null; } throw new Error((er && er.error) || ('ошибка ' + res.status)); }
+      var blob = new Blob([await res.blob()], { type: 'application/octet-stream' });
+      var a = document.createElement('a'), u = URL.createObjectURL(blob);
+      a.href = u; a.download = 'BikasWhatsApp-setup.cmd'; a.style.display = 'none';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(u); }, 60000);
+      S.winDownloaded = true; S.serverScript = '';
+      await serverRefresh(); paintServer();
+      toast('Установщик скачан. Откройте его двойным щелчком.', 'ok');
     } catch (e) { toast('Не получилось: ' + e.message, 'err'); }
   },
   'ws-copy': function () { copyText(S.serverScript, 'Скрипт скопирован', 'ws-script'); },

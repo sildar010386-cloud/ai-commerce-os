@@ -16,6 +16,35 @@ test('connector_script.js is the generated copy of connector/cloud-init.template
   assert.equal((CLOUD_INIT_TEMPLATE.match(/__CONNECTOR_TOKEN__/g) || []).length, 1);
 });
 
+const WIN_TEMPLATE = path.join(__dirname, '../../../connector/windows/setup.template.cmd');
+const INSTALL_SH = path.join(__dirname, '../../../connector/install.sh');
+
+test('connector_windows.js is the generated copy of connector/windows/setup.template.cmd (single source of truth)', async () => {
+  if (!fs.existsSync(WIN_TEMPLATE)) return;
+  const { WINDOWS_SETUP_TEMPLATE: T } = await import(require('url').pathToFileURL(path.join(SRC, 'connector_windows.js')).href);
+  const src = fs.readFileSync(WIN_TEMPLATE, 'utf8');
+  assert.ok(!src.includes('\r'), 'the source file is LF; the Worker converts to CRLF when serving');
+  assert.equal(T, src, 'run: node scripts/gen-windows-setup.js');
+  assert.equal((T.match(/__CRM_URL__/g) || []).length, 1);
+  assert.equal((T.match(/__CONNECTOR_TOKEN__/g) || []).length, 1);
+  // the batch part (everything before the PowerShell payload) is plain ASCII and ends with exit /b
+  const head = T.split(/^#PAYLOAD\s*$/m)[0];
+  assert.ok(/^[\x00-\x7f]*$/.test(head), 'batch part must be ASCII');
+  assert.ok(/\nexit \/b %BK_RC%\n$/.test(head));
+  assert.ok(/-ExecutionPolicy Bypass/.test(head) && /-NoProfile/.test(head));
+  assert.equal(T.split(/^#PAYLOAD\s*$/m).length, 2, 'exactly one payload marker line');
+});
+
+test('Windows installer pins the same Node.js version as install.sh and the same branch as the Linux scripts', () => {
+  if (!fs.existsSync(WIN_TEMPLATE) || !fs.existsSync(INSTALL_SH)) return;
+  const t = fs.readFileSync(WIN_TEMPLATE, 'utf8'), sh = fs.readFileSync(INSTALL_SH, 'utf8');
+  const v = sh.match(/^NODE_VERSION=(\S+)/m)[1];
+  assert.ok(t.includes("$NodeVersion = '" + v + "'"), 'Node ' + v);
+  const br = sh.match(/BIKAS_BRANCH:-([^}]+)\}/)[1];
+  assert.ok(t.includes("$Branch = '" + br + "'"), 'branch ' + br);
+  assert.ok(t.includes('SHASUMS256.txt') && t.includes('Get-FileHash'), 'SHA256 of the Node zip is verified');
+});
+
 let Miniflare = null;
 try { ({ Miniflare } = require('miniflare')); } catch (e) { /* not installed */ }
 const skip = Miniflare ? false : 'miniflare is not installed (npm i wrangler@3.114.17)';
@@ -26,7 +55,7 @@ let mf, db, cookie;
 before(async () => {
   if (!Miniflare) return;
   mf = new Miniflare({
-    modules: ['worker.js', 'wa.js', 'source.js', 'connector_script.js'].map((f) => ({ type: 'ESModule', path: f, contents: fs.readFileSync(path.join(SRC, f), 'utf8') })),
+    modules: ['worker.js', 'wa.js', 'source.js', 'connector_script.js', 'connector_windows.js'].map((f) => ({ type: 'ESModule', path: f, contents: fs.readFileSync(path.join(SRC, f), 'utf8') })),
     compatibilityDate: '2025-01-15', d1Databases: { DB: 'testdb' }, bindings: { CRM_API_KEY: 'test-api-key-0123456789' }
   });
   db = await mf.getD1Database('DB');
@@ -86,6 +115,47 @@ test('wa-server API is admin only and never leaks the key', { skip }, async () =
   assert.equal(st.server.installed, true);
   assert.ok(!JSON.stringify(st).includes(TOKEN));
   assert.equal((await mf.dispatchFetch(ORIGIN + '/api/wa-server')).status, 401);
+});
+
+test('Windows installer: admin only, new key each time (old one dies), values substituted, CRLF, attachment, no-store', { skip }, async () => {
+  const oldToken = TOKEN;
+  // a manager must not get it (and must not rotate the key)
+  const mgrMail = 'mgr@b.kz', mgrPass = 'manager-password-1';
+  let r = await admin('POST', '/api/users', { email: mgrMail, name: 'Менеджер', password: mgrPass });
+  assert.equal(r.status, 201);
+  r = await mf.dispatchFetch(ORIGIN + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: ORIGIN }, body: JSON.stringify({ email: mgrMail, password: mgrPass }) });
+  const mgrCookie = r.headers.get('set-cookie').split(';')[0];
+  const asMgr = await mf.dispatchFetch(ORIGIN + '/api/wa-server/windows-installer', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: ORIGIN, Cookie: mgrCookie }, body: '{}' });
+  assert.equal(asMgr.status, 403);
+  const anon = await mf.dispatchFetch(ORIGIN + '/api/wa-server/windows-installer', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: ORIGIN }, body: '{}' });
+  assert.equal(anon.status, 401);
+  assert.equal((await conn('GET', '/api/connector/outbox?ready=0')).status, 200, 'the key still works after the refused requests');
+  // CSRF: a request from another origin is refused
+  const evil = await mf.dispatchFetch(ORIGIN + '/api/wa-server/windows-installer', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://evil.test', Cookie: cookie }, body: '{}' });
+  assert.equal(evil.status, 403);
+  assert.equal((await conn('GET', '/api/connector/outbox?ready=0')).status, 200);
+
+  r = await admin('POST', '/api/wa-server/windows-installer', {});
+  assert.equal(r.status, 200);
+  assert.match(r.headers.get('content-disposition'), /^attachment; filename="BikasWhatsApp-setup\.cmd"$/);
+  assert.match(r.headers.get('cache-control'), /no-store/);
+  const body = Buffer.from(await r.arrayBuffer()).toString('utf8');
+  const m = body.match(/\$Token = '([A-Za-z0-9_-]+)'/);
+  assert.ok(m && m[1].length === 43, 'token substituted');
+  assert.ok(body.includes("$CrmUrl = '" + ORIGIN + "'"));
+  assert.ok(!body.includes('__CRM_URL__') && !body.includes('__CONNECTOR_TOKEN__'));
+  assert.ok(!/(^|[^\r])\n/.test(body), 'every line ends with CRLF');
+  assert.ok(body.startsWith('@echo off\r\n'));
+  assert.notEqual(m[1], oldToken);
+  assert.equal((await conn('GET', '/api/connector/outbox?ready=0', undefined, oldToken)).status, 401, 'old key invalidated');
+  assert.equal((await conn('GET', '/api/connector/outbox?ready=0', undefined, m[1])).status, 200, 'new key works');
+  const row = await db.prepare('SELECT token_hash FROM connector WHERE id = 1').first();
+  assert.notEqual(row.token_hash, m[1]);
+  assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM audit WHERE action = 'wa-server-key' AND detail = 'windows'").first()).n >= 1, true);
+  TOKEN = m[1];
+  // GET is not accepted (a key must never be rotated by a link)
+  assert.notEqual((await admin('GET', '/api/wa-server/windows-installer')).status, 200);
+  assert.equal((await conn('GET', '/api/connector/outbox?ready=0')).status, 200);
 });
 
 test('state qr: QR is kept and shown; bad QR payload is ignored', { skip }, async () => {
@@ -287,7 +357,7 @@ test('security headers: CSP allows data:/blob: images and blob: media only; micr
 test('legacy paths keep working: CONNECTOR_URL send for a QR number without a connector key, Cloud API send', { skip }, async () => {
   const seen = [];
   const mf2 = new Miniflare({
-    modules: ['worker.js', 'wa.js', 'source.js', 'connector_script.js'].map((f) => ({ type: 'ESModule', path: f, contents: fs.readFileSync(path.join(SRC, f), 'utf8') })),
+    modules: ['worker.js', 'wa.js', 'source.js', 'connector_script.js', 'connector_windows.js'].map((f) => ({ type: 'ESModule', path: f, contents: fs.readFileSync(path.join(SRC, f), 'utf8') })),
     compatibilityDate: '2025-01-15', d1Databases: { DB: 'legacy' },
     bindings: { CRM_API_KEY: 'test-api-key-0123456789', CONNECTOR_URL: 'https://legacy.example/', CONNECTOR_KEY: 'ck', WA_TOKEN: 'wat' },
     outboundService: async (req) => {

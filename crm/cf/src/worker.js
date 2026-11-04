@@ -5,6 +5,7 @@
 import { detectSource } from './source.js';
 import { parseWebhook, normalizeInboxEvents } from './wa.js';
 import { CLOUD_INIT_TEMPLATE } from './connector_script.js';
+import { WINDOWS_SETUP_TEMPLATE } from './connector_windows.js';
 
 const GITHUB_REPO = 'sildar010386-cloud/ai-commerce-os';
 const PUBLISH_URL = `https://github.com/${GITHUB_REPO}/actions/workflows/publish.yml`;
@@ -1866,6 +1867,22 @@ function serverOut(r) {
   };
 }
 
+// The Windows installer: CRLF line endings, the CRM address and the key substituted (single occurrences, no $-patterns).
+function windowsSetupFile(origin, token) {
+  return WINDOWS_SETUP_TEMPLATE.replace(/\r?\n/g, '\r\n').replace('__CRM_URL__', () => origin).replace('__CONNECTOR_TOKEN__', () => token);
+}
+// New connection key: the previous one stops working at once and the connector state is reset.
+async function rotateConnectorKey(env, user, detail) {
+  const token = randomToken();
+  const ts = nowIso();
+  await env.DB.batch([
+    env.DB.prepare("UPDATE connector SET token_hash = ?, token_created_at = ?, state = '', qr_data = '', qr_at = '', last_seen_at = '', version = '', pending_command = '', switch_on_open = 0 WHERE id = 1")
+      .bind(await sha256Hex(token), ts),
+    auditStmt(env, user.email, 'wa-server-key', null, null, detail)
+  ]);
+  return token;
+}
+
 async function waServerApi(req, env, url, user) {
   requireAdmin(user);
   const p = url.pathname, m = req.method;
@@ -1873,15 +1890,20 @@ async function waServerApi(req, env, url, user) {
     return json({ server: serverOut(await env.DB.prepare('SELECT * FROM connector WHERE id = 1').first()) });
   }
   if (p === '/api/wa-server/key' && m === 'POST') {
-    const token = randomToken();
-    const ts = nowIso();
-    await env.DB.batch([
-      env.DB.prepare("UPDATE connector SET token_hash = ?, token_created_at = ?, state = '', qr_data = '', qr_at = '', last_seen_at = '', version = '', pending_command = '', switch_on_open = 0 WHERE id = 1")
-        .bind(await sha256Hex(token), ts),
-      auditStmt(env, user.email, 'wa-server-key', null, null, '')
-    ]);
-    const script = CLOUD_INIT_TEMPLATE.replace('__CRM_URL__', url.origin).replace('__CONNECTOR_TOKEN__', token);
+    const token = await rotateConnectorKey(env, user, '');
+    const script = CLOUD_INIT_TEMPLATE.replace('__CRM_URL__', () => url.origin).replace('__CONNECTOR_TOKEN__', () => token);
     return json({ ok: true, script });
+  }
+  // Windows laptop: a new key (the old one stops working) embedded in a one-click installer file.
+  if (p === '/api/wa-server/windows-installer' && m === 'POST') {
+    if (!/^https?:\/\/[A-Za-z0-9.-]+(:\d{1,5})?$/.test(url.origin)) fail(500, 'Адрес CRM не подходит для установщика');
+    const token = await rotateConnectorKey(env, user, 'windows');
+    const body = windowsSetupFile(url.origin, token);
+    return new Response(body, { status: 200, headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': 'attachment; filename="BikasWhatsApp-setup.cmd"',
+      'Cache-Control': 'no-store'
+    } });
   }
   if (p === '/api/wa-server/relink' && m === 'POST') {
     const row = await env.DB.prepare('SELECT * FROM connector WHERE id = 1').first();
