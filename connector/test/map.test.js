@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { chatIdOf, describeContent, mapMessage, mapUpdates, mapReceipts, selectHistory, toNum, NOTE_BIG, NOTE_VIDEO, NOTE_HISTORY } from '../src/map.js';
+import { readContacts, chatIdOf, describeContent, mapMessage, mapUpdates, mapReceipts, selectHistory, toNum, NOTE_BIG, NOTE_VIDEO, NOTE_HISTORY } from '../src/map.js';
 
 const OWN = '77011112233';
 const key = (o) => Object.assign({ remoteJid: '77011234567@s.whatsapp.net', fromMe: false, id: '3EB0A1' }, o);
@@ -162,7 +162,7 @@ test('selectHistory: last 180 days, cap, oldest first', () => {
   const now = Date.parse('2026-11-04T00:00:00Z');
   const sec = now / 1000;
   const mk = (daysAgo, id) => ({ key: key({ id }), messageTimestamp: sec - daysAgo * 86400, message: { conversation: id } });
-  const out = selectHistory([mk(200, 'old'), mk(10, 'a'), mk(1, 'b'), mk(100, 'c')], { now });
+  const out = selectHistory([mk(200, 'old'), mk(10, 'a'), mk(1, 'b'), mk(100, 'c')], { now, days: 180 });
   assert.deepEqual(out.map((m) => m.key.id), ['c', 'a', 'b']);
   assert.deepEqual(selectHistory([mk(10, 'a'), mk(1, 'b'), mk(5, 'c')], { now, cap: 2 }).map((m) => m.key.id), ['c', 'b']);
 });
@@ -182,4 +182,65 @@ test('mapped events are accepted by the CRM normalizer (same shape as the Cloud 
   assert.equal(n.displayPhone, OWN);
   assert.equal(n.waId, '77011234567');
   assert.equal(n.msg.mediaRef, 'm1');
+});
+
+// ---- realistic Baileys history payload: protobuf Long timestamps, @lid and @s.whatsapp.net chats, fromMe, media, stubs ----
+const long = (n) => ({ low: n % 4294967296, high: Math.floor(n / 4294967296), unsigned: true });
+const hist = (jid, id, ts, message, o) => Object.assign({ key: { remoteJid: jid, id, fromMe: false }, message, messageTimestamp: long(ts), pushName: 'Клиент' }, o);
+
+test('history payload: Long timestamps, fromMe, media notes, protocol stubs skipped', () => {
+  const ts = 1761000000;
+  const msgs = [
+    hist('77019998877@s.whatsapp.net', 'H1', ts, { conversation: 'Здравствуйте, сколько стоит?' }),
+    hist('77019998877@s.whatsapp.net', 'H2', ts + 60, { extendedTextMessage: { text: '15 000 тг' } }, { key: { remoteJid: '77019998877@s.whatsapp.net', id: 'H2', fromMe: true } }),
+    hist('77019998877@s.whatsapp.net', 'H3', ts + 120, { imageMessage: { mimetype: 'image/jpeg', fileLength: long(50000), caption: 'фото' } }),
+    hist('77019998877@s.whatsapp.net', 'H4', ts + 180, { audioMessage: { ptt: true, mimetype: 'audio/ogg; codecs=opus', fileLength: 4000 } }),
+    hist('77019998877@s.whatsapp.net', 'STUB', ts + 200, undefined, { message: null, messageStubType: 28 }),
+    hist('77019998877@s.whatsapp.net', 'PROTO', ts + 210, { protocolMessage: { type: 0 } }),
+    hist('120363@g.us', 'G1', ts, { conversation: 'группа' })
+  ];
+  const sel = selectHistory(msgs, { now: (ts + 1000) * 1000 });
+  assert.equal(sel.length, 7, 'groups and stubs are not filtered here, mapMessage does it');
+  const ev = sel.map((m) => mapMessage(m, { ownPhone: OWN, kind: 'history' })).filter(Boolean).map((r) => r.event);
+  assert.deepEqual(ev.map((e) => [e.msg.id, e.kind, e.direction, e.msg.type]), [
+    ['H1', 'history', 'in', 'text'], ['H2', 'history', 'out', 'text'], ['H3', 'history', 'in', 'image'], ['H4', 'history', 'in', 'voice']]);
+  assert.equal(ev[0].msg.ts, ts);
+  assert.equal(ev[2].msg.body, NOTE_HISTORY);
+  assert.equal(ev[1].profileName, '');
+});
+
+test('selectHistory: per-chat cap keeps many chats instead of one deep chat; grouped by chat, oldest first', () => {
+  const now = Date.parse('2026-11-04T00:00:00Z'), sec = now / 1000;
+  const m = (jid, i) => hist(jid, jid.slice(0, 4) + i, sec - i * 60, { conversation: 'x' });
+  const a = [], b = [];
+  for (let i = 0; i < 100; i++) a.push(m('77010000001@s.whatsapp.net', i));
+  for (let i = 0; i < 3; i++) b.push(m('77010000002@s.whatsapp.net', i + 500));
+  const out = selectHistory([...a, ...b], { now, perChat: 30 });
+  assert.equal(out.length, 33);
+  const chats = out.map((x) => x.key.remoteJid);
+  assert.deepEqual([...new Set(chats)], ['77010000001@s.whatsapp.net', '77010000002@s.whatsapp.net'].filter((j) => chats.includes(j)));
+  const firstChat = chats[0];
+  const idx = chats.lastIndexOf(firstChat);
+  assert.ok(chats.slice(0, idx + 1).every((c) => c === firstChat), 'one chat after another');
+  const tsList = out.filter((x) => x.key.remoteJid === firstChat).map((x) => Number(x.messageTimestamp.low));
+  assert.deepEqual(tsList, [...tsList].sort((p, q) => p - q));
+});
+
+test('readContacts: names and lid -> phone links from history contacts and chats', () => {
+  const r = readContacts({
+    contacts: [
+      { id: '77011234567@s.whatsapp.net', name: 'Айгерим (салон)', notify: 'Aigerim' },
+      { id: '55512345@lid', lid: '55512345@lid', jid: '77015556677@s.whatsapp.net', notify: 'Мария' },
+      { id: '9999@lid', notify: 'Аноним' },
+      { id: '120363@g.us', name: 'Группа' }
+    ],
+    chats: [{ id: '44411111@lid', lidJid: '44411111@lid', pnJid: '77013334455@s.whatsapp.net', name: 'Динара' }]
+  });
+  assert.equal(r.names.get('77011234567'), 'Айгерим (салон)');
+  assert.equal(r.names.get('77015556677'), 'Мария');
+  assert.equal(r.names.get('9999'), 'Аноним');
+  assert.equal(r.names.get('77013334455'), 'Динара');
+  assert.equal(r.lidPn.get('55512345'), '77015556677');
+  assert.equal(r.lidPn.get('44411111'), '77013334455');
+  assert.ok(![...r.names.keys()].includes('120363'));
 });

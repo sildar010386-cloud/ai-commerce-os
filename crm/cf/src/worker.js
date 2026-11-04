@@ -1131,16 +1131,77 @@ async function whatsappHook(req, env, url) {
   return json({ ok: true });
 }
 
+// Old chats (WhatsApp history sync) and names. The Cloudflare free plan allows ~50 D1 queries per request, so a batch of history
+// events is written with a handful of statements: one DB.batch with [create chat] + [insert message] + [update chat summary].
+// Everything is idempotent: a repeated batch changes nothing (messages are unique by ext_msg_id, the summary is recomputed
+// with MIN/MAX). History never raises «unread» and creates chats as «Старый клиент» (traffic = old).
+async function ingestHistory(env, ctx, events) {
+  const chats = new Map();       // waId -> {name, number, msgs: []}
+  const names = new Map();       // waId -> name from 'contact' events
+  for (const ev of events) {
+    if (!ev.waId) continue;
+    if (ev.kind === 'contact') { if (ev.profileName) names.set(ev.waId, ev.profileName); continue; }
+    if (!ev.msg) continue;
+    let c = chats.get(ev.waId);
+    if (!c) { c = { name: '', number: await ensureWaNumber(env, ctx.numbers, ev.phoneNumberId, ev.displayPhone, ctx.connection), msgs: [], ids: new Set() }; chats.set(ev.waId, c); }
+    if (ev.profileName && !c.name) c.name = ev.profileName;
+    if (ev.msg.id) { if (c.ids.has(ev.msg.id)) continue; c.ids.add(ev.msg.id); }
+    c.msgs.push(ev);
+  }
+  const ts0 = nowIso();
+  const stmts = [];
+  for (const [waId, c] of chats) {
+    const nm = c.name || names.get(waId) || '';
+    const first = c.msgs.reduce((a, e) => (e.msg.ts < a ? e.msg.ts : a), c.msgs[0].msg.ts);
+    stmts.push(env.DB.prepare(
+      "INSERT INTO contacts (channel, ext_id, phone, name, traffic, number_id, first_message_at, created_at, updated_at) VALUES ('whatsapp', ?1, ?1, ?2, 'old', ?3, ?4, ?5, ?5) ON CONFLICT(channel, ext_id) DO NOTHING"
+    ).bind(waId, nm, c.number ? c.number.id : null, first, ts0));
+  }
+  for (const [waId, c] of chats) {
+    for (const ev of c.msgs) {
+      const m = ev.msg, out = ev.direction === 'out';
+      stmts.push(env.DB.prepare(
+        'INSERT INTO messages (contact_id, direction, number_id, ext_msg_id, type, body, media_id, media_url, media_mime, caption, status, from_app, ts, created_at, media_ref) ' +
+        "SELECT id, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15 FROM contacts WHERE channel = 'whatsapp' AND ext_id = ?1 ON CONFLICT(ext_msg_id) DO NOTHING"
+      ).bind(waId, ev.direction, c.number ? c.number.id : null, m.id || null, m.type, m.body || '', m.mediaId || '', m.mediaUrl || '', m.mime || '',
+        m.caption || '', out ? 'sent' : 'received', out ? 1 : 0, m.ts, ts0, m.mediaRef || ''));
+    }
+    // Summary of the chat from this batch (only moves forward / backward, so order and repeats do not matter).
+    const latest = c.msgs.reduce((a, e) => (e.msg.ts >= a.msg.ts ? e : a), c.msgs[0]);
+    const lastIn = c.msgs.filter((e) => e.direction === 'in').reduce((a, e) => (e.msg.ts > a ? e.msg.ts : a), '');
+    const first = c.msgs.reduce((a, e) => (e.msg.ts < a ? e.msg.ts : a), c.msgs[0].msg.ts);
+    stmts.push(env.DB.prepare(
+      'UPDATE contacts SET ' +
+      "name = CASE WHEN name = '' THEN ?1 ELSE name END, " +
+      "first_message_at = CASE WHEN first_message_at = '' OR ?2 < first_message_at THEN ?2 ELSE first_message_at END, " +
+      'last_preview = CASE WHEN ?3 >= last_message_at THEN ?4 ELSE last_preview END, ' +
+      'last_message_at = CASE WHEN ?3 >= last_message_at THEN ?3 ELSE last_message_at END, ' +
+      "last_inbound_at = CASE WHEN ?5 > last_inbound_at THEN ?5 ELSE last_inbound_at END, " +
+      "number_id = COALESCE(number_id, ?6), updated_at = ?7 WHERE channel = 'whatsapp' AND ext_id = ?8"
+    ).bind(c.name || names.get(waId) || '', first, latest.msg.ts, previewOf(latest.msg, latest.direction), lastIn, c.number ? c.number.id : null, ts0, waId));
+  }
+  for (const [waId, nm] of names) {
+    if (!chats.has(waId)) stmts.push(env.DB.prepare("UPDATE contacts SET name = ?1, updated_at = ?2 WHERE channel = 'whatsapp' AND ext_id = ?3 AND name = ''").bind(nm, ts0, waId));
+  }
+  for (let i = 0; i < stmts.length; i += 90) await env.DB.batch(stmts.slice(i, i + 90));
+}
+
 // The one ingest path for every connector (Cloud API webhook, QR connector via /api/hooks/inbox).
 // A non-2xx answer makes the sender retry; inserts are idempotent (ext_msg_id), so a retry is safe.
 async function ingestEvents(env, events, connection) {
   if (!events.length) return 0;
-  const { results: targets } = await env.DB.prepare('SELECT * FROM target_texts WHERE active = 1').all();
+  const bulk = events.filter((e) => e.kind === 'history' || e.kind === 'contact');
+  const live = bulk.length ? events.filter((e) => e.kind !== 'history' && e.kind !== 'contact') : events;
+  const { results: targets } = live.length ? await env.DB.prepare('SELECT * FROM target_texts WHERE active = 1').all() : { results: [] };
   const ctx = { targets: targets || [], numbers: new Map(), connection };
   let failed = 0;
-  for (const ev of events) {
+  for (const ev of live) {
     try { await processWaEvent(env, ctx, ev); }
     catch (e) { failed++; console.error('whatsapp event failed:', e && e.message ? String(e.message).slice(0, 150) : 'unknown'); }
+  }
+  if (bulk.length) {
+    try { await ingestHistory(env, ctx, bulk); }
+    catch (e) { failed++; console.error('whatsapp history failed:', e && e.message ? String(e.message).slice(0, 150) : 'unknown'); }
   }
   if (failed) fail(500, 'Не удалось сохранить часть сообщений');
   return events.length;
@@ -1263,7 +1324,7 @@ async function boundConnector(env, num) {
 }
 
 // QR connector route: store the message as 'queued' and put it into the outbox; the connector pulls it within seconds.
-async function queueOutgoing(env, user, c, num, conn, { type, text, mediaRef, mime }) {
+async function queueOutgoing(env, user, c, num, conn, { type, text, mediaRef, mime, seconds = 0, waveform = '' }) {
   const ts = nowIso();
   const preview = previewOf({ type, body: type === 'text' ? text : '', caption: type === 'image' ? text : '' }, 'out');
   const res = await env.DB.batch([
@@ -1272,9 +1333,9 @@ async function queueOutgoing(env, user, c, num, conn, { type, text, mediaRef, mi
       "VALUES (?, 'out', ?, NULL, ?, ?, ?, ?, ?, 'queued', 0, ?, ?)"
     ).bind(c.id, num.id, type, type === 'text' ? text : '', mime || '', type === 'image' ? text : '', mediaRef || '', ts, ts),
     env.DB.prepare(
-      'INSERT INTO outbox (contact_id, message_id, number_id, to_ext, type, text, media_ref, status, created_at, updated_at) ' +
-      "VALUES (?, last_insert_rowid(), ?, ?, ?, ?, ?, 'queued', ?, ?)"
-    ).bind(c.id, num.id, c.ext_id, type, text || '', mediaRef || '', ts, ts),
+      'INSERT INTO outbox (contact_id, message_id, number_id, to_ext, type, text, media_ref, status, created_at, updated_at, seconds, waveform) ' +
+      "VALUES (?, last_insert_rowid(), ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?)"
+    ).bind(c.id, num.id, c.ext_id, type, text || '', mediaRef || '', ts, ts, seconds, waveform),
     env.DB.prepare('UPDATE contacts SET last_message_at = ?, last_preview = ?, updated_at = ? WHERE id = ?').bind(ts, preview, ts, c.id),
     auditStmt(env, user.email, 'chat-send', null, null, `chat#${c.id}${type === 'text' ? '' : ' ' + type}`)
   ]);
@@ -1342,7 +1403,19 @@ async function sendChatFile(env, user, idStr, b, type) {
   const caption = type === 'image' ? str(b.caption, 1024, 'Подпись') : '';
   const f = decodeFile(b, type);
   const mediaRef = await storeMedia(env, f.mime, f.bytes);
-  return queueOutgoing(env, user, c, num, conn, { type, text: caption, mediaRef, mime: f.mime.split(';')[0] });
+  const wave = type === 'voice' ? voiceWave(b) : { seconds: 0, waveform: '' };
+  return queueOutgoing(env, user, c, num, conn, { type, text: caption, mediaRef, mime: f.mime.split(';')[0], seconds: wave.seconds, waveform: wave.waveform });
+}
+
+// Optional duration + waveform of a voice note (computed in the browser). Anything malformed is ignored: the voice is sent without them.
+function voiceWave(b) {
+  const seconds = Number(b && b.seconds);
+  let wf = '';
+  if (typeof (b && b.waveform) === 'string' && /^[A-Za-z0-9+/]{86}==$/.test(b.waveform)) wf = b.waveform;   // 64 bytes in base64
+  else if (Array.isArray(b && b.waveform) && b.waveform.length === 64 && b.waveform.every((x) => Number.isFinite(Number(x)))) {
+    wf = btoa(String.fromCharCode(...b.waveform.map((x) => Math.max(0, Math.min(100, Math.round(Number(x)))))));
+  }
+  return { seconds: Number.isFinite(seconds) && seconds >= 1 && seconds <= 3600 ? Math.round(seconds) : 0, waveform: wf };
 }
 
 async function setChatSource(env, user, idStr, b) {
@@ -1472,8 +1545,9 @@ async function listChats(env, url) {
   if (filter === 'unread') where.push('c.unread > 0');
   else if (filter === 'target') where.push("c.traffic = 'target'");
   else if (filter === 'organic') where.push("c.traffic = 'organic'");
+  else if (filter === 'old') where.push("c.traffic = 'old'");
   const { results } = await env.DB.prepare(
-    CHAT_SELECT + (where.length ? 'WHERE ' + where.join(' AND ') + ' ' : '') + 'ORDER BY c.last_message_at DESC, c.id DESC LIMIT ' + (q ? 2000 : 300)
+    CHAT_SELECT + (where.length ? 'WHERE ' + where.join(' AND ') + ' ' : '') + 'ORDER BY c.last_message_at DESC, c.id DESC LIMIT ' + (q ? 3000 : 500)
   ).all();
   let rows = results || [];
   if (q) {
@@ -1817,10 +1891,10 @@ async function connectorOutbox(env, url) {
   // Atomic claim: the UPDATE itself picks the rows, so two pollers can never get the same message.
   const { results } = await env.DB.prepare(
     "UPDATE outbox SET status = 'sending', attempts = attempts + 1, updated_at = ?1 WHERE id IN " +
-    `(SELECT id FROM outbox WHERE status = 'queued' AND number_id = ?2 ORDER BY id LIMIT ${OUTBOX_BATCH}) RETURNING id, to_ext, type, text, media_ref`
+    `(SELECT id FROM outbox WHERE status = 'queued' AND number_id = ?2 ORDER BY id LIMIT ${OUTBOX_BATCH}) RETURNING id, to_ext, type, text, media_ref, seconds, waveform`
   ).bind(ts, num.id).all();
   const items = (results || []).sort((a, b) => a.id - b.id)
-    .map((r) => ({ id: r.id, to: r.to_ext, type: r.type, text: r.text, mediaRef: r.media_ref }));
+    .map((r) => ({ id: r.id, to: r.to_ext, type: r.type, text: r.text, mediaRef: r.media_ref, seconds: r.seconds || 0, waveform: r.waveform || '' }));
   return json({ items, command: null });
 }
 
@@ -1911,6 +1985,16 @@ async function waServerApi(req, env, url, user) {
     await env.DB.batch([
       env.DB.prepare("UPDATE connector SET pending_command = 'relink', switch_on_open = 1, state = 'relinking', qr_data = '', qr_at = '' WHERE id = 1"),
       auditStmt(env, user.email, 'wa-server-relink', null, null, '')
+    ]);
+    return json({ ok: true });
+  }
+  // Same phone, new QR: WhatsApp sends the old chats only right after linking, so the link is redone. The current number is NOT switched.
+  if (p === '/api/wa-server/reload-history' && m === 'POST') {
+    const row = await env.DB.prepare('SELECT * FROM connector WHERE id = 1').first();
+    if (!row.token_hash) fail(409, 'Сервер WhatsApp ещё не подключён: сначала создайте ключ и установите сервер.');
+    await env.DB.batch([
+      env.DB.prepare("UPDATE connector SET pending_command = 'relink', switch_on_open = 0, state = 'relinking', qr_data = '', qr_at = '' WHERE id = 1"),
+      auditStmt(env, user.email, 'wa-server-reload-history', null, null, '')
     ]);
     return json({ ok: true });
   }

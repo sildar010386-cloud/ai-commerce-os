@@ -198,8 +198,9 @@ export function mapReceipts(receipts, ownPhone) {
   return out;
 }
 
-// History batches: keep the last `days` days, newest `cap` messages, return them oldest first.
-export function selectHistory(messages, { days = 180, cap = 5000, now = Date.now() } = {}) {
+// History batches: keep the last `days` days, at most `perChat` newest messages of each chat (so that many chats appear, not a few
+// chats with a deep history) and at most `cap` newest messages overall. Returns them grouped by chat, oldest first inside a chat.
+export function selectHistory(messages, { days = 365, cap = 6000, perChat = 30, now = Date.now() } = {}) {
   const min = Math.floor(now / 1000) - days * 86400;
   const list = [];
   for (const m of Array.isArray(messages) ? messages : []) {
@@ -207,7 +208,41 @@ export function selectHistory(messages, { days = 180, cap = 5000, now = Date.now
     if (ts >= min) list.push(m);
   }
   list.sort((a, b) => toNum(b.messageTimestamp) - toNum(a.messageTimestamp));
-  return list.slice(0, cap).reverse();
+  const count = new Map(), kept = [];
+  for (const m of list) {
+    const k = str(m.key && m.key.remoteJid);
+    const n = count.get(k) || 0;
+    if (n >= perChat) continue;
+    count.set(k, n + 1);
+    kept.push(m);
+    if (kept.length >= cap) break;
+  }
+  // grouped by chat (first appearance = newest chat first), oldest first inside
+  const order = new Map();
+  kept.forEach((m) => { const k = str(m.key && m.key.remoteJid); if (!order.has(k)) order.set(k, order.size); });
+  return kept.reverse().sort((a, b) => order.get(str(a.key && a.key.remoteJid)) - order.get(str(b.key && b.key.remoteJid)));
+}
+
+// Names and lid->phone links out of a messaging-history.set / contacts.upsert payload.
+// -> {names: Map(waId -> name), lidPn: Map(lidUser -> phone digits)}
+export function readContacts({ chats, contacts } = {}) {
+  const names = new Map(), lidPn = new Map();
+  const phoneOf = (jid) => { const sv = serverPart(jid); return (sv === 's.whatsapp.net' || sv === 'c.us') ? digits(userPart(jid)) : ''; };
+  const lidOf = (jid) => (serverPart(jid) === 'lid' ? userPart(jid) : '');
+  const put = (ids, name) => {
+    const n = str(name).trim().slice(0, 200);
+    let phone = '', lid = '';
+    for (const id of ids) { phone = phone || phoneOf(id); lid = lid || lidOf(id); }
+    if (phone && lid) lidPn.set(lid, phone);
+    if (n) { if (phone) names.set(phone, n); else if (lid) names.set(lid, n); }
+  };
+  for (const c of Array.isArray(contacts) ? contacts : []) {
+    if (isObj(c)) put([c.id, c.jid, c.lid], c.name || c.notify || c.verifiedName);
+  }
+  for (const c of Array.isArray(chats) ? chats : []) {
+    if (isObj(c)) put([c.id, c.pnJid, c.lidJid], c.name || c.displayName);
+  }
+  return { names, lidPn };
 }
 
 export function phoneOfJid(jid) {

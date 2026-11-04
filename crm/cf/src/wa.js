@@ -143,7 +143,7 @@ export function normalizeInboxEvents(body) {
   const out = [];
   try {
     const list = isObj(body) && Array.isArray(body.events) ? body.events : [];
-    for (const e of list.slice(0, 500)) {
+    for (const e of list.slice(0, 200)) {
       if (!isObj(e)) continue;
       const numberPhone = digits(e.numberPhone);
       if (!numberPhone) continue;
@@ -151,6 +151,11 @@ export function normalizeInboxEvents(body) {
       if (e.kind === 'status') {
         if (!e.id) continue;
         out.push(Object.assign({ kind: 'status', id: s(e.id), status: s(e.status), ts: isoFromTs(e.ts) }, base));
+        continue;
+      }
+      if (e.kind === 'contact') {   // a name from the phone book / push name; applied only to a chat that has no name yet
+        const wa = digits(e.waId), nm = s(e.profileName).trim().slice(0, 200);
+        if (wa.length >= 5 && wa.length <= 20 && nm) out.push(Object.assign({ kind: 'contact', waId: wa, profileName: nm }, base));
         continue;
       }
       if (e.kind !== 'message' && e.kind !== 'echo' && e.kind !== 'history') continue;

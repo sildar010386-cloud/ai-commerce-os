@@ -26,10 +26,12 @@ if (!/^https?:\/\//.test(CRM_URL) || !TOKEN) {
 fs.mkdirSync(AUTH_DIR, { recursive: true });
 fs.mkdirSync(STATE_DIR, { recursive: true });
 
-const logger = pino({ level: 'warn' });
+const logger = pino({ level: 'warn' });          // Baileys is chatty below warn
+const appLog = pino({ level: 'info' });          // the bridge's own progress lines (history import)
 const crm = createCrm({ url: CRM_URL, token: TOKEN, log: logger });
 const queue = createEventQueue({ file: cfg.queueFile, send: (events) => crm.events(events), log: logger });
 
+const voiceHint = { current: null };
 let waVersion;
 async function makeSocket() {
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
@@ -40,9 +42,21 @@ async function makeSocket() {
     auth: state,
     version: waVersion,
     logger,
-    browser: process.platform === 'win32' ? Browsers.windows('Chrome') : Browsers.ubuntu('Chrome'),
+    // WhatsApp sends the old chats (like WhatsApp Web does) only to a linked "desktop" companion that asks for the full history
+    // at pairing time: platform "Desktop" + os Windows/Mac OS + syncFullHistory (see Baileys validate-connection.js).
+    // Without shouldSyncHistoryMessage Baileys would still drop every history chunk (its default follows syncFullHistory).
+    browser: Browsers.windows('Desktop'),
     markOnlineOnConnect: false,          // keep push notifications on the owner's phone
-    syncFullHistory: process.env.SYNC_FULL_HISTORY === '1',
+    syncFullHistory: process.env.SYNC_FULL_HISTORY !== '0',
+    shouldSyncHistoryMessage: () => true,
+    patchMessageBeforeSending: (msg) => {
+      // Voice-note waveform (see bridge.js voiceHint): Baileys overwrites it with undefined when it cannot decode the audio.
+      const hint = voiceHint.current;
+      if (hint && msg && msg.audioMessage && msg.audioMessage.ptt) {
+        return Object.assign({}, msg, { audioMessage: Object.assign({}, msg.audioMessage, { waveform: hint.waveform, seconds: hint.seconds }) });
+      }
+      return msg;
+    },
     generateHighQualityLinkPreview: false,
     getMessage: async () => undefined
   });
@@ -56,7 +70,7 @@ async function wipeAuth() {
 }
 
 const bridge = createBridge({
-  crm, queue, makeSocket, wipeAuth, version: VERSION, stateDir: STATE_DIR, log: logger,
+  crm, queue, makeSocket, wipeAuth, voiceHint, version: VERSION, stateDir: STATE_DIR, log: appLog,
   renderQr: (qr) => QRCode.toDataURL(qr, { width: 360, margin: 2, errorCorrectionLevel: 'M' }),
   downloadMedia: (m, sock) => downloadMediaMessage(m, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage }),
   prepareVoice: (buf, mime) => prepareVoice(buf, mime, { log: logger }),

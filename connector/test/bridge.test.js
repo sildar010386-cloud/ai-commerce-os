@@ -94,18 +94,92 @@ test('big media is not downloaded; media failure falls back to a note', async ()
   assert.equal(t.calls.events[1].msg.mediaRef, '');
 });
 
-test('history: only last 180 days, batched, no media downloads', async () => {
+const long = (n) => ({ low: n % 4294967296, high: Math.floor(n / 4294967296), unsigned: true });
+
+test('history: old chats are imported in small batches, grouped by chat, with names; @lid resolved to the phone', async () => {
   const t = setup();
   await open(t);
   const now = Math.floor(Date.now() / 1000);
   const messages = [];
-  for (let i = 0; i < 230; i++) messages.push({ key: { remoteJid: '77019998877@s.whatsapp.net', id: 'H' + i, fromMe: i % 2 === 0 }, message: { conversation: 'm' + i }, messageTimestamp: now - i * 60 });
-  messages.push({ key: { remoteJid: '77019998877@s.whatsapp.net', id: 'OLD' }, message: { conversation: 'old' }, messageTimestamp: now - 400 * 86400 });
+  for (let i = 0; i < 100; i++) messages.push({ key: { remoteJid: '77019998877@s.whatsapp.net', id: 'H' + i, fromMe: i % 2 === 0 }, message: { conversation: 'm' + i }, messageTimestamp: long(now - i * 60) });
+  messages.push({ key: { remoteJid: '77019998877@s.whatsapp.net', id: 'OLD' }, message: { conversation: 'old' }, messageTimestamp: long(now - 800 * 86400) });
+  messages.push({ key: { remoteJid: '55512345@lid', id: 'L1', fromMe: false }, message: { conversation: 'через lid' }, messageTimestamp: long(now - 5000), pushName: 'Мария' });
+  messages.push({ key: { remoteJid: '99990001@lid', id: 'L2', fromMe: false }, message: { conversation: 'lid без номера' }, messageTimestamp: long(now - 6000) });
+  t.sockets[0].ev.emit('messaging-history.set', {
+    messages, syncType: 2, progress: 50,
+    chats: [{ id: '77019998877@s.whatsapp.net', name: 'Клиент Алия' }],
+    contacts: [{ id: '55512345@lid', lid: '55512345@lid', jid: '77015556677@s.whatsapp.net' }, { id: '77012223344@s.whatsapp.net', name: 'Без сообщений' }]
+  });
+  for (let i = 0; i < 12; i++) await tick();
+  const hist = t.calls.events.filter((e) => e.kind === 'history');
+  assert.equal(hist.length, 30 + 1 + 1, '30 newest of the long chat + the two lid chats');
+  assert.equal(t.calls.events.at(-1).kind, 'contact');
+  assert.deepEqual([t.calls.events.at(-1).waId, t.calls.events.at(-1).profileName], ['77012223344', 'Без сообщений']);
+  const aliya = hist.filter((e) => e.waId === '77019998877');
+  assert.equal(aliya.length, 30);
+  assert.ok(aliya.every((e) => e.profileName === 'Клиент Алия'), 'chat name from history');
+  assert.equal(aliya[0].msg.id, 'H29');
+  assert.equal(aliya.at(-1).msg.id, 'H0');
+  assert.ok(hist.find((e) => e.msg.id === 'L1').waId === '77015556677', 'lid mapped to the real phone');
+  assert.ok(hist.find((e) => e.msg.id === 'L2').waId === '99990001', 'unknown lid stays addressable');
+  assert.ok(t.calls.events.every((e) => e.numberPhone === '77011112233'));
+});
+
+test('history: sent to the CRM in requests of at most 15 events; a 4xx-rejected request does not block the rest', async () => {
+  const sizes = [];
+  let n = 0;
+  const dir = tmp();
+  const queue = createEventQueue({ file: path.join(dir, 'q.jsonl'), log: { warn() {} }, send: async (e) => {
+    sizes.push(e.length);
+    if (++n === 2) { const err = new Error('CRM answered 400'); err.status = 400; throw err; }
+  } });
+  const t = setup({ queue });
+  await open(t);
+  const now = Math.floor(Date.now() / 1000);
+  const messages = [];
+  for (let c = 0; c < 4; c++) for (let i = 0; i < 20; i++) messages.push({ key: { remoteJid: `7701000000${c}@s.whatsapp.net`, id: `C${c}M${i}` }, message: { conversation: 'x' }, messageTimestamp: now - i * 60 - c });
   t.sockets[0].ev.emit('messaging-history.set', { messages, chats: [], contacts: [] });
-  for (let i = 0; i < 6; i++) await tick();
-  assert.equal(t.calls.events.length, 230);
-  assert.ok(t.calls.events.every((e) => e.kind === 'history'));
-  assert.equal(t.calls.events[0].msg.id, 'H229');   // oldest first
+  for (let i = 0; i < 20; i++) await tick();
+  assert.ok(sizes.every((x) => x <= 15), sizes.join());
+  assert.equal(sizes.reduce((a, b) => a + b, 0), 80);
+  assert.equal(queue.size(), 0, 'nothing left stuck in the queue');
+});
+
+test('history: same payload twice produces the same events (CRM ignores duplicates by message id)', async () => {
+  const t = setup();
+  await open(t);
+  const now = Math.floor(Date.now() / 1000);
+  const messages = [{ key: { remoteJid: '77019998877@s.whatsapp.net', id: 'D1' }, message: { conversation: 'a' }, messageTimestamp: now }];
+  t.sockets[0].ev.emit('messaging-history.set', { messages, chats: [], contacts: [] });
+  t.sockets[0].ev.emit('messaging-history.set', { messages, chats: [], contacts: [] });
+  for (let i = 0; i < 8; i++) await tick();
+  assert.deepEqual(t.calls.events.map((e) => e.msg.id), ['D1', 'D1']);
+});
+
+test('voice from the CRM: duration goes into the message, the waveform is handed to patchMessageBeforeSending via voiceHint', async () => {
+  const wave = Buffer.from(Array.from({ length: 64 }, (_, i) => i + 10));
+  const hint = { current: null };
+  const seen = [];
+  const t = setup({ voiceHint: hint, makeSocket: async () => {
+    const s = fakeSock();
+    s.sendMessage = async (jid, content) => { seen.push({ content, hint: hint.current }); return { key: { id: 'V1', fromMe: true, remoteJid: jid } }; };
+    t.sockets.push(s); return s;
+  } });
+  await open(t);
+  t.setOutbox({ items: [
+    { id: 1, to: '77019998877', type: 'voice', mediaRef: 'aud1', seconds: 7, waveform: wave.toString('base64') },
+    { id: 2, to: '77019998877', type: 'voice', mediaRef: 'aud2', seconds: 0, waveform: '' },
+    { id: 3, to: '77019998877', type: 'voice', mediaRef: 'aud3', seconds: 5, waveform: 'garbage' }
+  ] });
+  await t.bridge.pollOnce();
+  assert.equal(seen[0].content.seconds, 7);
+  assert.deepEqual([...seen[0].hint.waveform], [...wave]);
+  assert.equal(seen[0].hint.seconds, 7);
+  assert.equal(seen[1].hint, null);
+  assert.equal(seen[1].content.seconds, undefined);
+  assert.equal(seen[2].hint, null, 'invalid waveform is ignored, the voice is still sent');
+  assert.equal(hint.current, null, 'hint is cleared after sending');
+  assert.deepEqual(t.calls.ack.map((a) => a.ok), [true, true, true]);
 });
 
 test('status events from messages.update', async () => {

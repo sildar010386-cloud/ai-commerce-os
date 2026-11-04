@@ -2,14 +2,23 @@
 // All I/O is injected (socket factory, CRM client, queue, ffmpeg, clock), so it is testable with a fake socket.
 import fs from 'node:fs';
 import path from 'node:path';
-import { mapMessage, mapUpdates, mapReceipts, selectHistory, phoneOfJid, MAX_MEDIA_BYTES, chatIdOf } from './map.js';
+import { mapMessage, mapUpdates, mapReceipts, selectHistory, readContacts, phoneOfJid, MAX_MEDIA_BYTES, chatIdOf } from './map.js';
+
+// base64 of 64 bytes (0..100) -> Uint8Array, otherwise null
+export function parseWave(b64) {
+  if (typeof b64 !== 'string' || !/^[A-Za-z0-9+/]{86}==$/.test(b64)) return null;
+  const buf = Buffer.from(b64, 'base64');
+  if (buf.length !== 64 || buf.some((x) => x > 100)) return null;
+  return new Uint8Array(buf);
+}
 
 const LOGGED_OUT = 401, FORBIDDEN = 403, RESTART_REQUIRED = 515;
 const NOTE_MEDIA_FAIL = 'не удалось загрузить файл — откройте на телефоне';
-const HISTORY_CAP = 5000, HISTORY_DAYS = 180;
+const HISTORY_BATCH = 15;
+const HISTORY_CAP = 6000, HISTORY_DAYS = 365, HISTORY_PER_CHAT = 30;
 
 export function createBridge({
-  crm, queue, makeSocket, wipeAuth, renderQr, downloadMedia, prepareVoice, version, stateDir,
+  crm, queue, makeSocket, wipeAuth, renderQr, downloadMedia, prepareVoice, version, stateDir, voiceHint = { current: null },
   log = console, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), random = Math.random,
   now = Date.now, watchdogMs = 5 * 60000, watchTickMs = 15000, sleepGapMs = 60000, stuckMs = 3 * 60000
 }) {
@@ -19,6 +28,8 @@ export function createBridge({
   const sentIds = new Map();      // message ids we sent ourselves (their echo must not be reported as "sent from the phone")
   const doneOutbox = new Map();   // outbox id -> extMsgId, protects against double sending when an ack got lost
   const lids = new Set();
+  const lidPn = new Map();        // anonymous @lid user -> real phone number (learned from history and contacts)
+  const names = new Map();        // wa id -> name from the phone book / push names
   const lidFile = stateDir ? path.join(stateDir, 'lids.json') : '';
   try { if (lidFile && fs.existsSync(lidFile)) JSON.parse(fs.readFileSync(lidFile, 'utf8')).forEach((x) => lids.add(String(x))); } catch (e) { /* ignore */ }
 
@@ -51,6 +62,8 @@ export function createBridge({
     s.ev.on('connection.update', guard((u) => onConnection(my, u)));
     s.ev.on('messages.upsert', guard(onUpsert));
     s.ev.on('messaging-history.set', guard(onHistory));
+    s.ev.on('contacts.upsert', guard(onContacts));
+    s.ev.on('contacts.update', guard(onContacts));
     s.ev.on('messages.update', guard((u) => emit(mapUpdates(u, ownPhone))));
     s.ev.on('message-receipt.update', guard((u) => emit(mapReceipts(u, ownPhone))));
     // Any frame from WhatsApp (the keep-alive answers come every ~30 s) proves the connection is alive.
@@ -164,8 +177,9 @@ export function createBridge({
     const live = u.type === 'notify';
     const min = Math.floor(Date.now() / 1000) - HISTORY_DAYS * 86400;
     const events = [];
-    for (const m of u.messages || []) {
-      if (m && m.key && m.key.fromMe && sentIds.has(m.key.id)) continue;
+    for (const m0 of u.messages || []) {
+      if (m0 && m0.key && m0.key.fromMe && sentIds.has(m0.key.id)) continue;
+      const m = withPhone(m0);
       const mapped = mapMessage(m, { ownPhone, kind: live ? 'auto' : 'history' });
       if (!mapped) continue;
       if (mapped.chat.lid) rememberLid(mapped.chat.waId);
@@ -175,25 +189,65 @@ export function createBridge({
     await emit(events);
   }
 
+  // A @lid chat whose phone number we know is stored under the phone (so it is the same client as in the phone's chat list).
+  const withPhone = (m) => {
+    const key = m && m.key;
+    if (!key || typeof key.remoteJid !== 'string' || !key.remoteJid.endsWith('@lid') || key.remoteJidAlt) return m;
+    const pn = lidPn.get(key.remoteJid.split('@')[0].split(':')[0]);
+    return pn ? Object.assign({}, m, { key: Object.assign({}, key, { remoteJidAlt: pn + '@s.whatsapp.net' }) }) : m;
+  };
+  const learn = (payload) => {
+    const r = readContacts(payload);
+    r.lidPn.forEach((v, k) => lidPn.set(k, v));
+    r.names.forEach((v, k) => names.set(k, v));
+    return r;
+  };
+  const contactEvents = (r, skip) => {
+    const out = [];
+    r.names.forEach((name, waId) => { if (!skip.has(waId) && waId.length >= 5) out.push({ kind: 'contact', numberPhone: ownPhone, waId, profileName: name }); });
+    return out;
+  };
+
+  async function onContacts(list) {
+    readOwn();
+    if (!ownPhone || !Array.isArray(list)) return;
+    const found = learn({ contacts: list });
+    const evs = contactEvents(found, new Set());
+    for (let i = 0; i < evs.length; i += HISTORY_BATCH) await emit(evs.slice(i, i + HISTORY_BATCH));
+  }
+
+  // WhatsApp sends the old chats once, right after linking: a few messaging-history.set events (RECENT / FULL / PUSH_NAME).
   async function onHistory(h) {
     readOwn();
     if (!ownPhone) return;
+    const found = learn(h);
     const room = HISTORY_CAP - historyCount;
-    if (room <= 0) return;
-    const picked = selectHistory(h.messages, { days: HISTORY_DAYS, cap: room });
     const events = [];
-    for (const m of picked) {
-      const mapped = mapMessage(m, { ownPhone, kind: 'history' });
-      if (!mapped) continue;
-      if (mapped.chat.lid) rememberLid(mapped.chat.waId);
-      if (m.key.fromMe && sentIds.has(m.key.id)) continue;
-      events.push(mapped.event);
+    if (room > 0) {
+      const picked = selectHistory((h.messages || []).map(withPhone), { days: HISTORY_DAYS, cap: room, perChat: HISTORY_PER_CHAT });
+      for (const m of picked) {
+        const mapped = mapMessage(m, { ownPhone, kind: 'history' });
+        if (!mapped) continue;
+        if (mapped.chat.lid) rememberLid(mapped.chat.waId);
+        if (m.key.fromMe && sentIds.has(m.key.id)) continue;
+        const ev = mapped.event;
+        ev.profileName = names.get(ev.waId) || ev.profileName || '';
+        events.push(ev);
+      }
+      historyCount += events.length;
     }
-    historyCount += events.length;
-    for (let i = 0; i < events.length; i += 100) await emit(events.slice(i, i + 100));
+    const withMsgs = new Set(events.filter((e) => e.profileName).map((e) => e.waId));
+    const all = events.concat(contactEvents(found, withMsgs));
+    log.info && log.info(`history: ${events.length} messages from ${new Set(events.map((e) => e.waId)).size} chats, syncType ${h.syncType}, progress ${h.progress}`);
+    for (let i = 0; i < all.length; i += HISTORY_BATCH) await emit(all.slice(i, i + HISTORY_BATCH));
   }
 
   /* ---------- outbox ---------- */
+  // {seconds, waveform: Uint8Array(64)} from an outbox item, or null when the CRM did not send valid ones.
+  const voiceWaveOf = (item) => {
+    const w = parseWave(item && item.waveform), seconds = Math.round(Number(item && item.seconds));
+    return w && seconds >= 1 && seconds <= 3600 ? { seconds, waveform: w } : null;
+  };
   const jidFor = (to) => `${to}@${lids.has(to) ? 'lid' : 's.whatsapp.net'}`;
 
   async function sendItem(item) {
@@ -206,13 +260,15 @@ export function createBridge({
     try {
       const to = String(item.to || '').replace(/\D/g, '');
       if (to.length < 5 || to.length > 20) throw new Error('bad recipient');
-      let content;
+      let content, wave = null;
       if (item.type === 'text') {
         if (!item.text) throw new Error('empty text');
         content = { text: String(item.text) };
       } else if (item.type === 'voice') {
         const media = await crm.getMedia(item.mediaRef);
         content = await prepareVoice(media.buffer, media.mime);
+        wave = voiceWaveOf(item);
+        if (wave && content.ptt) content.seconds = wave.seconds;
       } else if (item.type === 'image') {
         const media = await crm.getMedia(item.mediaRef);
         content = { image: media.buffer };
@@ -221,7 +277,11 @@ export function createBridge({
         if (/^image\//.test(mt)) content.mimetype = mt;
       } else throw new Error('unsupported type');
       if (state !== 'open' || !sock) throw new Error('not connected');
-      const res = await sock.sendMessage(jidFor(to), content);
+      // Baileys overwrites `waveform` of a voice note with its own (which needs an optional package we do not install) -> the hint
+      // is applied by patchMessageBeforeSending in index.js right before the message is encrypted.
+      voiceHint.current = wave && content.ptt ? wave : null;
+      let res;
+      try { res = await sock.sendMessage(jidFor(to), content); } finally { voiceHint.current = null; }
       const ext = res && res.key && res.key.id ? String(res.key.id) : '';
       if (ext) { sentIds.set(ext, Date.now()); trim(sentIds); }
       doneOutbox.set(id, ext); trim(doneOutbox);

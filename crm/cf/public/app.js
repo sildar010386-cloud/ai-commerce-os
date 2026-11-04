@@ -942,7 +942,7 @@ function freshChat() {
   return { list: [], unreadTotal: 0, filter: 'all', q: '', openId: null, thread: null, draft: '', sending: false, loaded: false, error: '', seq: 0, sig: '', rec: null };
 }
 var chatSearchTimer = null;
-var CHAT_FILTERS = [['all', 'Все'], ['unread', 'Непрочитанные'], ['target', 'Таргет'], ['organic', 'Органика']];
+var CHAT_FILTERS = [['all', 'Все'], ['unread', 'Непрочитанные'], ['target', 'Таргет'], ['organic', 'Органика'], ['old', 'Старые']];
 
 function trafficBadge(traffic, code) {
   if (traffic === 'target') return ' <span class="badge b-tr tb-t">Таргет' + (code ? ' · ' + esc(code) : '') + '</span>';
@@ -993,7 +993,7 @@ function bubbleHTML(m) {
       break;
     case 'sticker': body = media ? '<img class="mimg stk" loading="lazy" src="' + url + '" alt="Стикер">' : noMedia('Стикер', m); break;
     case 'voice': case 'audio':
-      body = media ? '<div class="mlbl">' + (m.type === 'voice' ? 'Голосовое сообщение' : 'Аудио') + '</div><audio controls preload="none" src="' + url + '"></audio>'
+      body = media ? '<div class="mlbl">' + (m.type === 'voice' ? 'Голосовое сообщение' : 'Аудио') + '</div><audio controls preload="metadata" src="' + url + '"></audio>'
         : noMedia(m.type === 'voice' ? 'Голосовое' : 'Аудио', m);
       break;
     case 'video': case 'document':
@@ -1217,6 +1217,8 @@ async function recStart() {
       R.blob = blob;
       R.url = URL.createObjectURL(R.blob); R.mode = 'preview';
       repaintFoot();
+      // Duration and waveform for the WhatsApp voice bubble (without them it shows a flat line); sending works without them too.
+      if (window.Wave) window.Wave.analyseBlob(blob).then(function (w) { if (w) R.wave = w; }, function () { /* optional */ });
     };
     if (window.OggMux) window.OggMux.toOggBlob(raw).then(done, function () { done(raw); });
     else done(raw);
@@ -1254,7 +1256,7 @@ async function recSend() {
   if (R.blob.size > MAX_FILE_BYTES) { toast('Запись больше 1,5 МБ — запишите покороче', 'err'); return; }
   R.sending = true; repaintFoot();
   try {
-    var d = await postChatFile('voice', R.blob);
+    var d = await postChatFile('voice', R.blob, R.wave ? { seconds: R.wave.seconds, waveform: window.Wave.toBase64(R.wave.waveform) } : null);
     recRelease(R); C.rec = null; repaintFoot();
     if (d.warning) showChatErr(d.warning);
   } catch (e) {
@@ -1374,6 +1376,9 @@ function waServerInner() {
       '<div class="row-flex"><button type="button" class="btn pri" data-act="ws-copy">Скопировать скрипт</button><button type="button" class="btn" data-act="ws-hide">Скрыть скрипт</button></div>';
   }
   h += '<div class="row-flex"><button type="button" class="btn" data-act="ws-key">Создать ключ подключения</button></div></div>';
+  h += '<div class="ws-opt"><div class="ws-opt-h">Старые чаты из телефона</div>' +
+    '<div class="muted fs14">WhatsApp отдаёт список старых чатов только один раз, в момент привязки (как при входе в WhatsApp Web). Если они не появились, нажмите кнопку: программа заново привяжется к <b>тому же</b> телефону, покажет новый QR-код, а после сканирования загрузит старые чаты. Номер для ссылок /wa не меняется.</div>' +
+    '<div class="row-flex"><button type="button" class="btn" data-act="ws-reload"' + (sv && sv.installed ? '' : ' disabled') + '>Загрузить старые чаты заново</button></div></div>';
   h += '<div class="row-flex"><button type="button" class="btn dng" data-act="ws-relink"' + (sv && sv.installed ? '' : ' disabled') + '>Переподключить на другой номер</button></div>';
   return h;
 }
@@ -1665,6 +1670,14 @@ var ACTIONS = {
   },
   'ws-copy': function () { copyText(S.serverScript, 'Скрипт скопирован', 'ws-script'); },
   'ws-hide': function () { S.serverScript = ''; paintServer(); },
+  'ws-reload': async function () {
+    if (!window.confirm('Загрузить старые чаты заново?\n\nПрограмма отвяжется от WhatsApp и покажет новый QR-код. Отсканируйте его ТЕМ ЖЕ телефоном (WhatsApp Business → Связанные устройства → Привязать устройство). Старые чаты загрузятся за несколько минут, сообщения и ссылки /wa останутся как есть. Пока идёт переподключение (1–2 минуты), новые сообщения придут чуть позже.')) return;
+    try {
+      await api('POST', '/api/wa-server/reload-history', {});
+      toast('Команда отправлена. Через минуту здесь появится QR-код.', 'ok');
+      await serverRefresh();
+    } catch (e) { toast('Не получилось: ' + e.message, 'err'); }
+  },
   'ws-relink': async function () {
     if (!window.confirm('Переподключить на другой номер?\n\nТекущий номер будет отвязан от сервера, появится QR-код. После сканирования другим телефоном все ссылки /wa и /wa/<код> переключатся на новый номер.')) return;
     try {

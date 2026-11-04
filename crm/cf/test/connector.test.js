@@ -268,7 +268,8 @@ test('the echo of a CRM-sent message does not duplicate it', { skip }, async () 
 });
 
 test('voice and image from the CRM: stored in D1, queued with mediaRef, fetchable by the connector', { skip }, async () => {
-  let r = await admin('POST', `/api/chats/${chatId}/voice`, { data: b64('OggS-fake-voice'), mime: 'audio/webm;codecs=opus' });
+  const wave = Buffer.from(Array.from({ length: 64 }, (_, i) => i)).toString('base64');
+  let r = await admin('POST', `/api/chats/${chatId}/voice`, { data: b64('OggS-fake-voice'), mime: 'audio/webm;codecs=opus', seconds: 6.4, waveform: wave });
   assert.equal(r.status, 200);
   let d = await j(r);
   assert.equal(d.message.type, 'voice');
@@ -277,11 +278,18 @@ test('voice and image from the CRM: stored in D1, queued with mediaRef, fetchabl
   assert.equal(r.status, 200);
   const o = await j(await conn('GET', '/api/connector/outbox?ready=1'));
   assert.deepEqual(o.items.map((i) => [i.type, i.text]), [['voice', ''], ['image', 'Вот фото']]);
+  assert.deepEqual([o.items[0].seconds, o.items[0].waveform, o.items[1].seconds, o.items[1].waveform], [6, wave, 0, '']);
   const media = await conn('GET', '/api/connector/media/' + o.items[0].mediaRef);
   assert.equal(await media.text(), 'OggS-fake-voice');
   assert.match(media.headers.get('content-type'), /audio\/webm/);
   for (const i of o.items) await conn('POST', '/api/connector/ack', { id: i.id, ok: true, extMsgId: 'M' + i.id });
   // validation
+  // a broken waveform is ignored, the voice is still accepted
+  r = await admin('POST', `/api/chats/${chatId}/voice`, { data: b64('OggS-x'), mime: 'audio/ogg', seconds: 'abc', waveform: 'zzz' });
+  assert.equal(r.status, 200);
+  const o2 = await j(await conn('GET', '/api/connector/outbox?ready=1'));
+  assert.deepEqual([o2.items[0].seconds, o2.items[0].waveform], [0, '']);
+  await conn('POST', '/api/connector/ack', { id: o2.items[0].id, ok: true, extMsgId: 'M-v2' });
   assert.equal((await admin('POST', `/api/chats/${chatId}/voice`, { data: b64('x'), mime: 'text/html' })).status, 400);
   assert.equal((await admin('POST', `/api/chats/${chatId}/image`, { data: b64('x'), mime: 'image/svg+xml' })).status, 400);
   assert.equal((await admin('POST', `/api/chats/${chatId}/voice`, { data: Buffer.alloc(1536 * 1024 + 10).toString('base64'), mime: 'audio/ogg' })).status, 413);
@@ -318,6 +326,54 @@ test('connector offline for > 2 min: still queued, with the Russian warning', { 
   const s = (await j(await admin('GET', '/api/wa-server'))).server;
   assert.equal(s.online, false);
   assert.ok(s.minutesAgo >= 5);
+});
+
+test('history: old chats arrive in small batches, become «Старый» chats sorted by last message, idempotent, no unread, names applied', { skip }, async () => {
+  const H = (waId, id, ts, o) => Object.assign({ kind: 'history', numberPhone: '77011112233', waId, profileName: '', direction: 'in', msg: { id, ts, type: 'text', body: 'старое ' + id } }, o);
+  const batch1 = [
+    H('77070000001', 'HA1', 1750000000, { profileName: 'Алия' }),
+    H('77070000001', 'HA2', 1750000100, { direction: 'out' }),
+    H('77070000001', 'HA3', 1750000200, { msg: { id: 'HA3', ts: 1750000200, type: 'image', body: 'вложение из истории — откройте на телефоне', caption: 'фото' } }),
+    H('77070000002', 'HB1', 1755000000, { direction: 'out', msg: { id: 'HB1', ts: 1755000000, type: 'text', body: 'Добрый день' } }),
+    H('77070000003', 'HC1', 1740000000),
+    { kind: 'contact', numberPhone: '77011112233', waId: '77070000002', profileName: 'Берик' },
+    { kind: 'contact', numberPhone: '77011112233', waId: '77070000999', profileName: 'Нет такого чата' }
+  ];
+  let r = await conn('POST', '/api/connector/events', { events: batch1 });
+  assert.equal(r.status, 200);
+  const before = (await j(await admin('GET', '/api/chats'))).chats;
+  const old = before.filter((c) => c.traffic === 'old');
+  assert.deepEqual(old.map((c) => c.phone), ['77070000002', '77070000001', '77070000003'], 'sorted by last message, newest first');
+  assert.deepEqual(old.map((c) => c.name), ['Берик', 'Алия', '']);
+  assert.ok(old.every((c) => c.unread === 0));
+  assert.equal(old[1].preview, '[Фото] фото');
+  assert.equal(old[0].preview, 'Вы: Добрый день');
+  // the same batch again (connector retry) changes nothing
+  r = await conn('POST', '/api/connector/events', { events: batch1 });
+  assert.equal(r.status, 200);
+  const t = await j(await admin('GET', '/api/chats/' + old[1].id));
+  assert.deepEqual(t.messages.map((m) => [m.type, m.direction]), [['text', 'in'], ['text', 'out'], ['image', 'in']]);
+  assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM contacts WHERE ext_id = '77070000999'").first()).n, 0, 'a name alone does not create a chat');
+  // older messages arrive later (next history chunk): first_message_at moves back, the summary stays on the newest
+  await conn('POST', '/api/connector/events', { events: [H('77070000001', 'HA0', 1745000000)] });
+  const row = await db.prepare("SELECT first_message_at, last_message_at FROM contacts WHERE ext_id = '77070000001'").first();
+  assert.ok(row.first_message_at < row.last_message_at);
+  assert.equal(new Date(row.first_message_at).getTime(), 1745000000000);
+  assert.equal(new Date(row.last_message_at).getTime(), 1750000200000);
+  // filter «Старые»; live traffic stays out of it
+  const only = (await j(await admin('GET', '/api/chats?filter=old'))).chats;
+  assert.ok(only.length >= 3 && only.every((c) => c.traffic === 'old'));
+  // a live message from an old chat keeps working: unread grows, the chat jumps to the top
+  await conn('POST', '/api/connector/events', { events: [ev({ waId: '77070000003', msg: { id: 'LIVE-C', ts: 1999999999, type: 'text', body: 'снова здравствуйте' } })] });
+  const after = (await j(await admin('GET', '/api/chats'))).chats;
+  assert.equal(after[0].phone, '77070000003');
+  assert.equal(after[0].unread, 1);
+  // a big mixed batch (as the old connector sent: 100 events) is still accepted
+  const many = [];
+  for (let i = 0; i < 100; i++) many.push(H('77071' + String(i).padStart(6, '0'), 'BIG' + i, 1730000000 + i));
+  r = await conn('POST', '/api/connector/events', { events: many });
+  assert.equal(r.status, 200);
+  assert.equal((await j(await admin('GET', '/api/chats?filter=old'))).chats.length >= 103, true);
 });
 
 test('relink: command is handed out once; old-number heartbeat does not switch; new number becomes current; old one is "not connected"', { skip }, async () => {
@@ -368,6 +424,24 @@ test('security headers: CSP allows data:/blob: images and blob: media only; micr
   assert.match(csp, /media-src 'self' blob:;/);
   assert.match(csp, /script-src 'self';/);
   assert.match(r.headers.get('permissions-policy'), /microphone=\(self\)/);
+});
+
+test('«Загрузить старые чаты заново»: relink command for the SAME phone, the current number is not switched', { skip }, async () => {
+  await conn('POST', '/api/connector/state', { state: 'open', phone: '77055556677' });
+  assert.equal((await admin('POST', '/api/wa-server/reload-history', {})).status, 200);
+  let row = await db.prepare('SELECT pending_command, switch_on_open, state FROM connector WHERE id = 1').first();
+  assert.deepEqual([row.pending_command, row.switch_on_open, row.state], ['relink', 0, 'relinking']);
+  const o = await j(await conn('GET', '/api/connector/outbox?ready=1'));
+  assert.equal(o.command, 'relink');
+  await conn('POST', '/api/connector/state', { state: 'logged_out' });
+  await conn('POST', '/api/connector/state', { state: 'qr', qr: QR });
+  await conn('POST', '/api/connector/state', { state: 'open', phone: '77055556677', name: 'Запасной' });
+  const nums = (await db.prepare('SELECT phone, connection, is_current FROM wa_numbers ORDER BY id').all()).results;
+  assert.deepEqual(nums.map((n) => [n.phone, n.connection, n.is_current]), [['77011112233', '', 0], ['77055556677', 'qr', 1]]);
+  row = await db.prepare('SELECT state, pending_command FROM connector WHERE id = 1').first();
+  assert.deepEqual([row.state, row.pending_command], ['open', '']);
+  // managers cannot trigger it
+  assert.equal((await mf.dispatchFetch(ORIGIN + '/api/wa-server/reload-history', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: ORIGIN }, body: '{}' })).status, 401);
 });
 
 test('legacy paths keep working: CONNECTOR_URL send for a QR number without a connector key, Cloud API send', { skip }, async () => {
