@@ -1743,7 +1743,7 @@ async function inboxApi(req, env, url, user) {
    A small Node program on a free VM (connector/ in the repo) holds the WhatsApp Web session and only makes outbound HTTPS
    calls here (pull model). Auth: Bearer key; only its SHA-256 is stored. Events go through the same ingestEvents() as every
    other source; outgoing messages wait in the `outbox` table until the connector claims them. */
-const CONNECTOR_STATES = ['connecting', 'qr', 'open', 'closed', 'logged_out', 'banned'];
+const CONNECTOR_STATES = ['connecting', 'qr', 'open', 'closed', 'logged_out', 'banned', 'replaced', 'relinking'];
 const OUTBOX_BATCH = 5;
 const OUTBOX_STALE_MS = 2 * 60 * 1000;      // a claimed item without an ack goes back to the queue after 2 min
 const OUTBOX_MAX_ATTEMPTS = 3;
@@ -1820,24 +1820,36 @@ async function connectorState(env, b) {
   const row = await env.DB.prepare('SELECT * FROM connector WHERE id = 1').first();
   const ts = nowIso();
   const version = String(b.version || '').slice(0, 40);
+  // Random id of the connector process (new connectors only; '' keeps the previous one).
+  const inst = /^[A-Za-z0-9]{4,40}$/.test(String(b.instance || '')) ? String(b.instance) : '';
+  const SET_INST = "instance = CASE WHEN ?9 != '' THEN ?9 ELSE instance END";
+  if (st === 'relinking') {
+    // The connector acknowledges the relink command: only now it stops being pending.
+    const cid = /^[A-Za-z0-9]{1,40}$/.test(String(b.commandId || '')) ? String(b.commandId) : '';
+    await env.DB.prepare(
+      `UPDATE connector SET state = 'relinking', qr_data = '', qr_at = '', version = ?1, last_seen_at = ?2, ${SET_INST}, ` +
+      "pending_command = CASE WHEN pending_command = 'relink' AND (command_id = '' OR command_id = ?3) THEN '' ELSE pending_command END WHERE id = 1"
+    ).bind(version, ts, cid, null, null, null, null, null, inst).run();
+    return json({ ok: true });
+  }
   if (row.pending_command === 'relink' && st === 'open') {
     // Heartbeat of the session that is about to be replaced: only proves the server is alive.
-    await env.DB.prepare('UPDATE connector SET last_seen_at = ?, version = ? WHERE id = 1').bind(ts, version).run();
+    await env.DB.prepare(`UPDATE connector SET last_seen_at = ?1, version = ?2, ${SET_INST} WHERE id = 1`).bind(ts, version, null, null, null, null, null, null, inst).run();
     return json({ ok: true });
   }
   if (st === 'qr') {
     const qr = typeof b.qr === 'string' && b.qr.length <= 60000 && QR_RE.test(b.qr) ? b.qr : '';
     await env.DB.prepare(
-      "UPDATE connector SET state = 'qr', version = ?1, last_seen_at = ?2, qr_data = CASE WHEN ?3 != '' THEN ?3 ELSE qr_data END, qr_at = CASE WHEN ?3 != '' THEN ?2 ELSE qr_at END WHERE id = 1"
-    ).bind(version, ts, qr).run();
+      `UPDATE connector SET state = 'qr', version = ?1, last_seen_at = ?2, qr_data = CASE WHEN ?3 != '' THEN ?3 ELSE qr_data END, qr_at = CASE WHEN ?3 != '' THEN ?2 ELSE qr_at END, ${SET_INST} WHERE id = 1`
+    ).bind(version, ts, qr, null, null, null, null, null, inst).run();
   } else if (st === 'open') {
     const phone = digitsOf(b.phone);
     if (phone.length < 8 || phone.length > 15) fail(400, 'Не указан номер');
-    await env.DB.prepare("UPDATE connector SET state = 'open', qr_data = '', qr_at = '', phone = ?, name = ?, version = ?, last_seen_at = ? WHERE id = 1")
-      .bind(phone, String(b.name || '').slice(0, 100), version, ts).run();
+    await env.DB.prepare(`UPDATE connector SET state = 'open', qr_data = '', qr_at = '', phone = ?1, name = ?2, version = ?3, last_seen_at = ?4, ${SET_INST} WHERE id = 1`)
+      .bind(phone, String(b.name || '').slice(0, 100), version, ts, null, null, null, null, inst).run();
     await connectorOpened(env, row, phone);
   } else {
-    await env.DB.prepare("UPDATE connector SET state = ?, qr_data = '', qr_at = '', version = ?, last_seen_at = ? WHERE id = 1").bind(st, version, ts).run();
+    await env.DB.prepare(`UPDATE connector SET state = ?1, qr_data = '', qr_at = '', version = ?2, last_seen_at = ?3, ${SET_INST} WHERE id = 1`).bind(st, version, ts, null, null, null, null, null, inst).run();
   }
   return json({ ok: true });
 }
@@ -1871,8 +1883,23 @@ async function connectorMediaGet(env, id) {
 
 async function connectorOutbox(env, url) {
   const ts = nowIso();
-  const cmd = await env.DB.prepare("UPDATE connector SET pending_command = '' WHERE id = 1 AND pending_command = 'relink'").run();
-  if (cmd.meta.changes) return json({ items: [], command: 'relink' });
+  const inst = /^[A-Za-z0-9]{4,40}$/.test(url.searchParams.get('instance') || '') ? url.searchParams.get('instance') : '';
+  const cur = await env.DB.prepare("SELECT pending_command, command_id, instance, last_seen_at FROM connector WHERE id = 1").first();
+  if (cur && cur.pending_command === 'relink') {
+    const seen = Date.parse(cur.last_seen_at || '');
+    const aliveOther = !!cur.instance && !!seen && Date.now() - seen <= CONNECTOR_STALE_MS;
+    if (!inst) {
+      // Connector without an instance id (installed before this feature): the command is handed out once, as before, unless a newer
+      // connector is alive (then this one is a stale copy and must not swallow the command).
+      if (!aliveOther) {
+        const cmd = await env.DB.prepare("UPDATE connector SET pending_command = '' WHERE id = 1 AND pending_command = 'relink'").run();
+        if (cmd.meta.changes) return json({ items: [], command: 'relink' });
+      }
+    } else if (!aliveOther || cur.instance === inst) {
+      // The command stays pending until this instance acknowledges it (state 'relinking' + commandId).
+      return json({ items: [], command: 'relink', commandId: cur.command_id || '' });
+    }
+  }
   // Housekeeping: stuck 'sending' items return to the queue (max 3 attempts), very old queued items expire.
   const stale = new Date(Date.now() - OUTBOX_STALE_MS).toISOString();
   const expire = new Date(Date.now() - OUTBOX_EXPIRE_MS).toISOString();
@@ -1950,7 +1977,7 @@ async function rotateConnectorKey(env, user, detail) {
   const token = randomToken();
   const ts = nowIso();
   await env.DB.batch([
-    env.DB.prepare("UPDATE connector SET token_hash = ?, token_created_at = ?, state = '', qr_data = '', qr_at = '', last_seen_at = '', version = '', pending_command = '', switch_on_open = 0 WHERE id = 1")
+    env.DB.prepare("UPDATE connector SET token_hash = ?, token_created_at = ?, state = '', qr_data = '', qr_at = '', last_seen_at = '', version = '', pending_command = '', command_id = '', instance = '', switch_on_open = 0 WHERE id = 1")
       .bind(await sha256Hex(token), ts),
     auditStmt(env, user.email, 'wa-server-key', null, null, detail)
   ]);
@@ -1983,7 +2010,7 @@ async function waServerApi(req, env, url, user) {
     const row = await env.DB.prepare('SELECT * FROM connector WHERE id = 1').first();
     if (!row.token_hash) fail(409, 'Сервер WhatsApp ещё не подключён: сначала создайте ключ и установите сервер.');
     await env.DB.batch([
-      env.DB.prepare("UPDATE connector SET pending_command = 'relink', switch_on_open = 1, state = 'relinking', qr_data = '', qr_at = '' WHERE id = 1"),
+      env.DB.prepare("UPDATE connector SET pending_command = 'relink', command_id = lower(hex(randomblob(6))), switch_on_open = 1, state = 'relinking', qr_data = '', qr_at = '' WHERE id = 1"),
       auditStmt(env, user.email, 'wa-server-relink', null, null, '')
     ]);
     return json({ ok: true });
@@ -1993,7 +2020,7 @@ async function waServerApi(req, env, url, user) {
     const row = await env.DB.prepare('SELECT * FROM connector WHERE id = 1').first();
     if (!row.token_hash) fail(409, 'Сервер WhatsApp ещё не подключён: сначала создайте ключ и установите сервер.');
     await env.DB.batch([
-      env.DB.prepare("UPDATE connector SET pending_command = 'relink', switch_on_open = 0, state = 'relinking', qr_data = '', qr_at = '' WHERE id = 1"),
+      env.DB.prepare("UPDATE connector SET pending_command = 'relink', command_id = lower(hex(randomblob(6))), switch_on_open = 0, state = 'relinking', qr_data = '', qr_at = '' WHERE id = 1"),
       auditStmt(env, user.email, 'wa-server-reload-history', null, null, '')
     ]);
     return json({ ok: true });

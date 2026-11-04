@@ -489,3 +489,59 @@ test('legacy paths keep working: CONNECTOR_URL send for a QR number without a co
     assert.equal(seen[1][2].text.body, 'через cloud');
   } finally { await mf2.dispose(); }
 });
+
+test('relink with instance ids: the command stays pending until acknowledged, goes only to the live instance, a stale copy cannot swallow it', { skip }, async () => {
+  const st = (instance, body) => conn('POST', '/api/connector/state', Object.assign({ instance }, body));
+  const ob = (instance) => conn('GET', '/api/connector/outbox?ready=0' + (instance ? '&instance=' + instance : ''));
+  await st('aaaa1111', { state: 'open', phone: '77055556677' });
+  assert.equal((await db.prepare('SELECT instance FROM connector WHERE id = 1').first()).instance, 'aaaa1111');
+  assert.equal((await admin('POST', '/api/wa-server/reload-history', {})).status, 200);
+  const cid = (await db.prepare('SELECT command_id FROM connector WHERE id = 1').first()).command_id;
+  assert.match(cid, /^[0-9a-f]{12}$/);
+  // the live instance is the last that posted: only it gets the command; a stale copy (another id) and a legacy copy (no id) do not
+  assert.equal((await j(await ob('bbbb2222'))).command, null, 'another instance does not get it');
+  assert.equal((await j(await ob(''))).command, null, 'a legacy connector does not swallow it while a newer one is alive');
+  assert.equal((await db.prepare('SELECT pending_command FROM connector WHERE id = 1').first()).pending_command, 'relink', 'still pending');
+  // handed out again and again until acknowledged
+  for (let i = 0; i < 3; i++) {
+    const o = await j(await ob('aaaa1111'));
+    assert.deepEqual([o.command, o.commandId], ['relink', cid]);
+  }
+  // an acknowledgement with a wrong command id does not clear it
+  await st('aaaa1111', { state: 'relinking', commandId: 'deadbeef' });
+  assert.equal((await db.prepare('SELECT pending_command FROM connector WHERE id = 1').first()).pending_command, 'relink');
+  // the right one does
+  assert.equal((await st('aaaa1111', { state: 'relinking', commandId: cid })).status, 200);
+  const row = await db.prepare('SELECT pending_command, state FROM connector WHERE id = 1').first();
+  assert.deepEqual([row.pending_command, row.state], ['', 'relinking']);
+  assert.equal((await j(await ob('aaaa1111'))).command, null);
+  await st('aaaa1111', { state: 'logged_out' });
+  await st('aaaa1111', { state: 'qr', qr: QR });
+  assert.equal((await j(await admin('GET', '/api/wa-server'))).server.qr, QR);
+});
+
+test('relink: when the recorded instance is dead (silent for minutes) any new instance gets the command', { skip }, async () => {
+  await conn('POST', '/api/connector/state', { state: 'open', phone: '77055556677', instance: 'aaaa1111' });
+  assert.equal((await admin('POST', '/api/wa-server/relink', {})).status, 200);
+  await db.prepare("UPDATE connector SET last_seen_at = ? WHERE id = 1").bind(new Date(Date.now() - 10 * 60000).toISOString()).run();
+  const o = await j(await conn('GET', '/api/connector/outbox?ready=0&instance=cccc3333'));
+  assert.equal(o.command, 'relink');
+  // clean up: acknowledge and forget the instance, the other tests use connectors without ids
+  await conn('POST', '/api/connector/state', { state: 'relinking', commandId: o.commandId, instance: 'cccc3333' });
+  await conn('POST', '/api/connector/state', { state: 'open', phone: '77055556677', instance: 'cccc3333' });
+});
+
+test('state "replaced" is accepted and shown; a bad instance id is ignored', { skip }, async () => {
+  assert.equal((await conn('POST', '/api/connector/state', { state: 'replaced', reason: 440, instance: 'cccc3333' })).status, 200);
+  const sv = (await j(await admin('GET', '/api/wa-server'))).server;
+  assert.equal(sv.state, 'replaced');
+  await conn('POST', '/api/connector/state', { state: 'closed', instance: '<script>' });
+  assert.equal((await db.prepare('SELECT instance FROM connector WHERE id = 1').first()).instance, 'cccc3333');
+  await conn('POST', '/api/connector/state', { state: 'open', phone: '77055556677' });
+  await db.prepare("UPDATE connector SET instance = '' WHERE id = 1").run();
+});
+
+test('the CRM page knows the «replaced» state in Russian', () => {
+  const app = fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8');
+  assert.match(app, /replaced: 'Программа запущена дважды — перезагрузите ноутбук'/);
+});

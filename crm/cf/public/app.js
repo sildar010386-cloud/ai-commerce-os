@@ -1334,7 +1334,8 @@ function chatsPoll() {
 /* ---------- Settings: «Подключение WhatsApp» (QR connector: Windows laptop or Linux server) ---------- */
 var SRV_STATE_TEXT = {
   open: 'WhatsApp подключён', qr: 'ждёт сканирования QR-кода', connecting: 'подключается к WhatsApp…', closed: 'связь с WhatsApp прервалась, пробует снова',
-  logged_out: 'номер отвязан, ждёт новый QR-код', banned: 'WhatsApp не пускает этот номер (возможно, он заблокирован)', relinking: 'переподключение…'
+  logged_out: 'номер отвязан, ждёт новый QR-код', banned: 'WhatsApp не пускает этот номер (возможно, он заблокирован)', relinking: 'переподключение…',
+  replaced: 'Программа запущена дважды — перезагрузите ноутбук'
 };
 function serverStatusHTML(sv) {
   if (!sv || !sv.installed) return '<b class="neg">Не установлен</b> <small>Выберите, где будет работать подключение, и следуйте подсказке ниже.</small>';
@@ -1395,7 +1396,7 @@ async function serverRefresh() {
 }
 function serverFast() {
   var sv = S.data.server;
-  return !!sv && sv.installed && (sv.relinkPending || ['qr', 'logged_out', 'connecting', 'closed'].indexOf(sv.state) >= 0 || !sv.lastSeenAt);
+  return !!sv && sv.installed && (sv.relinkPending || ['qr', 'logged_out', 'connecting', 'closed', 'replaced'].indexOf(sv.state) >= 0 || !sv.lastSeenAt);
 }
 
 /* ---------- Inbox: settings sections (admin) ---------- */
