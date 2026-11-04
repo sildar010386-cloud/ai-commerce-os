@@ -45,6 +45,22 @@ test('Windows installer pins the same Node.js version as install.sh and the same
   assert.ok(t.includes('SHASUMS256.txt') && t.includes('Get-FileHash'), 'SHA256 of the Node zip is verified');
 });
 
+test('PowerShell parts of the Windows installer parse without errors (needs pwsh; skipped otherwise)', (t) => {
+  const { spawnSync } = require('child_process');
+  const pw = process.env.PWSH || 'pwsh';
+  if (spawnSync(pw, ['-NoProfile', '-Command', '1']).status !== 0) return t.skip('pwsh is not installed');
+  const T = fs.readFileSync(WIN_TEMPLATE, 'utf8');
+  const payload = T.split(/^#PAYLOAD\s*$/m)[1];
+  const tools = payload.match(/\$ToolsPs1 = @'\n([\s\S]*?)\n'@/)[1];
+  const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'ps-'));
+  const files = { 'payload.ps1': payload, 'tools.ps1': tools };
+  for (const f of Object.keys(files)) fs.writeFileSync(path.join(dir, f), files[f]);
+  const script = "foreach ($f in $args) { $e = $null; $k = $null; [void][System.Management.Automation.Language.Parser]::ParseFile($f, [ref]$k, [ref]$e); if ($e.Count) { $e | ForEach-Object { $f + ': ' + $_.Message + ' line ' + $_.Extent.StartLineNumber }; exit 1 } }";
+  fs.writeFileSync(path.join(dir, 'parse.ps1'), script);
+  const r = spawnSync(pw, ['-NoProfile', '-File', path.join(dir, 'parse.ps1'), ...Object.keys(files).map((f) => path.join(dir, f))], { encoding: 'utf8', env: Object.assign({}, process.env, { DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: '1' }) });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+});
+
 let Miniflare = null;
 try { ({ Miniflare } = require('miniflare')); } catch (e) { /* not installed */ }
 const skip = Miniflare ? false : 'miniflare is not installed (npm i wrangler@3.114.17)';
