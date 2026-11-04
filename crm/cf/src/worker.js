@@ -6,6 +6,7 @@ import { detectSource } from './source.js';
 import { parseWebhook, normalizeInboxEvents } from './wa.js';
 import { CLOUD_INIT_TEMPLATE } from './connector_script.js';
 import { WINDOWS_SETUP_TEMPLATE } from './connector_windows.js';
+import { fetchNbkUsd, fetchErApiUsd } from './fx.js';
 
 const GITHUB_REPO = 'sildar010386-cloud/ai-commerce-os';
 const PUBLISH_URL = `https://github.com/${GITHUB_REPO}/actions/workflows/publish.yml`;
@@ -20,7 +21,7 @@ const STATUSES = ['new', 'accepted', 'pay', 'reserve', 'paid', 'sent', 'done', '
 const DELIVERY = ['Казпочта', 'Курьер', 'СДЭК'];
 const LEAD_SOURCES = ['Threads', 'Instagram', 'TikTok', 'WhatsApp'];
 const CONTENT_STATUSES = ['ждёт', 'вышел', 'в боте', 'ошибка', 'не одобрено'];
-const SETTINGS_KEYS = ['wa1', 'wa2', 'payLink', 'templates', 'track_msg', 'track_url'];
+const SETTINGS_KEYS = ['wa1', 'wa2', 'payLink', 'templates', 'track_msg', 'track_url', 'usd_manual'];
 const MANAGER_SETTINGS = ['wa1', 'wa2', 'payLink', 'track_msg', 'track_url'];
 // Shown (and used) while the owner has not changed them in Настройки. Placeholders: {имя} {трек} {ссылка}; {трек} in the URL.
 const DEFAULT_TRACK_MSG = 'Здравствуйте, {имя}! Ваш заказ отправлен Казпочтой. Трек-номер: {трек}. ' +
@@ -181,7 +182,8 @@ async function currentUser(req, env) {
 const requireAdmin = (user) => { if (user.role !== 'admin') fail(403, 'Нет доступа'); };
 
 /* ---------- row mappers ---------- */
-function orderOut(r) {
+function orderOut(r, items) {
+  const its = (items || []).map((i) => ({ id: i.id, productId: i.product_id, productName: i.product_name, qty: i.qty, sum: i.sum }));
   return {
     id: String(r.id), num: r.num, status: r.status, name: r.name, phone: r.phone, city: r.city, address: r.address,
     productId: r.product_id, productName: r.product_name, qty: r.qty, sum: r.sum, source: r.source, post: r.post,
@@ -189,6 +191,7 @@ function orderOut(r) {
     cancelNote: r.cancel_note, example: !!r.example, stockDeducted: !!r.stock_deducted, trackSentAt: r.track_sent_at || '',
     traffic: r.traffic || '', targetCode: r.target_code || '',
     promo: r.promo || '', paidQty: r.paid_qty || r.qty, giftQty: r.gift_qty || 0,
+    isRepeat: !!r.is_repeat, items: its, total: r.sum + its.reduce((t, i) => t + i.sum, 0),
     createdAt: r.created_at, updatedAt: r.updated_at
   };
 }
@@ -249,7 +252,7 @@ function resolveQty(cur, b) {
 const ORDER_COLS = {
   name: 'name', phone: 'phone', city: 'city', address: 'address', productId: 'product_id', productName: 'product_name',
   qty: 'qty', sum: 'sum', source: 'source', post: 'post', comment: 'comment', delivery: 'delivery', track: 'track',
-  remindAt: 'remind_at', reserveNote: 'reserve_note', cancelNote: 'cancel_note', traffic: 'traffic', targetCode: 'target_code'
+  remindAt: 'remind_at', reserveNote: 'reserve_note', cancelNote: 'cancel_note', traffic: 'traffic', targetCode: 'target_code', isRepeat: 'is_repeat'
 };
 // Validates the order fields present in `b`; returns {col: value} (DB column names).
 async function cleanOrderFields(env, b, cur) {
@@ -281,6 +284,7 @@ async function cleanOrderFields(env, b, cur) {
     f.traffic = tr;
   }
   if ('targetCode' in b) f.targetCode = str(b.targetCode, 20, 'Код');
+  if ('isRepeat' in b) f.isRepeat = b.isRepeat ? 1 : 0;
   if ('productId' in b) {
     const pid = str(b.productId, 64, 'Товар');
     if (!pid) { f.productId = ''; f.productName = ''; }
@@ -320,10 +324,60 @@ function cleanExtras(v) {
 
 async function listOrders(env) {
   const { results } = await env.DB.prepare('SELECT * FROM orders ORDER BY num DESC LIMIT 5000').all();
-  return results.map(orderOut);
+  const { results: items } = await env.DB.prepare('SELECT * FROM order_items ORDER BY id').all();
+  const by = {};
+  (items || []).forEach((i) => { (by[i.order_id] = by[i.order_id] || []).push(i); });
+  return results.map((r) => orderOut(r, by[r.id]));
+}
+
+/* ---------- upsell: extra product lines (order_items) ---------- */
+const MAX_ITEMS = 5;
+// Validates b.items ([{productId, qty, sum}]); null when the request does not touch them. `keep` = product ids already on the order (may be inactive now).
+async function cleanItems(env, b, keep) {
+  if (!('items' in b)) return null;
+  if (b.items == null) return [];
+  if (!Array.isArray(b.items)) fail(400, 'Допродажа: нужен список товаров');
+  if (b.items.length > MAX_ITEMS) fail(400, 'Допродажа: не больше ' + MAX_ITEMS + ' товаров');
+  if (!b.items.length) return [];
+  const { results } = await env.DB.prepare('SELECT id, name, active FROM products').all();
+  return b.items.map((x) => {
+    if (!x || typeof x !== 'object') fail(400, 'Допродажа: строка указана неверно');
+    const pid = str(x.productId, 64, 'Товар');
+    const p = (results || []).find((r) => r.id === pid);
+    if (!p) fail(400, 'Допродажа: товар не найден');
+    if (!p.active && !(keep && keep.includes(pid))) fail(400, 'Допродажа: товар «' + p.name + '» выключен');
+    return {
+      product_id: p.id, product_name: p.name,
+      qty: numIn(x.qty == null ? 1 : x.qty, 1, 1000, 'Количество', true), sum: numIn(x.sum == null ? 0 : x.sum, 0, 1e9, 'Сумма', false)
+    };
+  });
+}
+function itemInsertStmts(env, orderId, items, ts) {
+  return items.map((i) => env.DB.prepare('INSERT INTO order_items (order_id, product_id, product_name, qty, sum, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(orderId, i.product_id, i.product_name, i.qty, i.sum, ts));
+}
+// Deducts the upsell lines from stock together with the main line. Reads order_items when it runs (so it sees lines replaced earlier in the same batch)
+// and, like the main line, only while the order is still marked as not deducted: lines added or changed after the shipment are NOT deducted again.
+function itemStockStmt(env, orderId) {
+  return env.DB.prepare(
+    'UPDATE products SET stock = MAX(0, stock - COALESCE((SELECT SUM(qty) FROM order_items WHERE order_id = ?1 AND product_id = products.id), 0)) ' +
+    'WHERE id IN (SELECT product_id FROM order_items WHERE order_id = ?1) AND EXISTS (SELECT 1 FROM orders WHERE id = ?1 AND stock_deducted = 0)'
+  ).bind(orderId);
+}
+
+/* ---------- repeat customers ---------- */
+// Last 10 digits of a phone, same rule in SQL (migration 0010 backfill) and here.
+const phoneKeySql = (c) => `substr(replace(replace(replace(replace(replace(replace(replace(${c}, ' ', ''), '+', ''), '-', ''), '(', ''), ')', ''), '.', ''), char(160), ''), -10)`;
+const phoneKey = (v) => String(v == null ? '' : v).replace(/\D/g, '').slice(-10);
+async function isRepeatPhone(env, phone) {
+  const k = phoneKey(phone);
+  if (!k) return 0;
+  const r = await env.DB.prepare(`SELECT 1 AS x FROM orders WHERE status != 'cancel' AND ${phoneKeySql('phone')} = ? LIMIT 1`).bind(k).first();
+  return r ? 1 : 0;
 }
 
 async function insertOrder(env, cols, actor, action, detail) {
+  if (!('is_repeat' in cols)) cols.is_repeat = await isRepeatPhone(env, cols.phone);
   const names = Object.keys(cols);
   const sql = `INSERT INTO orders (num, ${names.join(', ')}) VALUES ((SELECT COALESCE(MAX(num), 0) + 1 FROM orders), ${names.map(() => '?').join(', ')})` +
     (cols.lead_key ? ' ON CONFLICT(lead_key) DO NOTHING' : '');
@@ -344,6 +398,7 @@ async function insertOrder(env, cols, actor, action, detail) {
 
 async function createOrder(env, user, b) {
   const f = await cleanOrderFields(env, b);
+  const items = await cleanItems(env, b, []);
   const status = b.status === undefined ? 'new' : b.status;
   if (!STATUSES.includes(status)) fail(400, 'Неизвестный статус');
   const cols = Object.assign({
@@ -356,6 +411,7 @@ async function createOrder(env, user, b) {
   // An order created straight as «Отправлен» is inserted as new and then moved, so the stock deduction runs once.
   cols.status = status === 'sent' ? 'new' : status; cols.created_at = ts; cols.updated_at = ts;
   const row = await insertOrder(env, cols, user.email, 'create', `status=${status}`);
+  if (row && items && items.length) await env.DB.batch(itemInsertStmts(env, row.id, items, ts));
   if (status === 'sent') await patchOrder(env, user, String(row.id), { status: 'sent' }, true);
   return row;
 }
@@ -375,6 +431,10 @@ async function patchOrder(env, user, idStr, b, internal) {
   const cur = await env.DB.prepare('SELECT * FROM orders WHERE id = ?').bind(id).first();
   if (!cur) fail(404, 'Заказ не найден');
   const f = await cleanOrderFields(env, b, cur);
+  const { results: curItems } = await env.DB.prepare('SELECT product_id, qty, sum FROM order_items WHERE order_id = ? ORDER BY id').bind(id).all();
+  const newItems = await cleanItems(env, b, (curItems || []).map((i) => i.product_id));
+  const sig = (a) => JSON.stringify((a || []).map((i) => [i.product_id, i.qty, i.sum]));
+  const itemsChanged = newItems !== null && sig(newItems) !== sig(curItems);
   let status = cur.status === 'work' ? 'accepted' : cur.status;
   const prev = status;
   if ('status' in b) {
@@ -391,17 +451,21 @@ async function patchOrder(env, user, idStr, b, internal) {
   unchanged.forEach((k) => { delete set[k]; });
   if (status !== cur.status) set.status = status;
   const stmts = [];
+  if (itemsChanged) {
+    stmts.push(env.DB.prepare('DELETE FROM order_items WHERE order_id = ?').bind(id), ...itemInsertStmts(env, id, newItems, nowIso()));
+  }
   if (status === 'sent' && cur.status !== 'sent' && !cur.stock_deducted) {
-    stmts.push(...stockDeductStmts(env, cur, merged.qty || 1));
+    stmts.push(...stockDeductStmts(env, cur, merged.qty || 1), itemStockStmt(env, id));
     set.stock_deducted = 1;
   }
   if (changedFields.includes('track') && cur.track_sent_at) set.track_sent_at = ''; // a new track number has not been sent yet
-  if (!Object.keys(set).length) return { changed: false };
+  if (!Object.keys(set).length && !itemsChanged) return { changed: false };
   set.updated_at = nowIso();
   const names = Object.keys(set);
   stmts.push(env.DB.prepare(`UPDATE orders SET ${names.map((n) => n + ' = ?').join(', ')} WHERE id = ?`).bind(...names.map((n) => set[n]), id));
   if (status !== cur.status) stmts.push(auditStmt(env, user.email, 'status', id, cur.num, `${cur.status} -> ${status}`));
   const edited = changedFields.filter((k) => k !== 'status');
+  if (itemsChanged) edited.push('items');
   if (edited.length && !internal) stmts.push(auditStmt(env, user.email, 'edit', id, cur.num, edited.join(',')));
   await env.DB.batch(stmts);
   return { changed: true };
@@ -412,6 +476,7 @@ async function deleteOrder(env, user, idStr) {
   const cur = await env.DB.prepare('SELECT id, num FROM orders WHERE id = ?').bind(id).first();
   if (!cur) fail(404, 'Заказ не найден');
   await env.DB.batch([
+    env.DB.prepare('DELETE FROM order_items WHERE order_id = ?').bind(id),
     env.DB.prepare('DELETE FROM orders WHERE id = ?').bind(id),
     auditStmt(env, user.email, 'delete', id, cur.num, '')
   ]);
@@ -560,7 +625,7 @@ async function kazpostApply(env, user, b) {
     const stmts = [];
     const set = { status: 'sent', delivery: 'Казпочта', track: p.track, updated_at: ts };
     if (cur.track !== p.track && cur.track_sent_at) set.track_sent_at = '';
-    if (cur.status !== 'sent' && !cur.stock_deducted) { stmts.push(...stockDeductStmts(env, cur, cur.qty || 1)); set.stock_deducted = 1; }
+    if (cur.status !== 'sent' && !cur.stock_deducted) { stmts.push(...stockDeductStmts(env, cur, cur.qty || 1), itemStockStmt(env, cur.id)); set.stock_deducted = 1; }
     const names = Object.keys(set);
     stmts.push(env.DB.prepare(`UPDATE orders SET ${names.map((n) => n + ' = ?').join(', ')} WHERE id = ? AND status NOT IN ('cancel', 'done')`)
       .bind(...names.map((n) => set[n]), cur.id));
@@ -796,6 +861,280 @@ async function replyHook(env, b) {
   return json({ reply: String((out && out.response) || '').trim() });
 }
 
+/* ---------- advertising costs ----------
+   ad_campaigns (one per product cabinet) accrue one ad_spend row per Almaty day ('auto'); the owner can overwrite a day ('manual', never touched by accrual).
+   USD rows are converted to tenge with that day's rate (fx_rates, National Bank of Kazakhstan; fallbacks in usdRates). Admin only. */
+const AD_BACKFILL_DAYS = 400;   // accrual never goes further back than this
+const FX_FETCH_PER_RUN = 12;    // NBK requests per accrual run (Workers allow 50 subrequests on the free plan)
+const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);
+const almatyToday = () => isoDay(Date.now() + 5 * 3600000);
+const addDays = (d, n) => isoDay(Date.parse(d + 'T00:00:00Z') + n * 86400000);
+const money2 = (x) => Math.round(x * 100) / 100;
+const AD_CURRENCIES = ['USD', 'KZT'];
+
+function campaignOut(r) {
+  return {
+    id: r.id, productId: r.product_id, label: r.label, currency: r.currency, dailyAmount: r.daily_amount,
+    startDate: r.start_date, endDate: r.end_date, active: !!r.active, createdAt: r.created_at, updatedAt: r.updated_at
+  };
+}
+function spendOut(r) {
+  return { campaignId: r.campaign_id, date: r.date, amountOrig: r.amount_orig, currency: r.currency, rate: r.rate, amountKzt: r.amount_kzt, source: r.source };
+}
+
+async function manualUsdRate(env) {
+  const r = await env.DB.prepare("SELECT value FROM settings WHERE key = 'usd_manual'").first();
+  const n = r ? parseFloat(String(r.value).replace(',', '.')) : 0;
+  return n > 0 && isFinite(n) ? n : 0;
+}
+
+// Rate (KZT per 1 USD) for each date of `dates`: Map date -> {rate, source, date}. Order: manual setting (always wins) -> fx_rates row ->
+// National Bank of Kazakhstan for that date (stored) -> open.er-api.com latest (stored only for today) -> latest known fx_rates row.
+// A date stays out of the map when nothing worked. Network failures never throw.
+async function usdRates(env, dates) {
+  const out = new Map();
+  const list = [...new Set(dates)].sort();
+  if (!list.length) return out;
+  const man = await manualUsdRate(env);
+  if (man > 0) { list.forEach((d) => out.set(d, { rate: man, source: 'manual', date: d })); return out; }
+  const { results } = await env.DB.prepare('SELECT date, usd_kzt, source FROM fx_rates WHERE date >= ? AND date <= ?').bind(list[0], list[list.length - 1]).all();
+  (results || []).forEach((r) => { if (list.includes(r.date)) out.set(r.date, { rate: r.usd_kzt, source: r.source, date: r.date }); });
+  const need = list.filter((d) => !out.has(d));
+  if (!need.length) return out;
+  const today = almatyToday(), ts = nowIso(), save = [];
+  const got = await Promise.all(need.slice(-FX_FETCH_PER_RUN).map(async (d) => [d, await fetchNbkUsd(d)]));
+  got.forEach(([d, rate]) => {
+    if (!rate) return;
+    out.set(d, { rate, source: 'nbk', date: d });
+    save.push(env.DB.prepare('INSERT OR IGNORE INTO fx_rates (date, usd_kzt, source, fetched_at) VALUES (?, ?, ?, ?)').bind(d, rate, 'nbk', ts));
+  });
+  const rest = need.filter((d) => !out.has(d));
+  if (rest.length) {
+    let fallback = null;
+    const er = await fetchErApiUsd();
+    if (er) {
+      fallback = { rate: er, source: 'erapi' };
+      if (rest.includes(today)) save.push(env.DB.prepare('INSERT OR IGNORE INTO fx_rates (date, usd_kzt, source, fetched_at) VALUES (?, ?, ?, ?)').bind(today, er, 'erapi', ts));
+    } else {
+      const last = await env.DB.prepare('SELECT date, usd_kzt FROM fx_rates ORDER BY date DESC LIMIT 1').first();
+      if (last) fallback = { rate: last.usd_kzt, source: 'last', date: last.date };
+    }
+    if (fallback) rest.forEach((d) => out.set(d, Object.assign({ date: d }, fallback)));
+  }
+  if (save.length) { try { await env.DB.batch(save); } catch (e) { console.error('fx save failed'); } }
+  return out;
+}
+
+// Multi-row INSERT OR IGNORE with inlined, validated values (D1 allows only 100 bound parameters per statement).
+function spendInsertStmts(env, rows, source) {
+  const ts = nowIso(), out = [];
+  const lit = (n) => { const x = Number(n); if (!Number.isFinite(x)) throw new Error('bad number'); return String(x); };
+  for (let i = 0; i < rows.length; i += 100) {
+    const vals = rows.slice(i, i + 100).map((r) => {
+      if (!isDate(r.date) || !AD_CURRENCIES.includes(r.currency) || !Number.isInteger(r.campaignId)) throw new Error('bad ad row');
+      return `(${r.campaignId}, '${r.date}', ${lit(r.amountOrig)}, '${r.currency}', ${lit(r.rate)}, ${lit(r.amountKzt)}, '${source}', '${ts}')`;
+    });
+    out.push(env.DB.prepare('INSERT OR IGNORE INTO ad_spend (campaign_id, date, amount_orig, currency, rate, amount_kzt, source, updated_at) VALUES ' + vals.join(', ')));
+  }
+  return out;
+}
+
+// Inserts the missing 'auto' ad_spend rows of every campaign up to min(today, upToDate) (and its end_date). Existing rows, manual ones included, are never touched.
+// A campaign starts the day after its last row (or at start_date, at most 400 days back). Skipped quietly when already done today unless opts.force.
+// Never throws: accrual problems are logged and the page keeps working.
+async function ensureAccrued(env, upToDate, opts) {
+  try { return await accrueAds(env, upToDate, opts || {}); } catch (e) { console.error('ads accrual failed'); return { ok: false, inserted: 0 }; }
+}
+async function accrueAds(env, upToDate, opts) {
+  const today = almatyToday();
+  const upTo = isDate(upToDate) && upToDate < today ? upToDate : today;
+  if (!opts.force && upTo === today) {
+    const done = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ads_accrued_on'").first();
+    if (done && done.value === today) return { ok: true, skipped: true, inserted: 0 };
+  }
+  const { results: camps } = await env.DB.prepare('SELECT * FROM ad_campaigns').all();
+  const { results: lastRows } = await env.DB.prepare('SELECT campaign_id, MAX(date) AS d FROM ad_spend GROUP BY campaign_id').all();
+  const last = {};
+  (lastRows || []).forEach((r) => { last[r.campaign_id] = r.d; });
+  const floor = addDays(upTo, -(AD_BACKFILL_DAYS - 1));
+  const plan = [];
+  for (const c of camps || []) {
+    if (!c.active && !c.end_date) continue;
+    let from = c.start_date > floor ? c.start_date : floor;
+    if (last[c.id] && addDays(last[c.id], 1) > from) from = addDays(last[c.id], 1);
+    const to = c.end_date && c.end_date < upTo ? c.end_date : upTo;
+    if (from > to) continue;
+    const days = [];
+    for (let d = from; d <= to; d = addDays(d, 1)) days.push(d);
+    plan.push({ c, days });
+  }
+  const usdDays = [];
+  plan.forEach((p) => { if (p.c.currency === 'USD') usdDays.push(...p.days); });
+  const rates = await usdRates(env, usdDays);
+  const rows = [];
+  let incomplete = false;
+  for (const { c, days } of plan) {
+    for (const d of days) {
+      if (c.currency === 'KZT') { rows.push({ campaignId: c.id, date: d, amountOrig: c.daily_amount, currency: 'KZT', rate: 1, amountKzt: money2(c.daily_amount) }); continue; }
+      const r = rates.get(d);
+      if (!r) { incomplete = true; break; } // no rate at all yet: stop here, so the days stay in order, and retry on the next call
+      rows.push({ campaignId: c.id, date: d, amountOrig: c.daily_amount, currency: 'USD', rate: r.rate, amountKzt: money2(c.daily_amount * r.rate) });
+    }
+  }
+  const stmts = spendInsertStmts(env, rows, 'auto');
+  if (!incomplete && upTo === today) stmts.push(env.DB.prepare("INSERT INTO settings (key, value) VALUES ('ads_accrued_on', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(today));
+  if (stmts.length) await env.DB.batch(stmts);
+  return { ok: true, inserted: rows.length, incomplete };
+}
+
+function dayRange(url, defDays) {
+  const today = almatyToday();
+  let to = url.searchParams.get('to') || today, from = url.searchParams.get('from') || addDays(to, -(defDays - 1));
+  if (!isDate(from) || !isDate(to)) fail(400, 'Период указан неверно');
+  if (from > to) fail(400, 'Начало периода позже конца');
+  if (Date.parse(to) - Date.parse(from) > 400 * 86400000) fail(400, 'Период не длиннее 400 дней');
+  return { from, to };
+}
+
+async function cleanCampaign(env, b, cur) {
+  const f = {};
+  if ('productId' in b) {
+    const pid = str(b.productId, 64, 'Товар');
+    const p = pid ? await env.DB.prepare('SELECT id FROM products WHERE id = ?').bind(pid).first() : null;
+    if (!p) fail(400, 'Выберите товар');
+    f.product_id = p.id;
+  } else if (!cur) fail(400, 'Выберите товар');
+  if ('label' in b) f.label = str(b.label, 60, 'Кабинет');
+  if ('currency' in b) {
+    if (!AD_CURRENCIES.includes(b.currency)) fail(400, 'Валюта: USD или KZT');
+    f.currency = b.currency;
+  }
+  if ('dailyAmount' in b) f.daily_amount = numIn(b.dailyAmount, 0, 1e9, 'В день', false);
+  if ('startDate' in b) { if (!isDate(b.startDate)) fail(400, 'Дата начала указана неверно'); f.start_date = b.startDate; }
+  if ('endDate' in b) {
+    const e = b.endDate == null ? '' : b.endDate;
+    if (e !== '' && !isDate(e)) fail(400, 'Дата окончания указана неверно');
+    f.end_date = e;
+  }
+  if ('active' in b) f.active = b.active ? 1 : 0;
+  const start = f.start_date || (cur && cur.start_date), end = 'end_date' in f ? f.end_date : cur && cur.end_date;
+  if (end && start && end < start) fail(400, 'Дата окончания раньше даты начала');
+  return f;
+}
+
+async function adsApi(req, env, url, user) {
+  const p = url.pathname, m = req.method;
+  let mt;
+  if (p === '/api/fx' && m === 'GET') {
+    const today = almatyToday(), man = await manualUsdRate(env);
+    const r = (await usdRates(env, [today])).get(today);
+    return json({ date: today, rate: r ? r.rate : null, source: r ? r.source : '', rateDate: r ? r.date : '', manual: man > 0 });
+  }
+  if (p === '/api/ads/campaigns' && m === 'GET') {
+    await ensureAccrued(env);
+    const { results } = await env.DB.prepare('SELECT * FROM ad_campaigns ORDER BY product_id, id').all();
+    return json({ campaigns: (results || []).map(campaignOut) });
+  }
+  if (p === '/api/ads/campaigns' && m === 'POST') {
+    const b = await readJson(req);
+    const f = await cleanCampaign(env, b, null);
+    const ts = nowIso();
+    const cols = Object.assign({ label: '', currency: 'USD', daily_amount: 0, start_date: almatyToday(), end_date: '', active: 1 }, f);
+    const r = await env.DB.prepare(
+      'INSERT INTO ad_campaigns (product_id, label, currency, daily_amount, start_date, end_date, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(cols.product_id, cols.label, cols.currency, cols.daily_amount, cols.start_date, cols.end_date, cols.active, ts, ts).run();
+    await auditStmt(env, user.email, 'ads-add', null, null, `campaign#${r.meta.last_row_id}`).run();
+    await ensureAccrued(env, undefined, { force: true });
+    return json({ ok: true, id: r.meta.last_row_id }, 201);
+  }
+  if ((mt = p.match(/^\/api\/ads\/campaigns\/(\d+)$/))) {
+    const id = parseInt(mt[1], 10);
+    const cur = await env.DB.prepare('SELECT * FROM ad_campaigns WHERE id = ?').bind(id).first();
+    if (!cur) fail(404, 'Кампания не найдена');
+    if (m === 'PATCH') {
+      const b = await readJson(req);
+      const f = await cleanCampaign(env, b, cur);
+      const today = almatyToday();
+      if ('active' in f && !('end_date' in f)) {
+        if (!f.active && cur.active) {
+          // Switched off: accrual stops after today (today's row stays).
+          if (!cur.end_date || cur.end_date > today) f.end_date = today;
+        } else if (f.active && !cur.active) {
+          // Switched on again: bring the stopped period up to date first, fill the stopped days with 0 so they are not charged later, and run on.
+          await ensureAccrued(env, undefined, { force: true });
+          if (cur.end_date && cur.end_date < today) {
+            const from = addDays(cur.end_date, 1), to = addDays(today, -1);
+            const lastRow = await env.DB.prepare('SELECT MAX(date) AS d FROM ad_spend WHERE campaign_id = ?').bind(id).first();
+            const zero = [];
+            for (let d = lastRow && lastRow.d && lastRow.d >= from ? addDays(lastRow.d, 1) : from; d <= to && zero.length < AD_BACKFILL_DAYS; d = addDays(d, 1)) {
+              zero.push({ campaignId: id, date: d, amountOrig: 0, currency: cur.currency, rate: 1, amountKzt: 0 });
+            }
+            const st = spendInsertStmts(env, zero, 'auto');
+            if (st.length) await env.DB.batch(st);
+          }
+          if (cur.end_date && cur.end_date <= today) f.end_date = '';
+        }
+      }
+      const keys = Object.keys(f);
+      if (keys.length) {
+        f.updated_at = nowIso();
+        const names = Object.keys(f);
+        await env.DB.batch([
+          env.DB.prepare(`UPDATE ad_campaigns SET ${names.map((k) => k + ' = ?').join(', ')} WHERE id = ?`).bind(...names.map((k) => f[k]), id),
+          auditStmt(env, user.email, 'ads-edit', null, null, `campaign#${id} ${keys.join(',')}`)
+        ]);
+        await ensureAccrued(env, undefined, { force: true });
+      }
+      return json({ ok: true });
+    }
+    if (m === 'DELETE') {
+      await env.DB.batch([
+        env.DB.prepare('DELETE FROM ad_spend WHERE campaign_id = ?').bind(id),
+        env.DB.prepare('DELETE FROM ad_campaigns WHERE id = ?').bind(id),
+        auditStmt(env, user.email, 'ads-del', null, null, `campaign#${id}`)
+      ]);
+      return json({ ok: true });
+    }
+  }
+  if (p === '/api/ads/spend' && m === 'GET') {
+    await ensureAccrued(env);
+    const { from, to } = dayRange(url, 14);
+    const { results } = await env.DB.prepare('SELECT * FROM ad_spend WHERE date >= ? AND date <= ? ORDER BY date, campaign_id').bind(from, to).all();
+    return json({ from, to, spend: (results || []).map(spendOut) });
+  }
+  if ((mt = p.match(/^\/api\/ads\/spend\/(\d+)\/(\d{4}-\d{2}-\d{2})$/)) && m === 'PUT') {
+    const id = parseInt(mt[1], 10), date = mt[2];
+    if (!isDate(date)) fail(400, 'Дата указана неверно');
+    if (date > almatyToday()) fail(400, 'Расход можно указать только за сегодня и раньше');
+    const c = await env.DB.prepare('SELECT * FROM ad_campaigns WHERE id = ?').bind(id).first();
+    if (!c) fail(404, 'Кампания не найдена');
+    const b = await readJson(req);
+    const amount = numIn('amount_orig' in b ? b.amount_orig : b.amountOrig, 0, 1e9, 'Расход', false);
+    let rate = 1;
+    if (c.currency === 'USD') {
+      const r = (await usdRates(env, [date])).get(date);
+      if (!r) fail(502, 'Не удалось получить курс доллара. Укажите «Курс доллара вручную» в настройках.');
+      rate = r.rate;
+    }
+    const kzt = money2(amount * rate);
+    await env.DB.prepare(
+      "INSERT INTO ad_spend (campaign_id, date, amount_orig, currency, rate, amount_kzt, source, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'manual', ?) " +
+      "ON CONFLICT(campaign_id, date) DO UPDATE SET amount_orig = excluded.amount_orig, currency = excluded.currency, rate = excluded.rate, amount_kzt = excluded.amount_kzt, source = 'manual', updated_at = excluded.updated_at"
+    ).bind(id, date, amount, c.currency, rate, kzt, nowIso()).run();
+    return json({ ok: true, spend: { campaignId: id, date, amountOrig: amount, currency: c.currency, rate, amountKzt: kzt, source: 'manual' } });
+  }
+  if (p === '/api/ads/leads' && m === 'GET') {
+    // Contacts from targeted ads whose first message falls into the Almaty days [from, to], grouped by ad code and product name.
+    const { from, to } = dayRange(url, 14);
+    const { results } = await env.DB.prepare(
+      "SELECT target_code AS code, product_name AS productName, COUNT(*) AS n FROM contacts WHERE traffic = 'target' AND first_message_at != '' " +
+      "AND date(first_message_at, '+5 hours') >= ? AND date(first_message_at, '+5 hours') <= ? GROUP BY target_code, product_name"
+    ).bind(from, to).all();
+    return json({ from, to, leads: results || [] });
+  }
+  fail(404, 'Не найдено');
+}
+
 /* ---------- router ---------- */
 async function api(req, env, url) {
   const m = req.method, p = url.pathname;
@@ -950,6 +1289,7 @@ async function api(req, env, url) {
         if (k === 'track_url' && v.trim() && !(/^https:\/\//i.test(v.trim()) && v.includes('{трек}'))) {
           fail(400, 'Ссылка для отслеживания должна начинаться с https:// и содержать {трек}');
         }
+        if (k === 'usd_manual' && v.trim() && !(parseFloat(v.replace(',', '.')) > 0 && parseFloat(v.replace(',', '.')) < 100000)) fail(400, 'Курс доллара: число больше 0, например 500');
         if (k === 'track_msg' && v.length > 2000) fail(400, 'Шаблон сообщения слишком длинный');
         stmts.push(env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
           .bind(k, k === 'templates' || k === 'track_msg' ? v : v.trim()));
@@ -959,12 +1299,16 @@ async function api(req, env, url) {
     }
   }
 
+  /* advertising costs and exchange rate: admin only (managers never see ad spend) */
+  if (p === '/api/fx' || p.startsWith('/api/ads/')) { requireAdmin(user); return adsApi(req, env, url, user); }
+
   const inbox = await inboxApi(req, env, url, user);
   if (inbox) return inbox;
 
   /* everything below is admin only */
   if (p === '/api/finance' && m === 'GET') {
     requireAdmin(user);
+    await ensureAccrued(env);
     const { results } = await env.DB.prepare('SELECT key, data FROM finance').all();
     const out = {};
     results.forEach((r) => { try { out[r.key] = JSON.parse(r.data); } catch (e) { out[r.key] = {}; } });
@@ -1475,7 +1819,7 @@ function numberOut(r, admin) {
 }
 function targetOut(r) {
   return {
-    id: r.id, productName: r.product_name, code: r.code, text: r.text, active: !!r.active, clicks: r.clicks, note: r.note,
+    id: r.id, productName: r.product_name, productId: r.product_id || '', code: r.code, text: r.text, active: !!r.active, clicks: r.clicks, note: r.note,
     contacts: r.contacts == null ? 0 : r.contacts
   };
 }
@@ -2006,6 +2350,16 @@ async function numbersApi(req, env, user, p, m) {
 const TARGET_SELECT =
   'SELECT t.*, (SELECT COUNT(*) FROM contacts c WHERE t.code = c.target_code) AS contacts FROM target_texts t ';
 
+// Product of a target text: productId (checked against products; the display name is taken from it unless productName is given) or free productName.
+async function targetProduct(env, b) {
+  const name = 'productName' in b ? str(b.productName, 200, 'Товар') : '';
+  const pid = 'productId' in b ? str(b.productId, 64, 'Товар') : '';
+  if (!pid) return { id: '', name };
+  const p = await env.DB.prepare('SELECT id, name FROM products WHERE id = ?').bind(pid).first();
+  if (!p) fail(400, 'Товар не найден');
+  return { id: p.id, name: name || p.name };
+}
+
 function cleanTargetCode(v) {
   const code = str(v, 12, 'Код');
   if (!/^[A-Za-z0-9_-]{1,12}$/.test(code)) fail(400, 'Код: до 12 латинских букв и цифр, например A3');
@@ -2026,9 +2380,10 @@ async function targetsApi(req, env, user, p, m) {
       const text = str(b.text, 1000, 'Текст сообщения');
       if (!text) fail(400, 'Введите текст сообщения');
       const ts = nowIso();
+      const prod = await targetProduct(env, b);
       const r = await uniqueOr409(env.DB.prepare(
-        'INSERT INTO target_texts (product_name, code, text, active, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      ).bind(str(b.productName, 200, 'Товар'), code, text, b.active === false ? 0 : 1, str(b.note, 300, 'Заметка'), ts, ts).run(), 'Такой код уже есть');
+        'INSERT INTO target_texts (product_name, product_id, code, text, active, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      ).bind(prod.name, prod.id, code, text, b.active === false ? 0 : 1, str(b.note, 300, 'Заметка'), ts, ts).run(), 'Такой код уже есть');
       await auditStmt(env, user.email, 'target-add', null, null, `target#${r.meta.last_row_id} ${code}`).run();
       return json({ ok: true, id: r.meta.last_row_id }, 201);
     }
@@ -2039,7 +2394,11 @@ async function targetsApi(req, env, user, p, m) {
       requireAdmin(user);
       const b = await readJson(req);
       const set = {};
-      if ('productName' in b) set.product_name = str(b.productName, 200, 'Товар');
+      if ('productId' in b || 'productName' in b) {
+        const prod = await targetProduct(env, b);
+        if (prod.name || 'productName' in b) set.product_name = prod.name;
+        if ('productId' in b) set.product_id = prod.id;
+      }
       if ('code' in b) set.code = cleanTargetCode(b.code);
       if ('text' in b) { set.text = str(b.text, 1000, 'Текст сообщения'); if (!set.text) fail(400, 'Введите текст сообщения'); }
       if ('active' in b) set.active = b.active ? 1 : 0;
@@ -2467,6 +2826,7 @@ async function startReport(env, workflow) {
 
 export default {
   async scheduled(event, env, ctx) {
+    ctx.waitUntil(ensureAccrued(env));
     if (event.cron === MORNING_CRON) ctx.waitUntil(cleanupMedia(env));
     const job = event.cron === MORNING_CRON ? startReport(env, 'morning.yml')
       : event.cron === EVENING_CRON ? startReport(env, 'evening.yml') : autoPublish(env);

@@ -12,7 +12,7 @@ function ostat(o) { var k = o && o.status; if (k === 'work') return 'accepted'; 
 var PAID = { paid: 1, sent: 1, done: 1 };
 var SOURCES = ['Threads', 'Instagram', 'TikTok', 'WhatsApp', 'Другое'];
 var PERIODS = [['today', 'Сегодня', 1], ['week', 'Неделя', 7], ['month', 'Месяц', 30]];
-var ADMIN_TABS = { summary: 1, profit: 1, managers: 1, bot: 1, settings: 1 };
+var ADMIN_TABS = { summary: 1, profit: 1, ads: 1, managers: 1, bot: 1, settings: 1 };
 var CHAT_POLL_MS = 10000;
 var WA_HINT_BLOCK = 'Если номер заблокировали — отметьте «заблокирован» и выберите другой номер для ссылок. Реклама и лендинг продолжат работать.';
 var COUNT_EXAMPLES = false; // orders with example:true are left out of all statistics
@@ -32,7 +32,8 @@ var S = {
   tab: 'orders', filter: 'all', q: '', period: 'week', contentDay: null,
   drawer: false, card: null, resetFor: null,
   admin: false, loaded: {}, errors: {},
-  data: { orders: [], products: [], finance: {}, content: [], users: [], settings: null, bot: null, numbers: [], targets: [], server: null },
+  data: { orders: [], products: [], finance: {}, content: [], users: [], settings: null, bot: null, numbers: [], targets: [], server: null, campaigns: [], adP: null, adSpend: null, fx: null },
+  adsDays: 14,
   winDownloaded: false, // the Windows installer was downloaded in this session
   serverScript: '', // initialization script shown once after «Создать ключ подключения» (kept in memory only)
   chat: null, waConnected: false,
@@ -186,6 +187,7 @@ var TABS = [['orders', 'Заказы'], ['chats', 'Чаты'], ['summary', 'Св
 var DRAWER = [
   ['summary', 'Статистика и касса', 'Обращения, заказы, оплаты, касса', 1],
   ['profit', 'Прибыль и расходы', 'Закупка, доставка, расходы → чистая прибыль', 1],
+  ['ads', 'Реклама', 'Расход по товарам, курс доллара, цена лида', 1],
   ['orders', 'Заказы', 'Все заказы по статусам', 0],
   ['chats', 'Чаты', 'Переписка WhatsApp, таргет или органика', 0],
   ['goods', 'Склад', 'Остатки и цены товаров', 0],
@@ -250,6 +252,11 @@ function qtyHTML(o) {
   if (!lbl) return ' ×' + esc(o.qty || 1) + (o.promo ? ' <span class="badge b-promo">' + esc(o.promo) + '</span>' : '');
   return ' <span class="badge b-promo">' + esc(o.promo) + '</span><small class="qty-l">' + esc(lbl) + '</small>';
 }
+function repeatBadge(o) { return o && o.isRepeat ? ' <span class="badge b-rep">Повторный</span>' : ''; }
+// «+ Таблетки ×1» lines under the main product of an order with an upsell.
+function upsellListHTML(o) {
+  return (o.items || []).map(function (i) { return '<small class="qty-l up-l">+ ' + esc(i.productName || '—') + ' ×' + esc(i.qty) + '</small>'; }).join('');
+}
 function renderOrders() {
   if (!S.loaded.orders) return loadingHTML();
   var q = S.q.trim().toLowerCase(), qd = q.replace(/\D/g, '');
@@ -284,9 +291,9 @@ function renderOrders() {
       '<div class="c-num dim">№ ' + esc(o.num != null ? o.num : '—') + '</div>' +
       '<div class="c-dt dim">' + esc(fmtDate(o.createdAt)) + '</div>' +
       '<div class="cl"><b>' + esc(o.name || 'Без имени') + (o.example ? '<span class="badge b-ex">пример</span>' : '') + '</b><small>' + esc(o.city || '') + '</small></div>' +
-      '<div class="c-pr">' + esc(o.productName || '—') + qtyHTML(o) + '</div>' +
-      '<div class="sum">' + fmt(num(o.sum)) + '</div>' +
-      '<div class="c-src">' + esc(o.source || '') + trafficBadge(o.traffic, o.targetCode) + '</div>' +
+      '<div class="c-pr">' + esc(o.productName || '—') + qtyHTML(o) + upsellListHTML(o) + '</div>' +
+      '<div class="sum">' + fmt(num(o.total != null ? o.total : o.sum)) + '</div>' +
+      '<div class="c-src">' + esc(o.source || '') + trafficBadge(o.traffic, o.targetCode) + repeatBadge(o) + '</div>' +
       '<div class="c-st">' + stSelectHTML(st, 'data-ost="' + esc(o.id) + '" aria-label="Статус заказа № ' + esc(o.num != null ? o.num : '') + '"', false) + sub + '</div></div>';
   }).join('');
   return errNotice('orders') + plaque + kzPanelHTML() +
@@ -304,8 +311,10 @@ function renderSummary() {
   var list = periodOrders(S.period);
   var nonCancel = list.filter(function (o) { return o.status !== 'cancel'; });
   var paid = list.filter(function (o) { return PAID[o.status]; });
-  var cash = paid.reduce(function (s, o) { return s + num(o.sum); }, 0);
-  var kpis = [['Обращения', list.length], ['Заказы', nonCancel.length], ['Оплатили', paid.length], ['Касса (выручка)', fmt(cash)]];
+  var cash = paid.reduce(function (s, o) { return s + num(o.total != null ? o.total : o.sum); }, 0);
+  var eco = adEco(S.period);
+  var kpis = [['Обращения', list.length], ['Заказы', nonCancel.length], ['Оплатили', paid.length], ['Касса (выручка)', fmt(cash)],
+    ['Расход на рекламу', eco ? fmt(eco.adSpend) : '…'], ['Цена лида', eco ? (eco.cpl == null ? '—' : fmt(eco.cpl)) : '…']];
   var src = {};
   SOURCES.forEach(function (s) { src[s] = 0; });
   nonCancel.forEach(function (o) { var k = SOURCES.indexOf(o.source) >= 0 ? o.source : 'Другое'; src[k]++; });
@@ -332,12 +341,17 @@ function renderSummary() {
     '<div class="sum-line"><span>Подарено штук</span><b>' + ps.gift + ' шт.</b></div>' +
     '<div class="sum-line"><span>Отправлено штук</span><b>' + ps.shipped + ' шт.</b></div>' +
     '<div class="sum-line"><span>Оплачено штук</span><b>' + ps.paid + ' шт.</b></div></div>';
+  var us = Promo.upsellStats(paid);
+  var upCard = '<div class="card"><div class="fw6 mb12">Допродажи <small>оплаченные заказы периода</small></div>' +
+    '<div class="sum-line"><span>Заказов с допродажей</span><b>' + us.orders + '</b></div>' +
+    '<div class="sum-line"><span>Допродано штук</span><b>' + us.units + ' шт.</b></div>' +
+    '<div class="sum-line"><span>Выручка с допродаж</span><b>' + fmt(us.rev) + '</b></div></div>';
   var exCount = S.data.orders.filter(function (o) { return o.example; }).length;
   return errNotice('orders') + '<div class="h1">Статистика и касса</div>' + periodChips() +
     '<div class="kpis">' + kpis.map(function (k, i) { return '<div class="card kpi kc' + (i + 1) + '"><div class="k">' + k[0] + '</div><div class="v">' + k[1] + '</div></div>'; }).join('') + '</div>' +
     '<div class="two"><div class="card"><div class="fw6 mb12">Откуда пришли заказы</div>' + srcHtml + '</div>' +
     '<div class="card"><div class="fw6 mb6">С каких постов заказы</div>' + topHtml + '<small class="db mt8">Топ-5 постов по числу оплаченных заказов.</small></div></div>' +
-    '<div class="two">' + promoCard + '</div>' +
+    '<div class="two">' + promoCard + upCard + '</div>' +
     '<small>Период считается по дате создания заказа, часовой пояс Алматы.' + (exCount && !COUNT_EXAMPLES ? ' Примеры (' + exCount + ') в расчёт не входят.' : '') + '</small>';
 }
 
@@ -364,18 +378,21 @@ function extrasHTML(pid) {
   return rows + '<button type="button" class="btn sm" data-act="fx-add" data-pid="' + esc(pid) + '">+ Добавить расход</button>';
 }
 function profitResHTML() {
-  var c = calcProfit(S.period);
+  var c = calcProfit(S.period), e = adEco(S.period);
+  var ad = e ? e.adSpend : 0, net = c.net - ad;
   return '<div class="card top-g">' + periodChips() +
     '<div class="mt12">' +
     '<div class="sum-line"><span>Отправлено шт.</span><span>' + c.qty + ' шт.</span></div>' +
     '<div class="sum-line"><span>Оплачено шт.</span><span>' + c.paidQty + ' шт.</span></div>' +
     '<div class="sum-line"><span>Подарено по акциям шт. и их себестоимость (закупка × подарки)</span><span class="nw">' + c.giftQty + ' шт. · ' + fmt(c.giftCost) + '</span></div>' +
+    (c.itemQty ? '<div class="sum-line"><span>Допродажи: штук и выручка</span><span class="nw">' + c.itemQty + ' шт. · ' + fmt(c.itemRev) + '</span></div>' : '') +
     '<div class="sum-line"><span>Касса (выручка)</span><span class="pos"><b>' + fmt(c.rev) + '</b></span></div>' +
     '<div class="sum-line"><span>Расходы на товар</span><span class="neg">− ' + fmt(c.cost).replace('−', '') + '</span></div>' +
+    (e ? '<div class="sum-line"><span>Реклама</span><span class="neg">− ' + fmt(ad).replace('−', '') + '</span></div>' : '') +
     '<div class="sum-line"><span>Общие расходы за период</span><span class="neg">− ' + fmt(c.fixed).replace('−', '') + '</span></div>' +
-    '<div class="sum-line big"><span>Чистая прибыль</span><span class="' + (c.net < 0 ? 'neg' : 'pos') + '">' + fmt(c.net) + '</span></div></div>' +
+    '<div class="sum-line big"><span>Чистая прибыль</span><span class="' + (net < 0 ? 'neg' : 'pos') + '">' + fmt(net) + '</span></div></div>' +
     (c.missing.length ? '<div class="notice mt12">Не заполнены расходы на 1 шт. для: ' + esc(c.missing.join(', ')) + ' — прибыль завышена.</div>' : '') +
-    '<small class="db mt10">Считается само: касса оплаченных заказов − расходы на товар (по отправленным штукам, подарки включены) − общие расходы (в месяц × дни периода / 30).</small></div>';
+    '<small class="db mt10">Считается само: касса оплаченных заказов − расходы на товар (по отправленным штукам, подарки включены; заказ с допродажей — одна посылка) − реклама (по дате расхода, в тенге) − общие расходы (в месяц × дни периода / 30).</small></div>';
 }
 function renderProfit() {
   if (!S.loaded.orders || !S.loaded.products || !S.loaded.finance) return loadingHTML();
@@ -402,7 +419,134 @@ function renderProfit() {
   var fixedCard = '<div class="card"><div class="eco-row mgn0"><label for="fin-fixed">Общие расходы в месяц</label><span class="in"><input class="num" id="fin-fixed" type="number" inputmode="decimal" min="0" step="any" value="' + esc(num((S.data.finance.general || {}).fixedMonth)) + '"><span class="u">₸</span></span></div></div>';
   var res = '<div id="profit-res">' + profitResHTML() + '</div>';
   return errNotice('finance') + '<div class="h1">Прибыль и расходы <small>видит только админ</small></div>' +
-    '<div class="two"><div class="col12">' + blocks + fixedCard + '</div><div>' + res + '</div></div>';
+    '<div class="two"><div class="col12">' + blocks + fixedCard + '</div><div>' + res + '</div></div>' +
+    '<div id="profit-eco" class="col14 mt12">' + ecoHTML(adEco(S.period)) + '</div>';
+}
+
+/* ---------- advertising ---------- */
+function fmt2(n, dec) {
+  var s = Math.abs(n).toFixed(dec == null ? 2 : dec).replace('.', ',');
+  var parts = s.split(',');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return (n < 0 ? '−' : '') + parts.join(',');
+}
+var FX_SRC = { nbk: 'Нацбанк РК', erapi: 'open.er-api.com', manual: 'вручную', last: 'последний известный курс' };
+function ddmm(key) { var m = /^\d{4}-(\d{2})-(\d{2})$/.exec(key || ''); return m ? m[2] + '.' + m[1] : ''; }
+function fxLine() {
+  var fx = S.data.fx;
+  if (!fx) return '<span class="muted">Курс $ загружается…</span>';
+  if (!fx.rate) return '<span class="neg">Курс $ недоступен</span> — впишите «Курс доллара вручную» справа.';
+  return 'Курс $: <b>' + fmt2(fx.rate) + ' ₸</b> (' + esc(FX_SRC[fx.source] || fx.source) + ', ' + ddmm(fx.source === 'manual' || fx.source === 'last' ? fx.date : (fx.rateDate || fx.date)) + ')';
+}
+function campaignName(c) {
+  var p = findProduct(c.productId);
+  return (p ? p.name : 'Товар удалён') + (c.label ? ' · ' + c.label : '');
+}
+function productOptions(sel, withEmpty, emptyLabel) {
+  var o = withEmpty ? '<option value="">' + esc(emptyLabel || '— выберите товар —') + '</option>' : '';
+  S.data.products.slice().sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'ru'); }).forEach(function (p) {
+    if (p.active === false && p.id !== sel) return;
+    o += '<option value="' + esc(p.id) + '"' + (p.id === sel ? ' selected' : '') + '>' + esc(p.name) + '</option>';
+  });
+  return o;
+}
+function renderAds() {
+  if (!S.loaded.campaigns || !S.loaded.products) return loadingHTML();
+  var cs = S.data.campaigns.slice().sort(function (a, b) { return campaignName(a).localeCompare(campaignName(b), 'ru') || a.id - b.id; });
+  var today = todayP().key;
+  var rows = cs.map(function (c) {
+    var id = esc(c.id);
+    return '<tr class="' + (c.active ? '' : 'off') + '">' +
+      '<td data-l="Товар"><select data-cmp="' + id + '" data-k="productId" aria-label="Товар">' + productOptions(c.productId, true) + '</select></td>' +
+      '<td data-l="Кабинет"><input type="text" data-cmp="' + id + '" data-k="label" value="' + esc(c.label) + '" maxlength="60" aria-label="Кабинет"></td>' +
+      '<td data-l="Валюта"><select data-cmp="' + id + '" data-k="currency" aria-label="Валюта"><option value="USD"' + (c.currency === 'USD' ? ' selected' : '') + '>$</option><option value="KZT"' + (c.currency === 'KZT' ? ' selected' : '') + '>₸</option></select></td>' +
+      '<td data-l="В день"><input class="num" type="number" inputmode="decimal" min="0" step="any" data-cmp="' + id + '" data-k="dailyAmount" value="' + esc(c.dailyAmount) + '" aria-label="В день"></td>' +
+      '<td data-l="С даты"><input type="date" data-cmp="' + id + '" data-k="startDate" value="' + esc(c.startDate) + '" aria-label="С даты"></td>' +
+      '<td class="ctr" data-l="Идёт"><input type="checkbox" data-cmp-active="' + id + '"' + (c.active ? ' checked' : '') + ' aria-label="Идёт">' +
+        (!c.active && c.endDate ? '<small class="db">остановлена с ' + ddmm(c.endDate) + '</small>' : '') + '</td>' +
+      '<td><button type="button" class="btn sm dng" data-act="ads-del" data-id="' + id + '">Удалить</button></td></tr>';
+  }).join('');
+  var camps = '<div class="card col14"><div class="fw6">Рекламные кабинеты</div>' +
+    '<div class="muted fs14">Расход начисляется сам каждый день по сумме «В день» (по времени Алматы). Долларовый расход переводится в тенге по курсу Нацбанка РК на этот день.</div>' +
+    '<div class="scroll"><table class="t stack adc"><thead><tr><th>Товар</th><th>Кабинет</th><th>Валюта</th><th>В день</th><th>С даты</th><th>Идёт</th><th></th></tr></thead><tbody>' +
+    (rows || '<tr><td colspan="7" class="muted">Кабинетов пока нет. Добавьте первый ниже.</td></tr>') + '</tbody></table></div>' +
+    '<div class="fw6">Добавить кабинет</div><div class="adform">' +
+    '<div class="fld"><label for="ad-product">Товар</label><select id="ad-product">' + productOptions('', true) + '</select></div>' +
+    '<div class="fld"><label for="ad-label">Кабинет</label><input id="ad-label" type="text" maxlength="60" placeholder="Кабинет 3" autocomplete="off"></div>' +
+    '<div class="fld"><label for="ad-cur">Валюта</label><select id="ad-cur"><option value="USD">$</option><option value="KZT">₸</option></select></div>' +
+    '<div class="fld"><label for="ad-daily">В день</label><input id="ad-daily" class="num" type="number" inputmode="decimal" min="0" step="any"></div>' +
+    '<div class="fld"><label for="ad-start">С даты</label><input id="ad-start" type="date" value="' + today + '"></div></div>' +
+    '<div><button type="button" class="btn pri" data-act="ads-add">Добавить</button></div></div>';
+  var man = (S.data.settings && S.data.settings.usd_manual) || '';
+  var rate = '<div class="card row-flex fxline"><div class="grow" id="fx-line">' + fxLine() + '</div>' +
+    '<div class="fx-man"><label for="fx-manual" class="fs14">Курс доллара вручную</label><span class="in"><input class="num" id="fx-manual" type="number" inputmode="decimal" min="0" step="any" value="' + esc(man) + '" placeholder="авто"><span class="u">₸</span></span></div></div>';
+  return errNotice('campaigns') + '<div class="h1">Реклама <small>видит только админ</small></div>' + rate + camps + adSpendHTML(cs);
+}
+function adSpendHTML(cs) {
+  var sp = S.data.adSpend;
+  var chips = [7, 14, 30].map(function (d) { return '<button type="button" class="chip' + (S.adsDays === d ? ' on' : '') + '" data-act="ads-days" data-d="' + d + '">' + d + ' дней</button>'; }).join('');
+  var head = '<div class="fw6 mb10">Расход по дням</div><div class="row-flex mb10">' + chips + '</div>';
+  if (!cs.length) return '<div class="card">' + head + '<div class="muted fs14">Добавьте кабинет — расход по дням появится здесь.</div></div>';
+  if (!sp || sp.days !== S.adsDays) return '<div class="card">' + head + loadingHTML() + '</div>';
+  var by = {}, tot = {}, dayTot = {}, grand = 0;
+  sp.spend.forEach(function (r) {
+    by[r.campaignId + '|' + r.date] = r;
+    tot[r.campaignId] = tot[r.campaignId] || { orig: 0, kzt: 0 };
+    tot[r.campaignId].orig += r.amountOrig; tot[r.campaignId].kzt += r.amountKzt;
+    dayTot[r.date] = (dayTot[r.date] || 0) + r.amountKzt; grand += r.amountKzt;
+  });
+  var th = cs.map(function (c) { return '<th class="adh' + (c.active ? '' : ' off') + '">' + esc(campaignName(c)) + '<small>' + (c.currency === 'USD' ? '$' : '₸') + '</small></th>'; }).join('');
+  var days = [];
+  for (var d = sp.to, i = 0; d >= sp.from && i < 400; i++) { days.push(d); d = dayKey(Date.parse(d + 'T00:00:00Z') / 864e5 - 1); }
+  var body = days.map(function (d) {
+    var tds = cs.map(function (c) {
+      var r = by[c.id + '|' + d], cur = c.currency === 'USD' ? '$' : '₸';
+      return '<td><div class="spc"><input class="num sp" type="number" inputmode="decimal" min="0" step="any" data-sp="' + esc(c.id) + '" data-d="' + d + '" value="' + (r ? esc(r.amountOrig) : '') + '" placeholder="—" aria-label="' + esc(campaignName(c) + ', ' + ddmm(d)) + '">' +
+        (r && r.source === 'manual' ? '<i class="mdot" title="введено вручную"></i>' : '') + '</div>' +
+        (r && r.currency === 'USD' ? '<small>≈ ' + fmt(r.amountKzt) + ' · ' + fmt2(r.rate, 2) + '</small>' : '') + '<span class="sr">' + cur + '</span></td>';
+    }).join('');
+    return '<tr><th scope="row" class="dcol">' + esc(dayLabel(d)) + ' <small>' + ddmm(d) + '</small></th>' + tds + '<td class="nw dsum">' + (dayTot[d] != null ? fmt(dayTot[d]) : '—') + '</td></tr>';
+  }).join('');
+  var foot = '<tr class="tot"><th scope="row" class="dcol">Итого</th>' + cs.map(function (c) {
+    var t = tot[c.id] || { orig: 0, kzt: 0 };
+    return '<td class="nw"><b>' + fmt(t.kzt) + '</b>' + (c.currency === 'USD' ? '<small class="db">' + fmt2(t.orig, 2) + ' $</small>' : '') + '</td>';
+  }).join('') + '<td class="nw dsum"><b>' + fmt(grand) + '</b></td></tr>';
+  return errNotice('adSpend') + '<div class="card">' + head + '<div class="scroll"><table class="t adt"><thead><tr><th class="dcol">День</th>' + th + '<th>Всего, ₸</th></tr></thead><tbody>' + foot + body + '</tbody></table></div>' +
+    '<small class="db mt10"><i class="mdot"></i> — сумма введена вручную, автоначисление её не трогает. Можно поправить любую ячейку: расход пересчитается в тенге по курсу этого дня. Под суммой в долларах: ≈ тенге · курс.</small></div>';
+}
+
+// Economics of the selected period (null until ad data and campaigns are loaded).
+function adEco(period) {
+  var ap = S.data.adP;
+  if (!S.admin || !ap || ap.period !== period || !S.loaded.campaigns) return null;
+  var pid = {};
+  S.data.campaigns.forEach(function (c) { pid[c.id] = c.productId; });
+  var spend = ap.spend.filter(function (r) { return pid[r.campaignId] != null; }).map(function (r) { return { productId: pid[r.campaignId], amountKzt: r.amountKzt }; });
+  return Promo.economics({ orders: periodOrders(period), spend: spend, leads: ap.leads, products: S.data.products, targets: S.data.targets, finance: S.data.finance, days: periodDays(period) });
+}
+function ecoHTML(e) {
+  if (!e) return S.errors.adP ? '<div class="notice">Реклама не загрузилась: ' + esc(S.errors.adP) + '</div>' : '';
+  var g = e.groups, ln = function (name, o, profit, note) {
+    return '<tr><td data-l="Источник">' + name + (note ? '<small class="db">' + note + '</small>' : '') + '</td><td class="ctr" data-l="Заказы">' + o.orders + '</td><td class="nw" data-l="Выручка">' + fmt(o.rev) + '</td>' +
+      '<td class="nw" data-l="Прибыль"><b class="' + (profit < 0 ? 'neg' : 'pos') + '">' + fmt(profit) + '</b></td></tr>';
+  };
+  var src = '<div class="card"><div class="fw6 mb6">По источникам <small>оплаченные заказы периода</small></div><table class="t mini stack"><thead><tr><th>Источник</th><th>Заказы</th><th>Выручка</th><th>Прибыль</th></tr></thead><tbody>' +
+    ln('Таргет', g.target, g.target.profitAfterAds, 'после рекламы (− ' + fmt(e.adSpend).replace('−', '') + ')') +
+    ln('Органика', g.organic, g.organic.profit, '') + ln('Повторные', g.repeat, g.repeat.profit, 'любой источник') + '</tbody></table>' +
+    '<small class="db mt8">Весь расход на рекламу относится к таргету. Прибыль = выручка − расходы на товар (без общих расходов). «Повторные» — клиент с тем же телефоном уже заказывал.</small></div>';
+  var prow = e.products.map(function (r) {
+    return '<tr><td data-l="Товар">' + esc(r.name) + '</td><td class="nw" data-l="Расход">' + fmt(r.adSpend) + '</td><td class="ctr" data-l="Лиды">' + r.leads + '</td>' +
+      '<td class="nw" data-l="Цена лида">' + (r.cpl == null ? '—' : fmt(r.cpl)) + '</td><td class="ctr" data-l="Оплач. заказы из таргета">' + r.paidOrders + '</td>' +
+      '<td class="nw" data-l="Цена заказа">' + (r.cpo == null ? '—' : fmt(r.cpo)) + '</td>' +
+      '<td class="nw" data-l="Прибыль после рекламы"><b class="' + (r.profitAfterAds < 0 ? 'neg' : 'pos') + '">' + fmt(r.profitAfterAds) + '</b></td></tr>';
+  }).join('');
+  var tot = '<tr class="tot"><td data-l="Товар"><b>Всего</b></td><td class="nw" data-l="Расход"><b>' + fmt(e.adSpend) + '</b></td><td class="ctr" data-l="Лиды"><b>' + e.leads + '</b></td><td class="nw" data-l="Цена лида"><b>' + (e.cpl == null ? '—' : fmt(e.cpl)) + '</b></td>' +
+    '<td class="ctr" data-l="Оплач. заказы из таргета"><b>' + e.paidTargetOrders + '</b></td><td class="nw" data-l="Цена заказа"><b>' + (e.cpo == null ? '—' : fmt(e.cpo)) + '</b></td>' +
+    '<td class="nw" data-l="Прибыль после рекламы"><b class="' + (g.target.profitAfterAds < 0 ? 'neg' : 'pos') + '">' + fmt(g.target.profitAfterAds) + '</b></td></tr>';
+  var tbl = '<div class="card"><div class="fw6 mb6">Реклама по товарам</div><div class="scroll"><table class="t mini stack"><thead><tr><th>Товар</th><th>Расход</th><th>Лиды</th><th>Цена лида</th><th>Оплач. заказы из таргета</th><th>Цена заказа</th><th>Прибыль после рекламы</th></tr></thead><tbody>' +
+    (prow ? prow + tot : '<tr><td colspan="7" class="muted">За период нет ни расхода, ни обращений из таргета.</td></tr>') + '</tbody></table></div>' +
+    '<small class="db mt8">Расход — по дате расхода, заказы — по дате создания (Алматы). Лиды — первые сообщения из таргета (по коду или тексту рекламы), товар определяется по привязке в «Настройки → Таргет». Оплаченные — «Оплачен», «Отправлен», «Получен», без повторных клиентов.</small></div>';
+  return '<div class="two">' + src + '</div>' + tbl;
 }
 
 function pendingContent(c) { return c.status === 'ждёт' || c.status === 'ошибка'; }
@@ -530,6 +674,8 @@ function renderSettings() {
     '<small>Подставляется: {имя} — имя клиента, {трек} — трек-номер, {ссылка} — ссылка для отслеживания.</small></div>' +
     '<div class="fld"><label for="set-track_url">Ссылка для отслеживания</label><input id="set-track_url" type="text" autocomplete="off" value="' + esc(s.track_url || DEFAULT_TRACK_URL) + '" placeholder="https://.../{трек}">' +
     '<small>Должна начинаться с https:// и содержать {трек} — туда подставится номер посылки.</small></div>' +
+    '<div class="fld"><label for="set-usd_manual">Курс доллара вручную, ₸</label><input id="set-usd_manual" type="number" inputmode="decimal" min="0" step="any" value="' + esc(s.usd_manual) + '" placeholder="пусто — курс Нацбанка РК">' +
+    '<small>Если указан, расход в долларах считается по нему, а не по курсу Нацбанка. Уже начисленные дни не пересчитываются.</small></div>' +
     '<div><button type="button" class="btn pri" data-act="set-save">Сохранить</button></div></div>' +
     waServerHTML() + waNumbersHTML() + targetsHTML();
 }
@@ -564,6 +710,7 @@ function renderView() {
   switch (tab) {
     case 'summary': return renderSummary();
     case 'profit': return renderProfit();
+    case 'ads': return renderAds();
     case 'content': return renderContent();
     case 'goods': return renderGoods();
     case 'managers': return renderManagers();
@@ -661,7 +808,8 @@ function cardHTML() {
   if (o.source && srcs.indexOf(o.source) < 0) srcs.push(o.source);
   var srcOpts = srcs.map(function (s) { return '<option value="' + esc(s) + '"' + (s === o.source ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('');
   var title = c.isNew ? 'Новый заказ' : 'Заказ № ' + esc(o.num != null ? o.num : '—');
-  var info = c.isNew ? '' : '<small>Создан ' + esc(fmtDate(o.createdAt)) + (o.example ? ' · пример' : '') + '</small>' + trafficBadge(o.traffic, o.targetCode);
+  var info = c.isNew ? '' : '<small>Создан ' + esc(fmtDate(o.createdAt)) + (o.example ? ' · пример' : '') + '</small>' + trafficBadge(o.traffic, o.targetCode) + repeatBadge(o) +
+    '<label class="chk"><input type="checkbox" id="f-repeat"' + (o.isRepeat ? ' checked' : '') + '> Повторный клиент <small>(определяется сам по телефону)</small></label>';
   var payLink = S.data.settings && S.data.settings.payLink ? '<button type="button" class="btn" data-act="copy-pay">Копировать ссылку на оплату</button>' : '';
   return '<div class="cardwrap"><div class="panel" role="dialog" aria-modal="true" aria-label="Карточка заказа">' +
     '<div class="ph"><div class="t">' + title + '</div><button type="button" class="icon-btn" id="card-close" data-act="close-card" aria-label="Закрыть">' + X_SVG + '</button></div>' +
@@ -682,6 +830,8 @@ function cardHTML() {
     '<div class="qty-box"><div class="sum-line"><span>В подарок:</span><b id="q-gift">0 шт.</b></div>' +
     '<div class="sum-line"><span>Отправить всего:</span><b id="q-total">1 шт.</b></div></div>' +
     '<div class="fld"><label for="f-sum">Сумма, ₸</label><input id="f-sum" type="number" inputmode="decimal" min="0" step="any" value="' + esc(num(o.sum)) + '"><small class="db mt6" id="sum-hint"></small></div>' +
+    '<div class="upsell"><label class="chk"><input type="checkbox" id="f-up"' + (c.up ? ' checked' : '') + '> Допродажа <small>клиент берёт ещё товар в этом же заказе</small></label>' +
+    '<div id="up-wrap">' + upsellHTML() + '</div></div>' +
     '<div class="fld"><label for="f-post">С какого поста</label><input id="f-post" type="text" autocomplete="off" value="' + esc(o.post) + '"></div>' +
     '<div class="fld"><label for="f-comment">Комментарий</label><textarea id="f-comment" class="ta90">' + esc(o.comment) + '</textarea></div>' +
     '<div class="row-flex"><button type="button" class="btn pri" id="card-save" data-act="card-save">Сохранить</button>' + payLink +
@@ -698,13 +848,15 @@ function openCard(id, draftStatus) {
     var ap = activeProducts();
     if (ap.length === 1) { base.productId = ap[0].id; base.productName = ap[0].name; base.sum = num(ap[0].price); }
   }
-  S.card = { id: o ? o.id : null, isNew: !o, status: draftStatus && STN[draftStatus] ? draftStatus : base.status, orig: base, busy: false };
+  var its = (o && o.items || []).map(function (i) { return { productId: i.productId, qty: i.qty, sum: num(i.sum), manual: true }; });
+  S.card = { id: o ? o.id : null, isNew: !o, status: draftStatus && STN[draftStatus] ? draftStatus : base.status, orig: base, busy: false, up: its.length > 0, items: its };
   $('#card-root').innerHTML = cardHTML();
   syncExtra();
   syncWa();
   // An existing order keeps its saved sum unless it equals price x paid (then it still follows the price).
   var pr0 = cardPrice();
   S.card.sumManual = !!o && num(o.sum) > 0 && !(pr0 && num(o.sum) === pr0 * cardQty().paid);
+  S.card.items.forEach(function (it) { var pr = itemPrice(it.productId); it.manual = !(pr && num(it.sum) === pr * it.qty); });
   syncQty();
   var cb = $('#card-close'); if (cb) cb.focus();
   if (o) loadHistory(o.id);
@@ -744,6 +896,67 @@ function syncQty() {
     else if (S.card && S.card.sumManual) { h.innerHTML = 'Сумма введена вручную. <button type="button" class="lnk" data-act="sum-auto">Пересчитать: цена × оплаченные шт.</button>'; }
     else h.textContent = 'Сумма = цена × оплаченные шт.';
   }
+  syncUp();
+}
+/* ---------- upsell lines in the order card ---------- */
+function itemPrice(pid) { var p = pid ? findProduct(pid) : null; return p && num(p.price) > 0 ? num(p.price) : 0; }
+function upsellHTML() {
+  var c = S.card;
+  if (!c || !c.up) return '';
+  var prods = S.data.products.slice().sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'ru'); });
+  var rows = c.items.map(function (it, i) {
+    var opts = '<option value="">— выберите товар —</option>' + prods.filter(function (p) { return p.active !== false || p.id === it.productId; }).map(function (p) {
+      return '<option value="' + esc(p.id) + '"' + (p.id === it.productId ? ' selected' : '') + '>' + esc(p.name) + ' — ' + fmt(num(p.price)) + '</option>';
+    }).join('');
+    return '<div class="up-line"><div class="up-p"><label class="sr" for="up-p-' + i + '">Товар допродажи</label><select id="up-p-' + i + '">' + opts + '</select></div>' +
+      '<div class="fld"><label for="up-q-' + i + '">Оплачено, шт.</label><input id="up-q-' + i + '" type="number" inputmode="numeric" min="1" max="1000" step="1" value="' + esc(it.qty) + '"></div>' +
+      '<div class="fld"><label for="up-s-' + i + '">Сумма, ₸</label><input id="up-s-' + i + '" type="number" inputmode="decimal" min="0" step="any" value="' + esc(num(it.sum)) + '"></div>' +
+      '<button type="button" class="icon-btn" data-act="up-del" data-i="' + i + '" aria-label="Убрать строку">✕</button></div>';
+  }).join('');
+  return rows + (c.items.length < 5 ? '<button type="button" class="lnk" data-act="up-add">+ ещё товар</button>' : '') +
+    '<div class="qty-box"><div class="sum-line"><span>Итого по заказу:</span><b id="up-total"></b></div></div>' +
+    '<small class="db">Акции 1+1 и 2+1 действуют только на основной товар. Заказ с допродажей едет одной посылкой.</small>';
+}
+function readItems() {
+  var c = S.card; if (!c || !c.up) return;
+  c.items.forEach(function (it, i) {
+    var p = document.getElementById('up-p-' + i); if (!p) return;
+    it.productId = p.value;
+    it.qty = Math.max(1, Math.round(num(fv('up-q-' + i))) || 1);
+    it.sum = Math.max(0, num(fv('up-s-' + i)));
+  });
+}
+function syncUp() {
+  var c = S.card, el = document.getElementById('up-total');
+  if (!c || !el) return;
+  readItems();
+  el.textContent = fmt(c.items.reduce(function (t, it) { return t + num(it.sum); }, Math.max(0, num(fv('f-sum')))));
+}
+function repaintUp() { var w = document.getElementById('up-wrap'); if (w) w.innerHTML = upsellHTML(); syncUp(); }
+// Line i changed: q = quantity, p = product, s = sum typed by hand.
+function upChanged(kind, i) {
+  var c = S.card; if (!c || !c.items[i]) return;
+  readItems();
+  var it = c.items[i];
+  if (kind === 's') it.manual = true;
+  else if (!it.manual) {
+    var pr = itemPrice(it.productId);
+    if (pr) { it.sum = pr * it.qty; var e = document.getElementById('up-s-' + i); if (e) e.value = String(it.sum); }
+  }
+  syncUp();
+}
+function upToggle(on) {
+  var c = S.card; if (!c) return;
+  if (!on && c.items.length && !window.confirm('Убрать допродажу? Строки с товарами будут удалены.')) { var cb = document.getElementById('f-up'); if (cb) cb.checked = true; return; }
+  c.up = on; c.items = on ? [{ productId: '', qty: 1, sum: 0, manual: false }] : [];
+  repaintUp();
+}
+// Items to send, or null (with a toast) when a line has no product.
+function cardItemsForSave() {
+  var c = S.card; if (!c.up) return [];
+  readItems();
+  for (var i = 0; i < c.items.length; i++) if (!c.items[i].productId) { toast('Не сохранилось: выберите товар в строке допродажи', 'err'); return null; }
+  return c.items.map(function (it) { return { productId: it.productId, qty: it.qty, sum: it.sum }; });
 }
 // Sum = price x PAID units (gifts are free), unless the sum was typed by hand.
 function autofillSum() {
@@ -763,6 +976,8 @@ function readForm() {
   };
   var pid = g('f-product');
   if (pid !== '__keep') d.productId = pid;
+  d.items = cardItemsForSave();
+  var rp = document.getElementById('f-repeat'); if (rp) d.isRepeat = rp.checked;
   return d;
 }
 
@@ -806,6 +1021,7 @@ async function saveCard() {
   var c = S.card;
   if (!c || c.busy) return;
   var f = readForm();
+  if (f.items === null) return;
   if (!f.name && !f.phone) { toast('Не сохранилось: укажите имя или телефон', 'err'); return; }
   var bad = validateStatus(c, f);
   if (bad) {
@@ -818,11 +1034,14 @@ async function saveCard() {
   var ok = false;
   if (c.isNew) {
     var body = Object.assign({}, f, { status: c.status });
+    if (!body.items.length) delete body.items;
     ok = await run('Заказ создан', function () { return api('POST', '/api/orders', body); });
   } else {
     var patch = {}, o = c.orig;
     Object.keys(f).forEach(function (k) {
       var a = f[k], b = o[k];
+      if (k === 'items') { var sg = function (l) { return JSON.stringify((l || []).map(function (i) { return [i.productId, num(i.qty), num(i.sum)]; })); }; if (sg(a) !== sg(b)) patch.items = a; return; }
+      if (k === 'isRepeat') { if (!!a !== !!b) patch.isRepeat = a; return; }
       var same = (k === 'qty' || k === 'sum' || k === 'paidQty') ? num(a) === num(b) : String(a == null ? '' : a) === String(b == null ? '' : b);
       if (!same) patch[k] = a;
     });
@@ -1558,7 +1777,8 @@ function targetsHTML() {
   var rows = list.map(function (tg) {
     var id = esc(tg.id), link = origin + '/wa/' + tg.code;
     return '<tr class="' + (tg.active ? '' : 'off') + '">' +
-      '<td data-l="Товар"><input type="text" data-tg="' + id + '" data-k="productName" value="' + esc(tg.productName) + '" aria-label="Товар" maxlength="200"></td>' +
+      '<td data-l="Товар"><select data-tg-prod="' + id + '" aria-label="Товар">' + productOptions(tg.productId || '', true, '— не выбран —') + '</select>' +
+        (!tg.productId && tg.productName ? '<small class="db">не привязан: ' + esc(tg.productName) + '</small>' : '') + '</td>' +
       '<td data-l="Код"><input type="text" class="codein" data-tg="' + id + '" data-k="code" value="' + esc(tg.code) + '" aria-label="Код" maxlength="12"></td>' +
       '<td data-l="Текст сообщения"><textarea class="ta90 tgtext" data-tg="' + id + '" data-k="text" aria-label="Текст сообщения" maxlength="1000">' + esc(tg.text) + '</textarea></td>' +
       '<td class="ctr" data-l="Активен"><input type="checkbox" data-tg-active="' + id + '"' + (tg.active ? ' checked' : '') + ' aria-label="Активен"></td>' +
@@ -1571,7 +1791,7 @@ function targetsHTML() {
     '<div class="scroll"><table class="t tgt stack"><thead><tr><th>Товар</th><th>Код</th><th>Текст сообщения</th><th>Активен</th><th>Клики</th><th>Обращения</th><th>Ссылка</th><th></th></tr></thead><tbody>' +
     (rows || '<tr><td colspan="8" class="muted">Текстов пока нет. Добавьте первый ниже.</td></tr>') + '</tbody></table></div>' +
     '<div class="fw6">Добавить товар</div><div class="two">' +
-    '<div class="fld"><label for="tn-product">Товар</label><input id="tn-product" type="text" autocomplete="off" maxlength="200"></div>' +
+    '<div class="fld"><label for="tn-product">Товар</label><select id="tn-product">' + productOptions('', true, '— не выбран —') + '</select></div>' +
     '<div class="fld"><label for="tn-code">Код (например A3)</label><input id="tn-code" type="text" autocomplete="off" maxlength="12"></div></div>' +
     '<div class="fld"><label for="tn-text">Текст сообщения</label><textarea id="tn-text" class="ta90" maxlength="1000" placeholder="Здравствуйте! Хочу заказать отпариватель, подскажите цену и доставку (A3)"></textarea>' +
     '<small>Код в скобках в конце текста помогает CRM узнать клиента точнее: клиент может поменять слова, но код обычно остаётся.</small></div>' +
@@ -1589,7 +1809,9 @@ var LOADERS = {
   bot: ['GET', '/api/bot', function (d) { S.data.bot = d.bot || null; }],
   numbers: ['GET', '/api/wa-numbers', function (d) { S.data.numbers = d.numbers || []; }],
   targets: ['GET', '/api/targets', function (d) { S.data.targets = d.targets || []; }],
-  server: ['GET', '/api/wa-server', function (d) { S.data.server = d.server || null; S.data.diag = d.diag || null; }]
+  server: ['GET', '/api/wa-server', function (d) { S.data.server = d.server || null; S.data.diag = d.diag || null; }],
+  campaigns: ['GET', '/api/ads/campaigns', function (d) { S.data.campaigns = d.campaigns || []; }],
+  fx: ['GET', '/api/fx', function (d) { S.data.fx = d; }]
 };
 async function load(key) {
   var l = LOADERS[key];
@@ -1604,8 +1826,35 @@ async function load(key) {
   S.loaded[key] = true;
   scheduleRender();
 }
-function allKeys() { return S.admin ? ['orders', 'products', 'content', 'settings', 'finance', 'users', 'bot', 'numbers', 'targets', 'server'] : ['orders', 'products', 'content', 'settings']; }
-async function loadAll() { await Promise.all(allKeys().map(load)); }
+function allKeys() { return S.admin ? ['orders', 'products', 'content', 'settings', 'finance', 'users', 'bot', 'numbers', 'targets', 'server', 'campaigns'] : ['orders', 'products', 'content', 'settings']; }
+async function loadAll() { await Promise.all(allKeys().map(load)); loadAdP(); }
+/* Ad spend and target leads of the selected period (profit and stats pages) and of the «Реклама» page range. */
+function dayKey(dn) { return new Date(dn * 864e5).toISOString().slice(0, 10); }
+function periodRange(days) { var t = todayP(); return { from: dayKey(t.dn - days + 1), to: t.key }; }
+async function loadAdP() {
+  if (!S.admin) return;
+  var per = S.period, r = periodRange(periodDays(per)), q = '?from=' + r.from + '&to=' + r.to;
+  try {
+    var a = await Promise.all([api('GET', '/api/ads/spend' + q), api('GET', '/api/ads/leads' + q)]);
+    if (S.period !== per) return;
+    S.data.adP = { period: per, spend: a[0].spend || [], leads: a[1].leads || [] };
+    delete S.errors.adP;
+  } catch (e) { if (e.status === 401) return; S.errors.adP = e.message; }
+  S.loaded.adP = true;
+  scheduleRender();
+}
+async function loadAdSpend() {
+  if (!S.admin) return;
+  var days = S.adsDays, r = periodRange(days);
+  try {
+    var d = await api('GET', '/api/ads/spend?from=' + r.from + '&to=' + r.to);
+    if (S.adsDays !== days) return;
+    S.data.adSpend = { days: days, from: r.from, to: r.to, spend: d.spend || [] };
+    delete S.errors.adSpend;
+  } catch (e) { if (e.status === 401) return; S.errors.adSpend = e.message; }
+  S.loaded.adSpend = true;
+  scheduleRender();
+}
 // Light periodic refresh: only what the open tab shows.
 function pollKeys() {
   var t = S.tab;
@@ -1614,11 +1863,14 @@ function pollKeys() {
   if (t === 'bot') return ['bot'];
   if (t === 'settings') return S.admin ? ['numbers', 'targets', 'server'] : ['numbers', 'targets'];
   if (t === 'account' || t === 'chats') return [];
+  if (t === 'ads' && S.admin) return ['campaigns', 'fx', 'products'];
   return ['orders', 'products'];
 }
 async function poll() {
   if (!S.auth || document.visibilityState !== 'visible' || S.card) return;
   await Promise.all(pollKeys().map(load));
+  if (S.admin && (S.tab === 'profit' || S.tab === 'summary')) loadAdP();
+  if (S.admin && S.tab === 'ads') loadAdSpend();
   if (S.tab !== 'chats') chatsCount();
 }
 
@@ -1633,7 +1885,7 @@ function goLogin() {
 }
 function resetSession() {
   S.auth = false; S.user = null; S.admin = false; S.loaded = {}; S.errors = {}; S.card = null; S.drawer = false; S.kz = null;
-  S.data = { orders: [], products: [], finance: {}, content: [], users: [], settings: null, bot: null, numbers: [], targets: [] };
+  S.data = { orders: [], products: [], finance: {}, content: [], users: [], settings: null, bot: null, numbers: [], targets: [], campaigns: [], adP: null, adSpend: null, fx: null };
   S.chat = freshChat();
   $('#card-root').innerHTML = '';
   renderAll();
@@ -1687,7 +1939,7 @@ var ACTIONS = {
   'drawer-close': function () { S.drawer = false; renderDrawer(); },
   'logout': function () { doLogout(); },
   'filter': function (t) { var f = t.dataset.f; S.filter = (f === 'remind' && S.filter === 'remind') ? 'all' : f; doRender(true); },
-  'period': function (t) { S.period = t.dataset.p; doRender(true); },
+  'period': function (t) { S.period = t.dataset.p; doRender(true); loadAdP(); },
   'content-day': function (t) { S.contentDay = t.dataset.d; doRender(true); },
   'publish': function (t) { doPublish(t.dataset.date, t.dataset.time); },
   'open-order': function (t) { openCard(t.dataset.id); },
@@ -1710,6 +1962,8 @@ var ACTIONS = {
     var pid = t.dataset.pid, cur = Object.assign({}, S.data.finance[pid] || {}, finNums(pid)); cur.extras = readExtras(pid);
     cur.extras.splice(parseInt(t.dataset.i, 10), 1); S.data.finance[pid] = cur; doRender(true); saveFin(pid);
   },
+  'up-add': function () { var c = S.card; if (!c || c.items.length >= 5) return; readItems(); c.items.push({ productId: '', qty: 1, sum: 0, manual: false }); repaintUp(); },
+  'up-del': function (t) { var c = S.card; if (!c) return; readItems(); c.items.splice(parseInt(t.dataset.i, 10), 1); if (!c.items.length) { c.up = false; var cb = document.getElementById('f-up'); if (cb) cb.checked = false; } repaintUp(); },
   'sum-auto': function () { if (S.card) S.card.sumManual = false; autofillSum(); },
   'copy-phone': function () { copyText(textField('f-phone'), 'Номер скопирован', 'f-phone'); },
   'copy-pay': function () { copyText(S.data.settings && S.data.settings.payLink, 'Ссылка на оплату скопирована'); },
@@ -1821,7 +2075,7 @@ var ACTIONS = {
     if (ok) { await load('numbers'); doRender(true); }
   },
   'tg-add': async function () {
-    var data = { productName: textField('tn-product'), code: textField('tn-code'), text: textField('tn-text'), active: true };
+    var data = { productId: fv('tn-product'), code: textField('tn-code'), text: textField('tn-text'), active: true };
     var ok = await run('Текст добавлен', function () { return api('POST', '/api/targets', data); });
     if (ok) { await load('targets'); doRender(true); }
   },
@@ -1830,8 +2084,19 @@ var ACTIONS = {
     var ok = await run('Удалено', function () { return api('DELETE', '/api/targets/' + t.dataset.id); });
     if (ok) { await load('targets'); doRender(true); }
   },
+  'ads-days': function (t) { S.adsDays = parseInt(t.dataset.d, 10) || 14; doRender(true); loadAdSpend(); },
+  'ads-add': async function () {
+    var data = { productId: fv('ad-product'), label: textField('ad-label'), currency: fv('ad-cur'), dailyAmount: Math.max(0, num(numField('ad-daily'))), startDate: fv('ad-start') || todayP().key };
+    var ok = await run('Кабинет добавлен', function () { return api('POST', '/api/ads/campaigns', data); });
+    if (ok) { await Promise.all([load('campaigns'), loadAdSpend(), loadAdP()]); doRender(true); }
+  },
+  'ads-del': async function (t) {
+    if (!window.confirm('Удалить кабинет вместе со всем его расходом по дням? Это уберёт расход из прибыли.')) return;
+    var ok = await run('Кабинет удалён', function () { return api('DELETE', '/api/ads/campaigns/' + t.dataset.id); });
+    if (ok) { await Promise.all([load('campaigns'), loadAdSpend(), loadAdP()]); doRender(true); }
+  },
   'set-save': async function () {
-    var data = { wa1: textField('set-wa1'), wa2: textField('set-wa2'), payLink: textField('set-payLink'), templates: rawField('set-templates'), track_msg: rawField('set-track_msg'), track_url: textField('set-track_url') };
+    var data = { wa1: textField('set-wa1'), wa2: textField('set-wa2'), payLink: textField('set-payLink'), templates: rawField('set-templates'), track_msg: rawField('set-track_msg'), track_url: textField('set-track_url'), usd_manual: textField('set-usd_manual') };
     if (data.track_url && !(/^https:\/\//i.test(data.track_url) && data.track_url.indexOf('{трек}') >= 0)) {
       toast('Не сохранилось: ссылка для отслеживания должна начинаться с https:// и содержать {трек}', 'err'); return;
     }
@@ -1862,7 +2127,7 @@ function readExtras(pid) {
   return out;
 }
 // Re-renders only the results card (inputs keep focus).
-function refreshProfitCard() { if (S.tab === 'profit') { var el = document.getElementById('profit-res'); if (el) el.innerHTML = profitResHTML(); } }
+function refreshProfitCard() { if (S.tab === 'profit') { var el = document.getElementById('profit-res'); if (el) el.innerHTML = profitResHTML(); var ee = document.getElementById('profit-eco'); if (ee) ee.innerHTML = ecoHTML(adEco(S.period)); } }
 
 /* ---------- event wiring ---------- */
 document.addEventListener('click', function (e) {
@@ -1884,6 +2149,7 @@ document.addEventListener('input', function (e) {
   }
   else if (t.id === 'chat-reply') S.chat.draft = t.value;
   else if (t.id === 'f-paid') autofillSum();
+  else if (/^up-[qs]-\d+$/.test(t.id)) upChanged(t.id.charAt(3), parseInt(t.id.slice(5), 10));
   else if (t.id === 'f-sum') { if (S.card) S.card.sumManual = true; syncQty(); }
   else if (t.id === 'f-track') syncExtra();
   else if (t.id === 'f-phone') syncWa();
@@ -1907,6 +2173,32 @@ document.addEventListener('change', function (e) {
     run('Ссылки теперь ведут на этот номер', function () { return api('POST', '/api/wa-numbers/' + t.dataset.wanCur + '/current', {}); }).then(function () { return load('numbers'); }).then(function () { doRender(true); });
     return;
   }
+  if (t.id === 'fx-manual') {
+    var mv = t.value.trim();
+    run('Курс сохранён', function () { return api('PUT', '/api/settings', { usd_manual: mv }); }).then(function () { return Promise.all([load('settings'), load('fx')]); }).then(function () { doRender(true); });
+    return;
+  }
+  if (t.dataset && t.dataset.cmp) {
+    var cp = {}, kk = t.dataset.k;
+    cp[kk] = kk === 'dailyAmount' ? Math.max(0, num(t.value)) : t.value.trim();
+    if (kk === 'startDate' && !validDate(cp[kk])) return;
+    run('Сохранено', function () { return api('PATCH', '/api/ads/campaigns/' + t.dataset.cmp, cp); }).then(function () { return Promise.all([load('campaigns'), loadAdSpend(), loadAdP()]); }).then(function () { doRender(true); });
+    return;
+  }
+  if (t.dataset && t.dataset.cmpActive) {
+    run(t.checked ? 'Кабинет включён' : 'Кабинет остановлен', function () { return api('PATCH', '/api/ads/campaigns/' + t.dataset.cmpActive, { active: !!t.checked }); }).then(function () { return Promise.all([load('campaigns'), loadAdSpend(), loadAdP()]); }).then(function () { doRender(true); });
+    return;
+  }
+  if (t.dataset && t.dataset.sp) {
+    if (t.value.trim() === '') return;
+    var sv = Math.max(0, num(t.value));
+    run('Расход сохранён', function () { return api('PUT', '/api/ads/spend/' + t.dataset.sp + '/' + t.dataset.d, { amount_orig: sv }); }).then(function () { return Promise.all([loadAdSpend(), loadAdP()]); }).then(function () { doRender(true); });
+    return;
+  }
+  if (t.dataset && t.dataset.tgProd) {
+    run('Сохранено', function () { return api('PATCH', '/api/targets/' + t.dataset.tgProd, { productId: t.value }); }).then(function () { return load('targets'); }).then(function () { doRender(true); });
+    return;
+  }
   if (t.dataset && t.dataset.tg) {
     var tp = {}; tp[t.dataset.k] = t.value.trim();
     run('Сохранено', function () { return api('PATCH', '/api/targets/' + t.dataset.tg, tp); }).then(function () { return load('targets'); }).then(function () { doRender(true); });
@@ -1925,6 +2217,8 @@ document.addEventListener('change', function (e) {
   if (t.id === 'card-st') { cardStatus(t.value); return; }
   if (t.id === 'f-remind' || t.id === 'f-delivery') { syncExtra(); return; }
   if (t.id === 'f-product' || t.id === 'f-promo') { autofillSum(); return; }
+  if (t.id === 'f-up') { upToggle(t.checked); return; }
+  if (/^up-p-\d+$/.test(t.id)) { upChanged('p', parseInt(t.id.slice(5), 10)); return; }
   if (t.dataset && t.dataset.fin) { saveFin(t.dataset.fin); return; }
   if (t.id === 'fin-fixed') {
     var v = Math.max(0, num(t.value));

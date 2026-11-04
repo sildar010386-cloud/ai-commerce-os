@@ -71,7 +71,7 @@ let mf, db, cookie;
 before(async () => {
   if (!Miniflare) return;
   mf = new Miniflare({
-    modules: ['worker.js', 'wa.js', 'source.js', 'connector_script.js', 'connector_windows.js'].map((f) => ({ type: 'ESModule', path: f, contents: fs.readFileSync(path.join(SRC, f), 'utf8') })),
+    modules: ['worker.js', 'wa.js', 'source.js', 'fx.js', 'connector_script.js', 'connector_windows.js'].map((f) => ({ type: 'ESModule', path: f, contents: fs.readFileSync(path.join(SRC, f), 'utf8') })),
     compatibilityDate: '2025-01-15', d1Databases: { DB: 'testdb' }, bindings: { CRM_API_KEY: 'test-api-key-0123456789' }
   });
   db = await mf.getD1Database('DB');
@@ -452,7 +452,7 @@ test('«Загрузить старые чаты заново»: relink command 
 test('legacy paths keep working: CONNECTOR_URL send for a QR number without a connector key, Cloud API send', { skip }, async () => {
   const seen = [];
   const mf2 = new Miniflare({
-    modules: ['worker.js', 'wa.js', 'source.js', 'connector_script.js', 'connector_windows.js'].map((f) => ({ type: 'ESModule', path: f, contents: fs.readFileSync(path.join(SRC, f), 'utf8') })),
+    modules: ['worker.js', 'wa.js', 'source.js', 'fx.js', 'connector_script.js', 'connector_windows.js'].map((f) => ({ type: 'ESModule', path: f, contents: fs.readFileSync(path.join(SRC, f), 'utf8') })),
     compatibilityDate: '2025-01-15', d1Databases: { DB: 'legacy' },
     bindings: { CRM_API_KEY: 'test-api-key-0123456789', CONNECTOR_URL: 'https://legacy.example/', CONNECTOR_KEY: 'ck', WA_TOKEN: 'wat' },
     outboundService: async (req) => {

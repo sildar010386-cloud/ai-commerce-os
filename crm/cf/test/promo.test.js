@@ -116,7 +116,7 @@ const shape = (o) => ({ promo: o.promo, paidQty: o.paidQty, giftQty: o.giftQty, 
 
 before(async () => {
   if (!Miniflare) return;
-  const mods = ['wa.js', 'source.js', 'connector_script.js', 'connector_windows.js'].map((f) => ({ type: 'ESModule', path: f, contents: fs.readFileSync(path.join(SRC, f), 'utf8') }));
+  const mods = ['wa.js', 'source.js', 'fx.js', 'connector_script.js', 'connector_windows.js'].map((f) => ({ type: 'ESModule', path: f, contents: fs.readFileSync(path.join(SRC, f), 'utf8') }));
   mf = new Miniflare({
     modules: [{ type: 'ESModule', path: 'entry.js', contents: fs.readFileSync(path.join(SRC, 'worker.js'), 'utf8') }].concat(mods),
     compatibilityDate: '2025-01-15', d1Databases: { DB: 'promodb', OLD: 'olddb' }, bindings: { CRM_API_KEY: KEY }
