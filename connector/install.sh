@@ -1,7 +1,10 @@
 #!/bin/bash
 # Bikas WhatsApp connector installer. Idempotent. Run as root on Ubuntu 22.04 / 24.04 (x86_64 or arm64).
-# Needs /etc/bikas-connector.env with CRM_URL and CONNECTOR_TOKEN (written by the cloud-init script).
+# Needs /etc/bikas-connector.env with CRM_URL and CONNECTOR_TOKEN (written by the startup / cloud-init script).
 # Opens no ports: the connector only makes outbound HTTPS calls to the CRM.
+# Safe to run on every boot (Google Cloud "Startup script"): when everything is already installed it only makes sure the
+# services are enabled and running (a few seconds). BIKAS_FORCE=1 forces the full install/update. Never touches the WhatsApp
+# session (/var/lib/bikas-connector/auth).
 set -euo pipefail
 
 BRANCH="${BIKAS_BRANCH:-claude/practical-mendel-vjtsd5}"
@@ -18,6 +21,29 @@ log() { echo "[bikas-install $(date -u +%H:%M:%S)] $*"; }
 [ -s "$ENV_FILE" ] || { echo "$ENV_FILE is missing: it must contain CRM_URL and CONNECTOR_TOKEN" >&2; exit 1; }
 chown root:root "$ENV_FILE"; chmod 600 "$ENV_FILE"
 export DEBIAN_FRONTEND=noninteractive
+
+# KEEP_BUSY=1 (Oracle Always Free only) runs the low-priority load worker; default 0.
+apply_busy() {
+  if grep -Eq '^KEEP_BUSY=1\s*$' "$ENV_FILE"; then
+    systemctl enable bikas-busy.service >/dev/null 2>&1
+    systemctl "$1" bikas-busy.service
+  else
+    systemctl disable --now bikas-busy.service >/dev/null 2>&1 || true
+  fi
+}
+
+# --- 0. fast path: already installed ---
+if [ "${BIKAS_FORCE:-0}" != 1 ] && [ -d "$APP/.git" ] && [ -f "$APP/connector/node_modules/.package-lock.json" ] &&
+   [ -x /usr/local/bin/node ] && [ -f /etc/systemd/system/bikas-connector.service ]; then
+  log "already installed: making sure the services run"
+  systemctl daemon-reload
+  systemctl enable bikas-connector.service bikas-connector-update.timer >/dev/null 2>&1 || true
+  systemctl start bikas-connector.service      # no-op when running: the WhatsApp session is not interrupted
+  apply_busy start
+  systemctl start bikas-connector-update.timer || true
+  log "done (fast path)"
+  exit 0
+fi
 
 # --- 1. swap: 1 GB machines need it for npm and for history sync ---
 mem_kb=$(awk '/MemTotal/ {print $2}' /proc/meminfo)
@@ -145,7 +171,7 @@ new=$(as_bikas git -C "$APP" rev-parse FETCH_HEAD:connector)
 if [ "$old" = "$new" ]; then echo "connector/ unchanged"; exit 0; fi
 as_bikas git -C "$APP" reset --hard FETCH_HEAD
 tmp=$(mktemp); cp "$APP/connector/install.sh" "$tmp"   # do not run a script that git is about to rewrite
-bash "$tmp"; rm -f "$tmp"
+BIKAS_FORCE=1 bash "$tmp"; rm -f "$tmp"
 SCRIPT
 chmod 755 /usr/local/sbin/bikas-connector-update
 
@@ -175,12 +201,7 @@ UNIT
 systemctl daemon-reload
 systemctl enable bikas-connector.service >/dev/null 2>&1
 systemctl restart bikas-connector.service
-if grep -Eq '^KEEP_BUSY=0\s*$' "$ENV_FILE"; then
-  systemctl disable --now bikas-busy.service >/dev/null 2>&1 || true
-else
-  systemctl enable bikas-busy.service >/dev/null 2>&1
-  systemctl restart bikas-busy.service
-fi
+apply_busy restart
 systemctl enable --now bikas-connector-update.timer >/dev/null 2>&1
 
 log "done. Status: systemctl status bikas-connector ; logs: journalctl -u bikas-connector -f"

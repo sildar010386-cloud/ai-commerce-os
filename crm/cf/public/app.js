@@ -1327,7 +1327,7 @@ var SRV_STATE_TEXT = {
   logged_out: 'номер отвязан, ждёт новый QR-код', banned: 'WhatsApp не пускает этот номер (возможно, он заблокирован)', relinking: 'переподключение…'
 };
 function serverStatusHTML(sv) {
-  if (!sv || !sv.installed) return '<b class="neg">Не установлен</b> <small>Создайте ключ и установите сервер по инструкции ниже.</small>';
+  if (!sv || !sv.installed) return '<b class="neg">Не установлен</b> <small>Создайте ключ и вставьте скрипт в настройки сервера.</small>';
   if (!sv.lastSeenAt) return '<b class="neg">Не установлен</b> <small>Ключ создан, ждём первый запуск сервера.</small>';
   var line = sv.online ? '<b class="pos">На связи</b>' : '<b class="neg">Нет связи ' + (sv.minutesAgo != null ? sv.minutesAgo + ' мин' : '') + '</b>';
   var det = [];
@@ -1347,8 +1347,8 @@ function waServerInner() {
   }
   if (S.serverScript) {
     h += '<div class="notice"><b>Скрипт показан один раз.</b> Он содержит секретный ключ: никому его не отправляйте. Если потеряли, создайте новый ключ (старый перестанет работать).</div>' +
-      '<div class="fld"><label for="ws-script">Скрипт инициализации для Oracle Cloud</label><textarea id="ws-script" class="ws-script" readonly spellcheck="false">' + esc(S.serverScript) + '</textarea>' +
-      '<small>Oracle Cloud → Create instance → Show advanced options → Management → Initialization script → Paste cloud-init script. Установка занимает несколько минут, потом здесь появится QR-код.</small></div>' +
+      '<div class="fld"><label for="ws-script">Скрипт для сервера</label><textarea id="ws-script" class="ws-script" readonly spellcheck="false">' + esc(S.serverScript) + '</textarea>' +
+      '<small>Вставьте скрипт в настройки сервера. Google Cloud: Compute Engine → ваша машина → Изменить → «Автоматизация» → «Скрипт запуска» (Startup script). Oracle Cloud: Create instance → Show advanced options → Management → Initialization script. Скрипт безопасно запускается при каждой загрузке сервера. Установка занимает несколько минут, потом здесь появится QR-код.</small></div>' +
       '<div class="row-flex"><button type="button" class="btn pri" data-act="ws-copy">Скопировать скрипт</button><button type="button" class="btn" data-act="ws-hide">Скрыть скрипт</button></div>';
   }
   h += '<div class="row-flex"><button type="button" class="btn' + (sv && sv.installed ? '' : ' pri') + '" data-act="ws-key">Создать ключ подключения</button>' +
@@ -1357,7 +1357,7 @@ function waServerInner() {
 }
 function waServerHTML() {
   if (!S.admin) return '';
-  return '<div class="h1">Сервер WhatsApp</div><div class="card col14"><div class="muted fs14">Небольшой бесплатный сервер держит один подключённый номер WhatsApp (как «Связанное устройство») и передаёт сообщения в CRM. ' +
+  return '<div class="h1">Сервер WhatsApp</div><div class="card col14"><div class="muted fs14">Небольшой сервер (бесплатный тариф облака) держит один подключённый номер WhatsApp (как «Связанное устройство») и передаёт сообщения в CRM. ' +
     'Номер заблокировали? Нажмите «Переподключить на другой номер» и отсканируйте QR-код другим телефоном: все ссылки /wa переключатся на новый номер.</div>' +
     '<div class="col14" id="ws-box">' + waServerInner() + '</div></div>';
 }
