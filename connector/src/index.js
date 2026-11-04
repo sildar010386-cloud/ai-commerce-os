@@ -51,6 +51,7 @@ if (parentPid) {
 const crm = createCrm({ url: CRM_URL, token: TOKEN, instanceId: INSTANCE_ID, log: logger });
 const queue = createEventQueue({ file: cfg.queueFile, send: (events) => crm.events(events), log: logger });
 
+const FULL_SYNC = process.env.SYNC_FULL_HISTORY === '1';
 const voiceHint = { current: null };
 let waVersion;
 async function makeSocket() {
@@ -62,12 +63,15 @@ async function makeSocket() {
     auth: state,
     version: waVersion,
     logger,
-    // WhatsApp sends the old chats (like WhatsApp Web does) only to a linked "desktop" companion that asks for the full history
-    // at pairing time: platform "Desktop" + os Windows/Mac OS + syncFullHistory (see Baileys validate-connection.js).
-    // Without shouldSyncHistoryMessage Baileys would still drop every history chunk (its default follows syncFullHistory).
-    browser: Browsers.windows('Desktop'),
+    // Field report 2026-11-04: Browsers.windows('Desktop') + syncFullHistory makes Baileys announce webSubPlatform WIN32
+    // (validate-connection.js getWebInfo) and WhatsApp closes every connection at once (code 428 "Connection Terminated"),
+    // even with a fresh session, so no QR is ever shown. The first install (windows/Chrome, no full sync) paired fine.
+    // Default = that proven WhatsApp Web identity; the phone still sends the initial + recent history on pairing, and
+    // shouldSyncHistoryMessage: () => true makes Baileys keep it (its default drops it when syncFullHistory is off).
+    // SYNC_FULL_HISTORY=1 opts into the macOS desktop identity (webSubPlatform DARWIN) for a deeper sync — experimental.
+    browser: FULL_SYNC ? Browsers.macOS('Desktop') : Browsers.windows('Chrome'),
     markOnlineOnConnect: false,          // keep push notifications on the owner's phone
-    syncFullHistory: process.env.SYNC_FULL_HISTORY !== '0',
+    syncFullHistory: FULL_SYNC,
     shouldSyncHistoryMessage: () => true,
     patchMessageBeforeSending: (msg) => {
       // Voice-note waveform (see bridge.js voiceHint): Baileys overwrites it with undefined when it cannot decode the audio.
