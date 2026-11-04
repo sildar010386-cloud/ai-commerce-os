@@ -175,3 +175,15 @@ test('inbox hook: drops malformed events and never throws', () => {
   assert.equal(ev.length, 0);
   for (const g of [null, undefined, 1, 'x', [], {}, { events: 'x' }]) assert.deepEqual(normalizeInboxEvents(g), []);
 });
+
+test('normalizeInboxEvents: alias events and the lid of a chat', async () => {
+  const { normalizeInboxEvents } = await import(require('url').pathToFileURL(require('path').join(__dirname, '../src/wa.js')).href);
+  const out = normalizeInboxEvents({ events: [
+    { kind: 'alias', numberPhone: '77011112233', lid: '22664861229131', phone: '77071110001' },
+    { kind: 'alias', numberPhone: '77011112233', lid: '22664861229131', phone: '22664861229131' },   // not a mapping
+    { kind: 'alias', numberPhone: '77011112233', lid: '123', phone: '77071110001' },                 // not a lid
+    { kind: 'history', numberPhone: '77011112233', waId: '77071110001', lid: '22664861229131', direction: 'in', msg: { id: 'A', ts: 1760000000, type: 'text', body: 'x' } },
+    { kind: 'message', numberPhone: '77011112233', waId: '77071110002', msg: { id: 'B', ts: 1760000000, type: 'text', body: 'y' } }
+  ] });
+  assert.deepEqual(out.map((e) => [e.kind, e.lid, e.phone || e.waId]), [['alias', '22664861229131', '77071110001'], ['history', '22664861229131', '77071110001'], ['message', '', '77071110002']]);
+});

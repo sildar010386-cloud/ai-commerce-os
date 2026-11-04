@@ -957,7 +957,7 @@ function chatSrcBadge(c) {
   if (c.traffic === 'old') return '<span class="badge b-tr tb-old">Старый</span>';
   return '<span class="badge b-tr tb-o">Органика</span>';
 }
-function chatName(c) { return c.name || (c.phone ? '+' + c.phone : 'Без имени'); }
+function chatName(c) { return c.name || (c.phone ? '+' + c.phone : c.idKind === 'lid' ? 'Номер скрыт WhatsApp' : 'Без имени'); }
 function chatTime(iso) {
   var p = almaty(iso), t = todayP();
   if (!p || !t) return '';
@@ -1029,7 +1029,7 @@ function chatHeadHTML() {
     ? '<button type="button" class="btn" data-act="chat-order-open" data-id="' + esc(c.orderId) + '">Открыть заказ № ' + esc(c.orderNum != null ? c.orderNum : '') + '</button>'
     : '<button type="button" class="btn pri" data-act="chat-order">Оформить заказ</button>';
   return '<div class="row-flex"><button type="button" class="btn sm only-narrow" data-act="chat-back">&larr; Чаты</button>' +
-    '<div class="grow1"><b>' + esc(chatName(c)) + '</b> <small>' + (c.name && c.phone ? '+' + esc(c.phone) : '') + '</small><div>' + chatSrcBadge(c) +
+    '<div class="grow1"><b>' + esc(chatName(c)) + '</b> <small>' + (c.name && c.phone ? '+' + esc(c.phone) : c.name && c.idKind === 'lid' ? 'номер скрыт WhatsApp' : '') + '</small><div>' + chatSrcBadge(c) +
     (c.platform ? ' <small>' + esc(c.platform) + '</small>' : '') + (c.numberLabel ? ' <small>номер: ' + esc(c.numberLabel) + (c.numberStatus === 'blocked' ? ' (заблокирован)' : c.numberStatus === 'off' ? ' (выключен)' : '') + '</small>' : '') + '</div></div></div>' +
     '<div class="row-flex"><label class="sr" for="chat-src">Источник</label><select id="chat-src" class="chat-src">' + chatSourceOptions(c) + '</select>' + order + '</div>';
 }

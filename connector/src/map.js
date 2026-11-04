@@ -44,7 +44,8 @@ export function chatIdOf(key) {
     return d.length >= 5 && d.length <= 20 ? { waId: d, lid: false } : null;
   }
   if (server === 'lid') {
-    const alts = [key.remoteJidAlt, key.senderPn, key.participantPn].map(str);
+    // sender_pn / participant_pn name the SENDER: for our own messages that is our own number, not the customer's
+    const alts = (key.fromMe === true ? [key.remoteJidAlt] : [key.remoteJidAlt, key.senderPn, key.participantPn]).map(str);
     for (const a of alts) {
       const sv = serverPart(a);
       if (sv === 's.whatsapp.net' || sv === 'c.us') {
@@ -151,6 +152,7 @@ export function mapMessage(m, ctx) {
       kind, numberPhone: str(ctx.ownPhone), waId: chat.waId, profileName: fromMe ? '' : str(m.pushName).slice(0, 200),
       direction: fromMe ? 'out' : 'in', msg
     };
+    if (chat.lidUser) event.lid = chat.lidUser;   // anonymous id of the chat (== waId when the phone is unknown)
     return { event, media, chat };
   } catch (e) {
     return null;
@@ -200,17 +202,22 @@ export function mapReceipts(receipts, ownPhone) {
 
 // History batches: keep the last `days` days, at most `perChat` newest messages of each chat (so that many chats appear, not a few
 // chats with a deep history) and at most `cap` newest messages overall. Returns them grouped by chat, oldest first inside a chat.
+// A chat is the 1:1 chat the key resolves to (the same person under @lid and under the phone is ONE chat); a message id is taken once.
 export function selectHistory(messages, { days = 365, cap = 6000, perChat = 30, now = Date.now() } = {}) {
   const min = Math.floor(now / 1000) - days * 86400;
-  const list = [];
+  const chatKey = (m) => { const c = m && chatIdOf(m.key); return c ? c.waId : str(m && m.key && m.key.remoteJid); };
+  const list = [], seen = new Set();
   for (const m of Array.isArray(messages) ? messages : []) {
     const ts = isObj(m) ? toNum(m.messageTimestamp) : 0;
-    if (ts >= min) list.push(m);
+    if (ts < min) continue;
+    const id = isObj(m.key) ? str(m.key.id) : '';
+    if (id) { if (seen.has(id)) continue; seen.add(id); }
+    list.push(m);
   }
   list.sort((a, b) => toNum(b.messageTimestamp) - toNum(a.messageTimestamp));
   const count = new Map(), kept = [];
   for (const m of list) {
-    const k = str(m.key && m.key.remoteJid);
+    const k = chatKey(m);
     const n = count.get(k) || 0;
     if (n >= perChat) continue;
     count.set(k, n + 1);
@@ -219,13 +226,14 @@ export function selectHistory(messages, { days = 365, cap = 6000, perChat = 30, 
   }
   // grouped by chat (first appearance = newest chat first), oldest first inside
   const order = new Map();
-  kept.forEach((m) => { const k = str(m.key && m.key.remoteJid); if (!order.has(k)) order.set(k, order.size); });
-  return kept.reverse().sort((a, b) => order.get(str(a.key && a.key.remoteJid)) - order.get(str(b.key && b.key.remoteJid)));
+  kept.forEach((m) => { const k = chatKey(m); if (!order.has(k)) order.set(k, order.size); });
+  return kept.reverse().sort((a, b) => order.get(chatKey(a)) - order.get(chatKey(b)));
 }
 
-// Names and lid->phone links out of a messaging-history.set / contacts.upsert payload.
+// Names and lid->phone links out of a messaging-history.set / contacts.upsert payload (and the decoded HistorySync blob).
+//   chats: {id, pnJid, lidJid, name}; contacts: {id, lid, jid, phoneNumber, name, notify}; mappings: [{pnJid, lidJid}] (HistorySync.phoneNumberToLidMappings)
 // -> {names: Map(waId -> name), lidPn: Map(lidUser -> phone digits)}
-export function readContacts({ chats, contacts } = {}) {
+export function readContacts({ chats, contacts, mappings } = {}) {
   const names = new Map(), lidPn = new Map();
   const phoneOf = (jid) => { const sv = serverPart(jid); return (sv === 's.whatsapp.net' || sv === 'c.us') ? digits(userPart(jid)) : ''; };
   const lidOf = (jid) => (serverPart(jid) === 'lid' ? userPart(jid) : '');
@@ -233,16 +241,35 @@ export function readContacts({ chats, contacts } = {}) {
     const n = str(name).trim().slice(0, 200);
     let phone = '', lid = '';
     for (const id of ids) { phone = phone || phoneOf(id); lid = lid || lidOf(id); }
-    if (phone && lid) lidPn.set(lid, phone);
+    if (phone && lid && phone !== lid && phone.length >= 7 && phone.length <= 15) lidPn.set(lid, phone);
     if (n) { if (phone) names.set(phone, n); else if (lid) names.set(lid, n); }
   };
+  // a bare phone number field ("+7 701 ...") counts as a jid
+  const pnField = (v) => { const d = digits(v); return d && !/@/.test(str(v)) ? d + '@s.whatsapp.net' : str(v); };
   for (const c of Array.isArray(contacts) ? contacts : []) {
-    if (isObj(c)) put([c.id, c.jid, c.lid], c.name || c.notify || c.verifiedName);
+    if (isObj(c)) put([c.id, c.jid, c.lid, pnField(c.phoneNumber)], c.name || c.notify || c.verifiedName);
   }
   for (const c of Array.isArray(chats) ? chats : []) {
     if (isObj(c)) put([c.id, c.pnJid, c.lidJid], c.name || c.displayName);
   }
+  for (const x of Array.isArray(mappings) ? mappings : []) {
+    if (isObj(x)) put([x.pnJid, x.lidJid], '');
+  }
   return { names, lidPn };
+}
+
+// The phone behind a @lid key of a live message (stanza attrs sender_pn / participant_pn, or remoteJidAlt): {lid, phone} or null.
+export function lidPairOfKey(key) {
+  if (!isObj(key) || serverPart(key.remoteJid) !== 'lid') return null;
+  const alts = key.fromMe === true ? [key.remoteJidAlt] : [key.remoteJidAlt, key.senderPn];
+  for (const a of alts) {
+    const sv = serverPart(a);
+    if (sv === 's.whatsapp.net' || sv === 'c.us') {
+      const phone = digits(userPart(a));
+      if (phone.length >= 7 && phone.length <= 15) return { lid: userPart(key.remoteJid), phone };
+    }
+  }
+  return null;
 }
 
 export function phoneOfJid(jid) {

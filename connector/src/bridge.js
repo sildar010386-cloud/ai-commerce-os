@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { short, describeUpdate } from './safelog.js';
-import { mapMessage, mapUpdates, mapReceipts, selectHistory, readContacts, phoneOfJid, MAX_MEDIA_BYTES, chatIdOf } from './map.js';
+import { mapMessage, mapUpdates, mapReceipts, selectHistory, readContacts, lidPairOfKey, unwrap, toNum, phoneOfJid, MAX_MEDIA_BYTES, chatIdOf } from './map.js';
 
 // base64 of 64 bytes (0..100) -> Uint8Array, otherwise null
 export function parseWave(b64) {
@@ -20,7 +20,7 @@ const HISTORY_BATCH = 15;
 const HISTORY_CAP = 6000, HISTORY_DAYS = 365, HISTORY_PER_CHAT = 30;
 
 export function createBridge({
-  crm, queue, makeSocket, wipeAuth, renderQr, downloadMedia, prepareVoice, version, stateDir, voiceHint = { current: null },
+  crm, queue, makeSocket, wipeAuth, renderQr, downloadMedia, downloadHistory, prepareVoice, version, stateDir, voiceHint = { current: null },
   log = console, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), random = Math.random,
   now = Date.now, watchdogMs = 5 * 60000, watchTickMs = 15000, sleepGapMs = 60000, stuckMs = 3 * 60000
 }) {
@@ -32,9 +32,24 @@ export function createBridge({
   const sentIds = new Map();      // message ids we sent ourselves (their echo must not be reported as "sent from the phone")
   const doneOutbox = new Map();   // outbox id -> extMsgId, protects against double sending when an ack got lost
   const lids = new Set();
-  const lidPn = new Map();        // anonymous @lid user -> real phone number (learned from history and contacts)
+  const lidPn = new Map();        // anonymous @lid user -> real phone number (history, contacts, live messages); kept in lidmap.json
   const names = new Map();        // wa id -> name from the phone book / push names
   const lidFile = stateDir ? path.join(stateDir, 'lids.json') : '';
+  const mapFile = stateDir ? path.join(stateDir, 'lidmap.json') : '';
+  try {
+    if (mapFile && fs.existsSync(mapFile)) {
+      const o = JSON.parse(fs.readFileSync(mapFile, 'utf8'));
+      for (const [k, v] of Object.entries(o && typeof o === 'object' ? o : {})) if (/^\d{5,20}$/.test(k) && /^\d{7,15}$/.test(String(v))) lidPn.set(k, String(v));
+    }
+  } catch (e) { /* ignore */ }
+  const saveMap = () => {
+    try {
+      if (!mapFile) return;
+      const tmp = mapFile + '.tmp';
+      fs.writeFileSync(tmp, JSON.stringify(Object.fromEntries(lidPn)));
+      fs.renameSync(tmp, mapFile);
+    } catch (e) { /* ignore */ }
+  };
   try { if (lidFile && fs.existsSync(lidFile)) JSON.parse(fs.readFileSync(lidFile, 'utf8')).forEach((x) => lids.add(String(x))); } catch (e) { /* ignore */ }
 
   const rememberLid = (waId) => {
@@ -68,6 +83,11 @@ export function createBridge({
     s.ev.on('messaging-history.set', guard(onHistory));
     s.ev.on('contacts.upsert', guard(onContacts));
     s.ev.on('contacts.update', guard(onContacts));
+    s.ev.on('chats.phoneNumberShare', guard((x) => { // a customer shared the phone behind his lid
+      const r = readContacts({ contacts: [{ id: x && x.lid, jid: x && x.jid }] });
+      readOwn();
+      return announce(learnPairs([...r.lidPn].map(([lid, phone]) => ({ lid, phone }))));
+    }));
     s.ev.on('messages.update', guard((u) => emit(mapUpdates(u, ownPhone))));
     s.ev.on('message-receipt.update', guard((u) => emit(mapReceipts(u, ownPhone))));
     // Any frame from WhatsApp (the keep-alive answers come every ~30 s) proves the connection is alive.
@@ -198,6 +218,11 @@ export function createBridge({
     const live = u.type === 'notify';
     const min = Math.floor(Date.now() / 1000) - HISTORY_DAYS * 86400;
     const events = [];
+    // The history-sync notification itself arrives here: Baileys drops the lid -> phone table of that blob, we read it ourselves.
+    for (const m0 of u.messages || []) harvestHistory(m0);
+    const pairs = [];
+    for (const m0 of u.messages || []) { const p = m0 && lidPairOfKey(m0.key); if (p) pairs.push(p); }
+    if (pairs.length) await announce(learnPairs(pairs));
     for (const m0 of u.messages || []) {
       if (m0 && m0.key && m0.key.fromMe && sentIds.has(m0.key.id)) continue;
       const m = withPhone(m0);
@@ -217,12 +242,58 @@ export function createBridge({
     const pn = lidPn.get(key.remoteJid.split('@')[0].split(':')[0]);
     return pn ? Object.assign({}, m, { key: Object.assign({}, key, { remoteJidAlt: pn + '@s.whatsapp.net' }) }) : m;
   };
+  // Remembers lid -> phone pairs; returns the NEW ones.
+  const learnPairs = (pairs) => {
+    const fresh = [];
+    for (const { lid, phone } of pairs) {
+      if (!lid || !phone || lid === phone || lidPn.get(lid) === phone) continue;
+      lidPn.set(lid, phone);
+      fresh.push({ lid, phone });
+    }
+    if (fresh.length) {
+      while (lidPn.size > 50000) lidPn.delete(lidPn.keys().next().value);
+      saveMap();
+    }
+    return fresh;
+  };
+  // New pairs -> 'alias' events: the CRM moves a chat it already holds under the lid to the phone contact.
+  const announce = async (fresh) => {
+    if (!fresh.length || !ownPhone) return;
+    for (let i = 0; i < fresh.length; i += HISTORY_BATCH) {
+      await emit(fresh.slice(i, i + HISTORY_BATCH).map((p) => ({ kind: 'alias', numberPhone: ownPhone, lid: p.lid, phone: p.phone })));
+    }
+  };
   const learn = (payload) => {
     const r = readContacts(payload);
-    r.lidPn.forEach((v, k) => lidPn.set(k, v));
     r.names.forEach((v, k) => names.set(k, v));
+    r.fresh = learnPairs([...r.lidPn].map(([lid, phone]) => ({ lid, phone })));
     return r;
   };
+
+  const harvested = new Set();
+  async function harvestHistory(m) {
+    try {
+      const c = unwrap(m && m.message);
+      const n = c && c.protocolMessage && c.protocolMessage.historySyncNotification;
+      if (!n || typeof downloadHistory !== 'function' || !(n.directPath || n.url)) return;
+      const type = toNum(n.syncType);
+      if (type === 1 || type === 4) return;                      // INITIAL_STATUS_V3, PUSH_NAME: no chats
+      const key = String(n.directPath || n.url) + ':' + type;
+      if (harvested.has(key)) return;
+      harvested.add(key);
+      const data = await downloadHistory(n, {});
+      const r = readContacts({
+        chats: (data.conversations || []).map((x) => ({ id: x.id, pnJid: x.pnJid, lidJid: x.lidJid })),
+        contacts: (data.pushnames || []).map((x) => ({ id: x.id, notify: x.pushname })),
+        mappings: data.phoneNumberToLidMappings
+      });
+      r.names.forEach((v, k) => { if (!names.has(k)) names.set(k, v); });
+      const fresh = learnPairs([...r.lidPn].map(([lid, phone]) => ({ lid, phone })));
+      info(`history blob: syncType ${type}, ${(data.conversations || []).length} chats, ${(data.phoneNumberToLidMappings || []).length} lid mappings, ${fresh.length} new, ${lidPn.size} known`);
+      readOwn();
+      await announce(fresh);
+    } catch (e) { log.warn && log.warn('history blob failed: ' + short(e && e.message, 100)); }
+  }
   const contactEvents = (r, skip) => {
     const out = [];
     r.names.forEach((name, waId) => { if (!skip.has(waId) && waId.length >= 5) out.push({ kind: 'contact', numberPhone: ownPhone, waId, profileName: name }); });
@@ -233,6 +304,7 @@ export function createBridge({
     readOwn();
     if (!ownPhone || !Array.isArray(list)) return;
     const found = learn({ contacts: list });
+    await announce(found.fresh);
     const evs = contactEvents(found, new Set());
     for (let i = 0; i < evs.length; i += HISTORY_BATCH) await emit(evs.slice(i, i + HISTORY_BATCH));
   }
@@ -242,6 +314,7 @@ export function createBridge({
     readOwn();
     if (!ownPhone) return;
     const found = learn(h);
+    await announce(found.fresh);
     const room = HISTORY_CAP - historyCount;
     const events = [];
     if (room > 0) {
@@ -269,7 +342,7 @@ export function createBridge({
     const w = parseWave(item && item.waveform), seconds = Math.round(Number(item && item.seconds));
     return w && seconds >= 1 && seconds <= 3600 ? { seconds, waveform: w } : null;
   };
-  const jidFor = (to) => `${to}@${lids.has(to) ? 'lid' : 's.whatsapp.net'}`;
+  const jidFor = (to, item) => `${to}@${(item && item.lid === true) || lids.has(to) ? 'lid' : 's.whatsapp.net'}`;
 
   async function sendItem(item) {
     const id = item && Number(item.id);
@@ -302,7 +375,7 @@ export function createBridge({
       // is applied by patchMessageBeforeSending in index.js right before the message is encrypted.
       voiceHint.current = wave && content.ptt ? wave : null;
       let res;
-      try { res = await sock.sendMessage(jidFor(to), content); } finally { voiceHint.current = null; }
+      try { res = await sock.sendMessage(jidFor(to, item), content); } finally { voiceHint.current = null; }
       const ext = res && res.key && res.key.id ? String(res.key.id) : '';
       if (ext) { sentIds.set(ext, Date.now()); trim(sentIds); }
       doneOutbox.set(id, ext); trim(doneOutbox);

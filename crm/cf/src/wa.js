@@ -153,6 +153,11 @@ export function normalizeInboxEvents(body) {
         out.push(Object.assign({ kind: 'status', id: s(e.id), status: s(e.status), ts: isoFromTs(e.ts) }, base));
         continue;
       }
+      if (e.kind === 'alias') {     // an anonymous WhatsApp id (lid) turned out to belong to this phone number
+        const lid = digits(e.lid), ph = digits(e.phone);
+        if (lid.length >= 8 && lid.length <= 20 && ph.length >= 7 && ph.length <= 15 && lid !== ph) out.push(Object.assign({ kind: 'alias', lid, phone: ph }, base));
+        continue;
+      }
       if (e.kind === 'contact') {   // a name from the phone book / push name; applied only to a chat that has no name yet
         const wa = digits(e.waId), nm = s(e.profileName).trim().slice(0, 200);
         if (wa.length >= 5 && wa.length <= 20 && nm) out.push(Object.assign({ kind: 'contact', waId: wa, profileName: nm }, base));
@@ -165,7 +170,8 @@ export function normalizeInboxEvents(body) {
       const direction = e.kind === 'message' ? 'in' : e.kind === 'echo' ? 'out' : (e.direction === 'out' ? 'out' : 'in');
       const type = MSG_TYPES.includes(m.type) ? m.type : 'other';
       const url = s(m.mediaUrl);
-      out.push(Object.assign({ kind: e.kind, direction, waId, profileName: s(e.profileName).slice(0, 200) }, base, {
+      const lid = digits(e.lid);   // the anonymous id of this chat when it is a @lid chat (== waId when the phone is unknown)
+      out.push(Object.assign({ kind: e.kind, direction, waId, lid: lid.length >= 8 && lid.length <= 20 ? lid : '', profileName: s(e.profileName).slice(0, 200) }, base, {
         msg: {
           id: s(m.id).slice(0, 200), ts: isoFromTs(m.ts), type, body: s(m.body).slice(0, 4096), mediaId: s(m.mediaId).slice(0, 300),
           mediaUrl: /^https?:\/\//i.test(url) ? url.slice(0, 2000) : '', mediaRef: /^[A-Za-z0-9_-]{1,64}$/.test(s(m.mediaRef)) ? s(m.mediaRef) : '', mime: s(m.mime).slice(0, 100), caption: s(m.caption).slice(0, 1024),

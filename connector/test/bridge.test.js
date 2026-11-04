@@ -488,3 +488,90 @@ test('start() reports the state at once (so the CRM learns the instance id) ', a
   t.bridge.stop();
   assert.ok(t.calls.state.length >= 1);
 });
+
+/* ---------- @lid <-> phone ---------- */
+const LIDA = '22664861229131', PHA = '77071110001';
+const mk = (jid, id, extra) => Object.assign({ key: { remoteJid: jid, id, fromMe: false }, message: { conversation: 'text ' + id }, messageTimestamp: long(Math.floor(Date.now() / 1000) - 600) }, extra);
+
+test('lid: history chat with pnJid goes to the CRM under the phone with the lid attached; an alias event comes first; the pair is persisted', async () => {
+  const t = setup();
+  await open(t);
+  t.sockets[0].ev.emit('messaging-history.set', {
+    messages: [mk(LIDA + '@lid', 'A1'), mk('99990001999990@lid', 'A2')], syncType: 3, progress: 10,
+    chats: [{ id: LIDA + '@lid', pnJid: PHA + '@s.whatsapp.net' }, { id: '99990001999990@lid' }], contacts: []
+  });
+  for (let i = 0; i < 12; i++) await tick();
+  const ev = t.calls.events;
+  assert.deepEqual(ev[0], { kind: 'alias', numberPhone: '77011112233', lid: LIDA, phone: PHA });
+  const a1 = ev.find((e) => e.msg && e.msg.id === 'A1'), a2 = ev.find((e) => e.msg && e.msg.id === 'A2');
+  assert.deepEqual([a1.waId, a1.lid], [PHA, LIDA]);
+  assert.deepEqual([a2.waId, a2.lid], ['99990001999990', '99990001999990'], 'no phone known: waId = lid, and the event says so');
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(t.dir, 'lidmap.json'), 'utf8')), { [LIDA]: PHA });
+  // same payload again: no new alias, same history events (the CRM merges them)
+  const n = t.calls.events.filter((e) => e.kind === 'alias').length;
+  t.sockets[0].ev.emit('messaging-history.set', { messages: [mk(LIDA + '@lid', 'A1')], syncType: 3, chats: [{ id: LIDA + '@lid', pnJid: PHA + '@s.whatsapp.net' }], contacts: [] });
+  for (let i = 0; i < 8; i++) await tick();
+  assert.equal(t.calls.events.filter((e) => e.kind === 'alias').length, n);
+  // a restart of the connector: the map is loaded from disk, so a lid-only message is already stored under the phone
+  const t2 = setup({ stateDir: t.dir });
+  await open(t2);
+  t2.sockets[0].ev.emit('messages.upsert', { type: 'notify', messages: [mk(LIDA + '@lid', 'LIVE1')] });
+  for (let i = 0; i < 6; i++) await tick();
+  assert.deepEqual([t2.calls.events[0].waId, t2.calls.events[0].lid], [PHA, LIDA]);
+});
+
+test('lid: live message with sender_pn teaches the pair (alias event once); our own message never teaches it from senderPn', async () => {
+  const t = setup();
+  await open(t);
+  const key = (o) => Object.assign({ remoteJid: LIDA + '@lid', fromMe: false }, o);
+  t.sockets[0].ev.emit('messages.upsert', { type: 'notify', messages: [{ key: key({ id: 'M0', fromMe: true, senderPn: '77011112233@s.whatsapp.net' }), message: { conversation: 'с телефона' }, messageTimestamp: 1760000000 }] });
+  for (let i = 0; i < 6; i++) await tick();
+  assert.deepEqual(t.calls.events.map((e) => [e.kind, e.waId]), [['echo', LIDA]], 'own number is not the customer number');
+  t.sockets[0].ev.emit('messages.upsert', { type: 'notify', messages: [{ key: key({ id: 'M1', senderPn: PHA + '@s.whatsapp.net' }), message: { conversation: 'привет' }, messageTimestamp: 1760000001 }] });
+  t.sockets[0].ev.emit('messages.upsert', { type: 'notify', messages: [{ key: key({ id: 'M2', senderPn: PHA + '@s.whatsapp.net' }), message: { conversation: 'ещё' }, messageTimestamp: 1760000002 }] });
+  for (let i = 0; i < 8; i++) await tick();
+  assert.equal(t.calls.events.filter((e) => e.kind === 'alias').length, 1);
+  assert.deepEqual(t.calls.events.filter((e) => e.msg && e.msg.id !== 'M0').map((e) => [e.waId, e.lid]), [[PHA, LIDA], [PHA, LIDA]]);
+});
+
+test('lid: the history-sync blob is read for phoneNumberToLidMappings (which Baileys drops) when its notification arrives', async () => {
+  const seen = [];
+  const t = setup({ downloadHistory: async (n) => { seen.push(n.syncType); return {
+    conversations: [{ id: '31111111111111@lid', pnJid: '77072220001@s.whatsapp.net' }],
+    phoneNumberToLidMappings: [{ pnJid: '77072220002@s.whatsapp.net', lidJid: '32222222222222@lid' }],
+    pushnames: [{ id: '77072220002@s.whatsapp.net', pushname: 'Берик' }]
+  }; } });
+  await open(t);
+  const notif = (type) => ({ key: { remoteJid: '77011112233@s.whatsapp.net', fromMe: true, id: 'H' + type }, messageTimestamp: 1760000000,
+    message: { protocolMessage: { historySyncNotification: { syncType: type, directPath: '/v/t62/hist' + type } } } });
+  t.sockets[0].ev.emit('messages.upsert', { type: 'notify', messages: [notif(5), notif(5), notif(4), notif(1)] });
+  for (let i = 0; i < 12; i++) await tick();
+  assert.deepEqual(seen, [5], 'NON_BLOCKING_DATA is read once; PUSH_NAME / STATUS blobs and repeats are skipped');
+  const al = t.calls.events.filter((e) => e.kind === 'alias').map((e) => [e.lid, e.phone]).sort();
+  assert.deepEqual(al, [['31111111111111', '77072220001'], ['32222222222222', '77072220002']]);
+  // a failing download is only logged
+  const t2 = setup({ downloadHistory: async () => { throw new Error('boom'); } });
+  await open(t2);
+  t2.sockets[0].ev.emit('messages.upsert', { type: 'notify', messages: [notif(3)] });
+  for (let i = 0; i < 6; i++) await tick();
+  assert.equal(t2.calls.events.length, 0);
+});
+
+test('lid: the outbox item flag and the known lid set decide the @lid address; a phone is never sent to @lid', async () => {
+  const t = setup();
+  await open(t);
+  t.setOutbox({ items: [{ id: 1, to: '88888888888888', lid: true, type: 'text', text: 'a' }, { id: 2, to: PHA, type: 'text', text: 'b' }], command: null });
+  await t.bridge.pollOnce();
+  assert.deepEqual(t.sockets[0].sent.map((x) => x.jid), ['88888888888888@lid', PHA + '@s.whatsapp.net']);
+});
+
+test('lid: contacts.upsert with phoneNumber / jid fields and chats.phoneNumberShare teach pairs', async () => {
+  const t = setup();
+  await open(t);
+  t.sockets[0].ev.emit('contacts.upsert', [{ id: '41111111111111@lid', phoneNumber: '+7 707 333 00 01', name: 'Алия' }]);
+  t.sockets[0].ev.emit('chats.phoneNumberShare', { lid: '42222222222222@lid', jid: '77073330002@s.whatsapp.net' });
+  for (let i = 0; i < 10; i++) await tick();
+  const al = t.calls.events.filter((e) => e.kind === 'alias').map((e) => [e.lid, e.phone]).sort();
+  assert.deepEqual(al, [['41111111111111', '77073330001'], ['42222222222222', '77073330002']]);
+  assert.ok(t.calls.events.some((e) => e.kind === 'contact' && e.waId === '77073330001' && e.profileName === 'Алия'));
+});

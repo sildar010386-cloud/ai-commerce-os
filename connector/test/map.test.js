@@ -244,3 +244,40 @@ test('readContacts: names and lid -> phone links from history contacts and chats
   assert.equal(r.lidPn.get('44411111'), '77013334455');
   assert.ok(![...r.names.keys()].includes('120363'));
 });
+
+test('lid: chatIdOf ignores sender_pn / participant_pn of our own messages; lidPairOfKey only trusts the customer side', async () => {
+  const { lidPairOfKey } = await import('../src/map.js');
+  assert.deepEqual(chatIdOf({ remoteJid: '1234567890123@lid', fromMe: true, senderPn: '77011112233@s.whatsapp.net' }), { waId: '1234567890123', lid: true, lidUser: '1234567890123' });
+  assert.deepEqual(lidPairOfKey({ remoteJid: '1234567890123@lid', fromMe: false, senderPn: '77011234567@s.whatsapp.net' }), { lid: '1234567890123', phone: '77011234567' });
+  assert.deepEqual(lidPairOfKey({ remoteJid: '1234567890123@lid', fromMe: true, remoteJidAlt: '77011234567@s.whatsapp.net' }), { lid: '1234567890123', phone: '77011234567' });
+  assert.equal(lidPairOfKey({ remoteJid: '1234567890123@lid', fromMe: true, senderPn: '77011234567@s.whatsapp.net' }), null);
+  assert.equal(lidPairOfKey({ remoteJid: '77011234567@s.whatsapp.net', senderPn: '77011234567@s.whatsapp.net' }), null);
+});
+
+test('lid: readContacts reads phoneNumberToLidMappings, phoneNumber fields and rejects impossible phone numbers', () => {
+  const r = readContacts({
+    mappings: [{ pnJid: '77075550001@s.whatsapp.net', lidJid: '51111111111111@lid' }, { pnJid: '51111111111111111@s.whatsapp.net', lidJid: '52222222222222@lid' }],
+    contacts: [{ id: '53333333333333@lid', phoneNumber: '+7 (707) 555-00-03' }]
+  });
+  assert.equal(r.lidPn.get('51111111111111'), '77075550001');
+  assert.equal(r.lidPn.get('52222222222222'), undefined, 'a 17-digit "phone" is not a phone number');
+  assert.equal(r.lidPn.get('53333333333333'), '77075550003');
+});
+
+test('lid: selectHistory treats the lid and the phone copy of a chat as ONE chat and takes a message id once', () => {
+  const now = Date.now(), ts = Math.floor(now / 1000);
+  const m = (jid, id, ago, alt) => ({ key: { remoteJid: jid, id, remoteJidAlt: alt }, messageTimestamp: ts - ago, message: { conversation: id } });
+  const P = '77011234567@s.whatsapp.net';
+  const msgs = [m(P, 'a', 10), m('1234567890123@lid', 'a', 10, P), m('1234567890123@lid', 'b', 20, P), m(P, 'c', 30), m('1234567890123@lid', 'd', 40, P)];
+  const out = selectHistory(msgs, { perChat: 3, now });
+  assert.deepEqual(out.map((x) => x.key.id), ['c', 'b', 'a'], 'perChat counts the merged chat; the duplicate id is dropped');
+});
+
+test('lid: normalized events carry the lid of a @lid chat', () => {
+  const k = { remoteJid: '1234567890123@lid', id: 'X', fromMe: false };
+  const r = mapMessage({ key: k, message: { conversation: 'hi' }, messageTimestamp: 1760000000 }, { ownPhone: '77011112233', kind: 'auto' });
+  assert.deepEqual([r.event.waId, r.event.lid], ['1234567890123', '1234567890123']);
+  const r2 = mapMessage({ key: Object.assign({ remoteJidAlt: '77011234567@s.whatsapp.net' }, k), message: { conversation: 'hi' }, messageTimestamp: 1760000000 }, { ownPhone: '77011112233', kind: 'auto' });
+  assert.deepEqual([r2.event.waId, r2.event.lid], ['77011234567', '1234567890123']);
+  assert.equal(mapMessage({ key: { remoteJid: '77011234567@s.whatsapp.net', id: 'Y' }, message: { conversation: 'hi' }, messageTimestamp: 1 }, { ownPhone: '1', kind: 'auto' }).event.lid, undefined);
+});

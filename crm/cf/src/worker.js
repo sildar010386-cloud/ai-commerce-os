@@ -1074,19 +1074,32 @@ async function processWaEvent(env, ctx, ev) {
   const live = ev.kind === 'message';
   const ts = msg.ts;
 
-  let contact = await env.DB.prepare("SELECT * FROM contacts WHERE channel = 'whatsapp' AND ext_id = ?").bind(ev.waId).first();
+  // @lid chats: the phone is known (waId = phone, lid = anonymous id) -> merge an older lid contact into the phone contact;
+  // the phone is unknown (waId = lid) -> use the phone if an earlier alias knows it, else the contact is "lid only" (no phone shown).
+  let waId = ev.waId, lidOnly = !!ev.lid && ev.lid === ev.waId;
+  if (ev.lid && !lidOnly) await learnAliases(env, [{ lid: ev.lid, phone: ev.waId }]);
+  else if (lidOnly) {
+    const al = await env.DB.prepare('SELECT phone FROM wa_alias WHERE lid = ?').bind(ev.lid).first();
+    if (al) { waId = al.phone; lidOnly = false; }
+  }
+
+  let contact = await env.DB.prepare("SELECT * FROM contacts WHERE channel = 'whatsapp' AND ext_id = ?").bind(waId).first();
   if (!contact) {
     // The source is decided once, on the first message: live inbound -> detect; history sync -> old; the owner wrote first -> organic.
     let src = { traffic: 'organic', platform: '', code: '', product: '' };
     if (ev.kind === 'history') src.traffic = 'old';
     else if (live) src = detectSource({ text: msg.body || msg.caption, referral: msg.referral, targets: ctx.targets });
     await env.DB.prepare(
-      "INSERT INTO contacts (channel, ext_id, phone, name, traffic, platform, target_code, product_name, number_id, first_message_at, created_at, updated_at) " +
-      "VALUES ('whatsapp', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(channel, ext_id) DO NOTHING"
-    ).bind(ev.waId, ev.waId, ev.profileName || '', src.traffic, src.platform, src.code, src.product, number ? number.id : null, ts, nowIso(), nowIso()).run();
-    contact = await env.DB.prepare("SELECT * FROM contacts WHERE channel = 'whatsapp' AND ext_id = ?").bind(ev.waId).first();
+      "INSERT INTO contacts (channel, ext_id, phone, id_kind, name, traffic, platform, target_code, product_name, number_id, first_message_at, created_at, updated_at) " +
+      "VALUES ('whatsapp', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(channel, ext_id) DO NOTHING"
+    ).bind(waId, lidOnly ? '' : waId, lidOnly ? 'lid' : 'pn', ev.profileName || '', src.traffic, src.platform, src.code, src.product, number ? number.id : null, ts, nowIso(), nowIso()).run();
+    contact = await env.DB.prepare("SELECT * FROM contacts WHERE channel = 'whatsapp' AND ext_id = ?").bind(waId).first();
   }
   if (!contact) return;
+  if (lidOnly && contact.id_kind !== 'lid') {   // a row written before lids were known (phone = lid digits)
+    await env.DB.prepare("UPDATE contacts SET id_kind = 'lid', phone = '' WHERE id = ?").bind(contact.id).run();
+    contact.id_kind = 'lid'; contact.phone = '';
+  }
 
   const out = ev.direction === 'out';
   const ins = await env.DB.prepare(
@@ -1131,31 +1144,178 @@ async function whatsappHook(req, env, url) {
   return json({ ok: true });
 }
 
-// Old chats (WhatsApp history sync) and names. The Cloudflare free plan allows ~50 D1 queries per request, so a batch of history
-// events is written with a handful of statements: one DB.batch with [create chat] + [insert message] + [update chat summary].
+// ---- @lid <-> phone ----
+// WhatsApp may address a chat by an anonymous id (lid) instead of the phone number. The connector learns lid -> phone pairs
+// (history sync, contacts, live messages) and reports them as 'alias' events; the CRM keeps them in wa_alias and merges a contact
+// that was created under the lid into the contact of the phone. Everything is idempotent.
+// One contact out of two rows of the same person: the earliest first message, the newest last message, summed unread, the source
+// of the earlier row (a source set by a person always wins), the order link and the number of whichever has them.
+function mergeContactRows(p, l) {
+  const first = [p.first_message_at, l.first_message_at].filter(Boolean).sort()[0] || '';
+  const pl = p.last_message_at || '', ll = l.last_message_at || '';
+  const lastRow = ll > pl ? l : p;
+  let srcRow = p;
+  if (!p.source_manual && l.source_manual) srcRow = l;
+  else if (!!p.source_manual === !!l.source_manual && l.first_message_at && (!p.first_message_at || l.first_message_at < p.first_message_at)) srcRow = l;
+  return {
+    first_message_at: first,
+    last_message_at: lastRow.last_message_at || '',
+    last_preview: lastRow.last_preview || '',
+    last_inbound_at: [p.last_inbound_at, l.last_inbound_at].filter(Boolean).sort().pop() || '',
+    unread: (p.unread || 0) + (l.unread || 0),
+    name: p.name || l.name || '',
+    order_id: p.order_id != null ? p.order_id : (l.order_id != null ? l.order_id : null),
+    number_id: p.number_id != null ? p.number_id : (l.number_id != null ? l.number_id : null),
+    traffic: srcRow.traffic, platform: srcRow.platform || '', target_code: srcRow.target_code || '', product_name: srcRow.product_name || '',
+    source_manual: (p.source_manual || l.source_manual) ? 1 : 0
+  };
+}
+
+// pairs: [{lid, phone}]. Records them and moves a contact created under the lid to the phone (rename when the phone has no
+// contact yet, merge otherwise). Costs ~2 queries plus 2-4 statements per moved pair (maxMoves keeps one request under the D1 free-plan limit).
+async function learnAliases(env, pairs, maxMoves = 1000) {
+  const map = new Map();
+  for (const p of pairs) if (p && p.lid && p.phone && p.lid !== p.phone) map.set(p.lid, p.phone);
+  if (!map.size) return;
+  const ts = nowIso();
+  const list = [...map];
+  let moves = 0;
+  for (let i = 0; i < list.length; i += 30) {
+    const part = list.slice(i, i + 30);
+    const ids = [...new Set(part.flat())];
+    const { results } = await env.DB.prepare(
+      `SELECT * FROM contacts WHERE channel = 'whatsapp' AND ext_id IN (${ids.map(() => '?').join(',')})`
+    ).bind(...ids).all();
+    const by = new Map((results || []).map((r) => [r.ext_id, r]));
+    const groups = [[env.DB.prepare(
+      `INSERT INTO wa_alias (lid, phone, created_at) VALUES ${part.map(() => '(?, ?, ?)').join(', ')} ON CONFLICT(lid) DO UPDATE SET phone = excluded.phone`
+    ).bind(...part.flatMap(([lid, phone]) => [lid, phone, ts]))]];
+    for (const [lid, phone] of part) {
+      const lc = by.get(lid), pc = by.get(phone);
+      if (!lc || moves >= maxMoves) continue;   // beyond the cap only the alias is stored; the move happens on a later alias event
+      moves++;
+      if (!pc) {
+        groups.push([
+          env.DB.prepare("UPDATE contacts SET ext_id = ?1, phone = ?1, id_kind = 'pn', updated_at = ?2 WHERE id = ?3").bind(phone, ts, lc.id),
+          env.DB.prepare('UPDATE outbox SET to_ext = ?1 WHERE contact_id = ?2').bind(phone, lc.id)
+        ]);
+        by.delete(lid); by.set(phone, Object.assign({}, lc, { ext_id: phone, phone, id_kind: 'pn' }));
+        continue;
+      }
+      const m = mergeContactRows(pc, lc);
+      groups.push([
+        env.DB.prepare('UPDATE messages SET contact_id = ?1 WHERE contact_id = ?2').bind(pc.id, lc.id),
+        env.DB.prepare('UPDATE outbox SET contact_id = ?1, to_ext = ?2 WHERE contact_id = ?3').bind(pc.id, phone, lc.id),
+        env.DB.prepare(
+          "UPDATE contacts SET first_message_at = ?1, last_message_at = ?2, last_preview = ?3, last_inbound_at = ?4, unread = ?5, name = ?6, order_id = ?7, number_id = ?8, " +
+          "traffic = ?9, platform = ?10, target_code = ?11, product_name = ?12, source_manual = ?13, id_kind = 'pn', phone = ?14, updated_at = ?15 WHERE id = ?16"
+        ).bind(m.first_message_at, m.last_message_at, m.last_preview, m.last_inbound_at, m.unread, m.name, m.order_id, m.number_id,
+          m.traffic, m.platform, m.target_code, m.product_name, m.source_manual, phone, ts, pc.id),
+        env.DB.prepare('DELETE FROM contacts WHERE id = ?').bind(lc.id)
+      ]);
+      by.delete(lid); by.set(phone, Object.assign({}, pc, m));
+    }
+    // each group is one pair; groups are never split between two batches
+    let cur = [];
+    for (const g of groups) {
+      if (cur.length + g.length > 80) { await env.DB.batch(cur); cur = []; }
+      cur.push(...g);
+    }
+    if (cur.length) await env.DB.batch(cur);
+  }
+}
+
+// Old chats (WhatsApp history sync), names and lid aliases. The Cloudflare free plan allows ~50 D1 queries per request, so a batch
+// of history events is written with a handful of statements: one DB.batch with [create chat] + [insert message] + [update chat summary].
 // Everything is idempotent: a repeated batch changes nothing (messages are unique by ext_msg_id, the summary is recomputed
 // with MIN/MAX). History never raises «unread» and creates chats as «Старый клиент» (traffic = old).
+//
+// WhatsApp may deliver the same conversation twice, once under the phone and once under the lid, with the same message ids. ext_msg_id
+// is unique, so the second copy used to find all its messages taken by the first contact, while its summary (last message preview)
+// was still written: a chat in the list with a preview and an empty thread. Now a chat whose messages already belong to another
+// contact is the same chat: lid + phone are merged (alias), anything else is routed to the owner of the messages. The summary
+// is only written for a contact that really has messages.
 async function ingestHistory(env, ctx, events) {
-  const chats = new Map();       // waId -> {name, number, msgs: []}
+  const aliasPairs = events.filter((e) => e.kind === 'alias').map((e) => ({ lid: e.lid, phone: e.phone }));
+  if (aliasPairs.length) await learnAliases(env, aliasPairs, 6);
+  const seenPairs = [];
+  for (const ev of events) if (ev.kind !== 'alias' && ev.lid && ev.lid !== ev.waId) seenPairs.push({ lid: ev.lid, phone: ev.waId });
+  if (seenPairs.length) await learnAliases(env, seenPairs, 4);
+
+  // lid-only events -> the phone when an alias is known
+  const known = new Map();
+  const lidOnly = new Set(events.filter((e) => e.kind !== 'alias' && e.kind !== 'contact' && e.waId && e.lid && e.lid === e.waId).map((e) => e.lid));
+  const lookup = [...new Set([...lidOnly, ...events.filter((e) => e.kind === 'contact' && e.waId).map((e) => e.waId)])];
+  for (let i = 0; i < lookup.length; i += 90) {
+    const part = lookup.slice(i, i + 90);
+    const { results } = await env.DB.prepare(`SELECT lid, phone FROM wa_alias WHERE lid IN (${part.map(() => '?').join(',')})`).bind(...part).all();
+    for (const r of results || []) known.set(r.lid, r.phone);
+  }
+  const idOf = (ev) => ((ev.kind === 'contact' || (ev.lid && ev.lid === ev.waId)) && known.has(ev.waId) ? known.get(ev.waId) : ev.waId);
+
+  const chats = new Map();       // waId -> {name, number, msgs: [], lidOnly}
   const names = new Map();       // waId -> name from 'contact' events
   for (const ev of events) {
-    if (!ev.waId) continue;
-    if (ev.kind === 'contact') { if (ev.profileName) names.set(ev.waId, ev.profileName); continue; }
+    if (ev.kind === 'alias' || !ev.waId) continue;
+    const waId = idOf(ev);
+    if (ev.kind === 'contact') { if (ev.profileName) names.set(waId, ev.profileName); continue; }
     if (!ev.msg) continue;
-    let c = chats.get(ev.waId);
-    if (!c) { c = { name: '', number: await ensureWaNumber(env, ctx.numbers, ev.phoneNumberId, ev.displayPhone, ctx.connection), msgs: [], ids: new Set() }; chats.set(ev.waId, c); }
+    let c = chats.get(waId);
+    if (!c) { c = { name: '', number: await ensureWaNumber(env, ctx.numbers, ev.phoneNumberId, ev.displayPhone, ctx.connection), msgs: [], ids: new Set(), lidOnly: lidOnly.has(waId) }; chats.set(waId, c); }
     if (ev.profileName && !c.name) c.name = ev.profileName;
     if (ev.msg.id) { if (c.ids.has(ev.msg.id)) continue; c.ids.add(ev.msg.id); }
-    c.msgs.push(ev);
+    c.msgs.push(Object.assign({}, ev, { waId }));
   }
+
+  // Messages of this batch that already belong to another contact: the same chat under another id.
+  const allIds = [...chats.values()].flatMap((c) => [...c.ids]);
+  const owner = new Map();
+  for (let i = 0; i < allIds.length; i += 90) {
+    const part = allIds.slice(i, i + 90);
+    const { results } = await env.DB.prepare(
+      `SELECT m.ext_msg_id AS mid, c.ext_id AS ext, c.id_kind AS kind FROM messages m JOIN contacts c ON c.id = m.contact_id WHERE m.ext_msg_id IN (${part.map(() => '?').join(',')})`
+    ).bind(...part).all();
+    for (const r of results || []) owner.set(r.mid, { ext: r.ext, kind: r.kind });
+  }
+  const moved = [];
+  for (const [waId, c] of [...chats]) {
+    const tally = new Map();
+    for (const id of c.ids) {
+      let o = owner.get(id);
+      if (!o) { owner.set(id, { ext: waId, kind: c.lidOnly ? 'lid' : 'pn' }); continue; }   // first claim inside this very batch
+      if (o.ext !== waId) tally.set(o.ext, { n: (tally.get(o.ext) || { n: 0 }).n + 1, kind: o.kind });
+    }
+    if (!tally.size) continue;
+    const [ext, t] = [...tally].sort((x, y) => y[1].n - x[1].n)[0];
+    if (c.lidOnly && t.kind !== 'lid') moved.push({ lid: waId, phone: ext });           // this chat is the lid copy of a phone chat
+    else if (!c.lidOnly && t.kind === 'lid') moved.push({ lid: ext, phone: waId });     // the phone copy of a chat first stored under a lid
+    else { c.target = ext; }                                                              // same kind of id: attach to the owner
+  }
+  if (moved.length) {
+    await learnAliases(env, moved, 4);
+    for (const [waId, c] of [...chats]) {
+      const hit = moved.find((x) => x.lid === waId);
+      if (hit) { c.target = hit.phone; c.lidOnly = false; }
+    }
+  }
+  // fold chats that were redirected into the target chat
+  for (const [waId, c] of [...chats]) {
+    if (!c.target || c.target === waId) continue;
+    chats.delete(waId);
+    const t = chats.get(c.target);
+    if (t) { for (const ev of c.msgs) if (!t.ids.has(ev.msg.id)) { if (ev.msg.id) t.ids.add(ev.msg.id); t.msgs.push(ev); } if (!t.name) t.name = c.name; }
+    else { c.msgs = c.msgs.map((ev) => Object.assign({}, ev, { waId: c.target })); chats.set(c.target, c); }
+  }
+
   const ts0 = nowIso();
   const stmts = [];
   for (const [waId, c] of chats) {
     const nm = c.name || names.get(waId) || '';
     const first = c.msgs.reduce((a, e) => (e.msg.ts < a ? e.msg.ts : a), c.msgs[0].msg.ts);
     stmts.push(env.DB.prepare(
-      "INSERT INTO contacts (channel, ext_id, phone, name, traffic, number_id, first_message_at, created_at, updated_at) VALUES ('whatsapp', ?1, ?1, ?2, 'old', ?3, ?4, ?5, ?5) ON CONFLICT(channel, ext_id) DO NOTHING"
-    ).bind(waId, nm, c.number ? c.number.id : null, first, ts0));
+      "INSERT INTO contacts (channel, ext_id, phone, id_kind, name, traffic, number_id, first_message_at, created_at, updated_at) VALUES ('whatsapp', ?1, ?2, ?3, ?4, 'old', ?5, ?6, ?7, ?7) ON CONFLICT(channel, ext_id) DO NOTHING"
+    ).bind(waId, c.lidOnly ? '' : waId, c.lidOnly ? 'lid' : 'pn', nm, c.number ? c.number.id : null, first, ts0));
+    if (c.lidOnly) stmts.push(env.DB.prepare("UPDATE contacts SET id_kind = 'lid', phone = '' WHERE channel = 'whatsapp' AND ext_id = ?1 AND id_kind != 'lid'").bind(waId));
   }
   for (const [waId, c] of chats) {
     for (const ev of c.msgs) {
@@ -1177,7 +1337,8 @@ async function ingestHistory(env, ctx, events) {
       'last_preview = CASE WHEN ?3 >= last_message_at THEN ?4 ELSE last_preview END, ' +
       'last_message_at = CASE WHEN ?3 >= last_message_at THEN ?3 ELSE last_message_at END, ' +
       "last_inbound_at = CASE WHEN ?5 > last_inbound_at THEN ?5 ELSE last_inbound_at END, " +
-      "number_id = COALESCE(number_id, ?6), updated_at = ?7 WHERE channel = 'whatsapp' AND ext_id = ?8"
+      "number_id = COALESCE(number_id, ?6), updated_at = ?7 WHERE channel = 'whatsapp' AND ext_id = ?8 " +
+      'AND EXISTS (SELECT 1 FROM messages WHERE contact_id = contacts.id)'
     ).bind(c.name || names.get(waId) || '', first, latest.msg.ts, previewOf(latest.msg, latest.direction), lastIn, c.number ? c.number.id : null, ts0, waId));
   }
   for (const [waId, nm] of names) {
@@ -1190,8 +1351,9 @@ async function ingestHistory(env, ctx, events) {
 // A non-2xx answer makes the sender retry; inserts are idempotent (ext_msg_id), so a retry is safe.
 async function ingestEvents(env, events, connection) {
   if (!events.length) return 0;
-  const bulk = events.filter((e) => e.kind === 'history' || e.kind === 'contact');
-  const live = bulk.length ? events.filter((e) => e.kind !== 'history' && e.kind !== 'contact') : events;
+  const isBulk = (e) => e.kind === 'history' || e.kind === 'contact' || e.kind === 'alias';
+  const bulk = events.filter(isBulk);
+  const live = bulk.length ? events.filter((e) => !isBulk(e)) : events;
   const { results: targets } = live.length ? await env.DB.prepare('SELECT * FROM target_texts WHERE active = 1').all() : { results: [] };
   const ctx = { targets: targets || [], numbers: new Map(), connection };
   let failed = 0;
@@ -1229,7 +1391,7 @@ function targetOut(r) {
 }
 function chatOut(r) {
   return {
-    id: r.id, channel: r.channel, name: r.name, phone: r.phone, traffic: r.traffic, platform: r.platform, targetCode: r.target_code,
+    id: r.id, channel: r.channel, name: r.name, phone: r.id_kind === 'lid' ? '' : r.phone, idKind: r.id_kind === 'lid' ? 'lid' : 'pn', traffic: r.traffic, platform: r.platform, targetCode: r.target_code,
     productName: r.product_name, numberId: r.number_id, numberLabel: r.number_label || r.number_phone || '', numberStatus: r.number_status || '',
     numberConnection: r.number_connection || '',
     lastAt: r.last_message_at, lastInboundAt: r.last_inbound_at, preview: r.last_preview, unread: r.unread,
@@ -1354,6 +1516,7 @@ async function sendChatMessage(env, user, idStr, b) {
   if (conn) return queueOutgoing(env, user, c, num, conn, { type: 'text', text });
   const route = sendRoute(env, num);
   if (!route) fail(503, 'Номер не подключён');
+  if (route === 'cloud' && c.id_kind === 'lid') fail(409, 'У этого клиента номер скрыт WhatsApp: ответить можно только через подключённый по QR номер или с телефона');
   const last = Date.parse(c.last_inbound_at || '');
   if (route === 'cloud' && b.force !== true && (!last || Date.now() - last > WA_WINDOW_MS)) {
     fail(409, 'Прошло больше 24 часов с последнего сообщения клиента: WhatsApp не даёт отправить обычное сообщение. Напишите клиенту из приложения на телефоне или отправьте шаблон.', { code: 'window' });
@@ -1918,10 +2081,17 @@ async function connectorOutbox(env, url) {
   // Atomic claim: the UPDATE itself picks the rows, so two pollers can never get the same message.
   const { results } = await env.DB.prepare(
     "UPDATE outbox SET status = 'sending', attempts = attempts + 1, updated_at = ?1 WHERE id IN " +
-    `(SELECT id FROM outbox WHERE status = 'queued' AND number_id = ?2 ORDER BY id LIMIT ${OUTBOX_BATCH}) RETURNING id, to_ext, type, text, media_ref, seconds, waveform`
+    `(SELECT id FROM outbox WHERE status = 'queued' AND number_id = ?2 ORDER BY id LIMIT ${OUTBOX_BATCH}) RETURNING id, contact_id, to_ext, type, text, media_ref, seconds, waveform`
   ).bind(ts, num.id).all();
+  // A contact whose phone WhatsApp hides is addressed by its anonymous id: the connector sends to <id>@lid.
+  const cids = [...new Set((results || []).map((r) => r.contact_id).filter(Boolean))];
+  const lidIds = new Set();
+  if (cids.length) {
+    const lr = await env.DB.prepare(`SELECT id FROM contacts WHERE id_kind = 'lid' AND id IN (${cids.map(() => '?').join(',')})`).bind(...cids).all();
+    for (const r of lr.results || []) lidIds.add(r.id);
+  }
   const items = (results || []).sort((a, b) => a.id - b.id)
-    .map((r) => ({ id: r.id, to: r.to_ext, type: r.type, text: r.text, mediaRef: r.media_ref, seconds: r.seconds || 0, waveform: r.waveform || '' }));
+    .map((r) => Object.assign({ id: r.id, to: r.to_ext, type: r.type, text: r.text, mediaRef: r.media_ref, seconds: r.seconds || 0, waveform: r.waveform || '' }, lidIds.has(r.contact_id) ? { lid: true } : {}));
   return json({ items, command: null });
 }
 

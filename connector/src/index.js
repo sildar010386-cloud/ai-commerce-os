@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 import QRCode from 'qrcode';
-import makeWASocket, { useMultiFileAuthState, fetchLatestBaileysVersion, downloadMediaMessage, Browsers } from '@whiskeysockets/baileys';
+import makeWASocket, { useMultiFileAuthState, fetchLatestBaileysVersion, downloadMediaMessage, downloadHistory, Browsers } from '@whiskeysockets/baileys';
 import { createCrm } from './crm.js';
 import { createEventQueue } from './queue.js';
 import { createBridge } from './bridge.js';
@@ -96,6 +96,7 @@ async function wipeAuth() {
 const bridge = createBridge({
   crm, queue, makeSocket, wipeAuth, voiceHint, version: VERSION, stateDir: STATE_DIR, log: appLog,
   renderQr: (qr) => QRCode.toDataURL(qr, { width: 360, margin: 2, errorCorrectionLevel: 'M' }),
+  downloadHistory: (n, opts) => downloadHistory(n, opts),
   downloadMedia: (m, sock) => downloadMediaMessage(m, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage }),
   prepareVoice: (buf, mime) => prepareVoice(buf, mime, { log: logger }),
   watchdogMs: cfg.watchdogMinutes * 60000
