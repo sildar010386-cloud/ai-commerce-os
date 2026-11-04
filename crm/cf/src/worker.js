@@ -4,6 +4,7 @@
 
 import { detectSource } from './source.js';
 import { parseWebhook, normalizeInboxEvents } from './wa.js';
+import { CLOUD_INIT_TEMPLATE } from './connector_script.js';
 
 const GITHUB_REPO = 'sildar010386-cloud/ai-commerce-os';
 const PUBLISH_URL = `https://github.com/${GITHUB_REPO}/actions/workflows/publish.yml`;
@@ -28,7 +29,7 @@ const SETTING_DEFAULTS = { track_msg: DEFAULT_TRACK_MSG, track_url: DEFAULT_TRAC
 const TRACK_RE = /^[A-Z]{2}\d{9}[A-Z]{2}$/;
 const KZ_MAX_ITEMS = 500;
 
-const CSP = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; " +
+const CSP = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; " +
   "frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
 
 class HttpError extends Error {
@@ -114,7 +115,7 @@ function secure(resp, { api } = {}) {
   h.set('Referrer-Policy', 'no-referrer');
   h.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   h.set('X-Frame-Options', 'DENY');
-  h.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  h.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(), payment=()');
   h.set('Cross-Origin-Opener-Policy', 'same-origin');
   h.set('Cache-Control', api ? 'no-store' : 'no-cache');
   return new Response(resp.body, { status: resp.status, statusText: resp.statusText, headers: h });
@@ -138,9 +139,9 @@ function parseCookies(req) {
 function sessionCookie(token, maxAge) {
   return `sid=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${maxAge}`;
 }
-async function readJson(req) {
+async function readJson(req, max) {
   const text = await req.text();
-  if (text.length > MAX_BODY) fail(413, 'Слишком большой запрос');
+  if (text.length > (max || MAX_BODY)) fail(413, 'Слишком большой запрос');
   if (!text.trim()) return {};
   try {
     const v = JSON.parse(text);
@@ -755,6 +756,9 @@ async function api(req, env, url) {
   // Meta webhook: verified by the verify token (GET) and the HMAC signature (POST), not by the CRM key.
   if (p === '/api/hooks/whatsapp') return whatsappHook(req, env, url);
 
+  // WhatsApp connector (linked device on a VM): Bearer key, no cookie and no CSRF check.
+  if (p.startsWith('/api/connector/')) return connectorApi(req, env, url);
+
   // Machine endpoints: X-Api-Key, no cookie and no CSRF check.
   if (p === '/api/bootstrap' || p.startsWith('/api/hooks/')) {
     if (m !== 'POST') fail(405, 'Метод не поддерживается');
@@ -793,7 +797,7 @@ async function api(req, env, url) {
     return json({
       user: { email: user.email, name: user.name, role: user.role },
       canDispatch: user.role === 'admin' && !!env.GH_DISPATCH_TOKEN, publishUrl: PUBLISH_URL,
-      waConnected: !!env.WA_TOKEN
+      waConnected: !!env.WA_TOKEN || await connectorInstalled(env)
     });
   }
   if (p === '/api/me/password' && m === 'POST') {
@@ -993,6 +997,9 @@ const WA_WINDOW_MS = 24 * 3600 * 1000;      // free-form replies are allowed 24 
 const TRAFFIC = ['target', 'organic', 'old'];
 const NUMBER_STATUSES = ['active', 'blocked', 'off'];
 const MSG_STATUSES = ['sent', 'delivered', 'read', 'failed'];
+const MAX_FILE = 1536 * 1024;               // D1 rows are limited to ~2 MB: files in the media table stay below 1.5 MB
+const MAX_FILE_JSON = 3 * 1024 * 1024;     // base64 of 1.5 MB plus the JSON envelope
+const CONNECTOR_STALE_MS = 2 * 60 * 1000;  // no word from the connector for 2 min = offline
 const MAX_HOOK_BODY = 4 * 1024 * 1024;
 const MEDIA_TYPES = /^(image|audio|video)\/[a-z0-9.+-]+$|^application\/pdf$/i;
 
@@ -1082,10 +1089,10 @@ async function processWaEvent(env, ctx, ev) {
 
   const out = ev.direction === 'out';
   const ins = await env.DB.prepare(
-    'INSERT INTO messages (contact_id, direction, number_id, ext_msg_id, type, body, media_id, media_url, media_mime, caption, status, from_app, ts, created_at) ' +
-    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(ext_msg_id) DO NOTHING'
+    'INSERT INTO messages (contact_id, direction, number_id, ext_msg_id, type, body, media_id, media_url, media_mime, caption, status, from_app, ts, created_at, media_ref) ' +
+    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(ext_msg_id) DO NOTHING'
   ).bind(contact.id, ev.direction, number ? number.id : null, msg.id || null, msg.type, msg.body || '', msg.mediaId || '', msg.mediaUrl || '', msg.mime || '',
-    msg.caption || '', out ? 'sent' : 'received', out ? 1 : 0, ts, nowIso()).run();
+    msg.caption || '', out ? 'sent' : 'received', out ? 1 : 0, ts, nowIso(), msg.mediaRef || '').run();
   if (!ins.meta.changes) return;
 
   const preview = previewOf(msg, ev.direction);
@@ -1162,19 +1169,20 @@ function chatOut(r) {
   return {
     id: r.id, channel: r.channel, name: r.name, phone: r.phone, traffic: r.traffic, platform: r.platform, targetCode: r.target_code,
     productName: r.product_name, numberId: r.number_id, numberLabel: r.number_label || r.number_phone || '', numberStatus: r.number_status || '',
+    numberConnection: r.number_connection || '',
     lastAt: r.last_message_at, lastInboundAt: r.last_inbound_at, preview: r.last_preview, unread: r.unread,
     orderId: r.order_id == null ? null : r.order_id, orderNum: r.order_num == null ? null : r.order_num, manual: !!r.source_manual
   };
 }
 function messageOut(r) {
   return {
-    id: r.id, direction: r.direction, type: r.type, body: r.body, caption: r.caption, hasMedia: !!(r.media_id || r.media_url), mime: r.media_mime,
+    id: r.id, direction: r.direction, type: r.type, body: r.body, caption: r.caption, hasMedia: !!(r.media_id || r.media_url || r.media_ref), mime: r.media_mime,
     status: r.status, fromApp: !!r.from_app, ts: r.ts
   };
 }
 
 const CHAT_SELECT =
-  'SELECT c.*, n.label AS number_label, n.phone AS number_phone, n.status AS number_status, o.num AS order_num ' +
+  'SELECT c.*, n.label AS number_label, n.phone AS number_phone, n.status AS number_status, n.connection AS number_connection, o.num AS order_num ' +
   'FROM contacts c LEFT JOIN wa_numbers n ON n.id = c.number_id LEFT JOIN orders o ON o.id = c.order_id ';
 
 async function uniqueOr409(promise, message) {
@@ -1234,17 +1242,54 @@ async function sendVia(env, route, num, payload) {
   return data && (data.id || data.messageId) ? String(data.id || data.messageId) : '';
 }
 
-async function sendChatMessage(env, user, idStr, b) {
-  const c = await loadChat(env, idStr);
+// The business number a chat belongs to, with the checks every outgoing message needs.
+async function chatNumber(env, c) {
   if (c.channel !== 'whatsapp') fail(400, 'Ответ в этом канале пока не поддерживается');
-  const text = str(b.text, 4096, 'Сообщение');
-  if (!text) fail(400, 'Введите сообщение');
   const num = c.number_id ? await env.DB.prepare('SELECT * FROM wa_numbers WHERE id = ?').bind(c.number_id).first() : null;
   if (!num) fail(409, 'Не известно, на какой номер писал клиент. Ответьте из приложения WhatsApp на телефоне.');
   if (num.status === 'blocked') {
     fail(409, `Номер ${num.label || num.phone} заблокирован — с него ответить нельзя. Ответьте клиенту из приложения WhatsApp или с запасного номера.`, { code: 'blocked' });
   }
   if (num.status === 'off') fail(409, `Номер ${num.label || num.phone} выключен в настройках — с него ответить нельзя.`, { code: 'off' });
+  return num;
+}
+
+// The linked-device connector row when it is the one that serves this number (token created, logged in with this very number).
+async function boundConnector(env, num) {
+  if (num.connection !== 'qr') return null;
+  const row = await env.DB.prepare('SELECT * FROM connector WHERE id = 1').first();
+  return row && row.token_hash && row.phone === num.phone ? row : null;
+}
+
+// QR connector route: store the message as 'queued' and put it into the outbox; the connector pulls it within seconds.
+async function queueOutgoing(env, user, c, num, conn, { type, text, mediaRef, mime }) {
+  const ts = nowIso();
+  const preview = previewOf({ type, body: type === 'text' ? text : '', caption: type === 'image' ? text : '' }, 'out');
+  const res = await env.DB.batch([
+    env.DB.prepare(
+      "INSERT INTO messages (contact_id, direction, number_id, ext_msg_id, type, body, media_mime, caption, media_ref, status, from_app, ts, created_at) " +
+      "VALUES (?, 'out', ?, NULL, ?, ?, ?, ?, ?, 'queued', 0, ?, ?)"
+    ).bind(c.id, num.id, type, type === 'text' ? text : '', mime || '', type === 'image' ? text : '', mediaRef || '', ts, ts),
+    env.DB.prepare(
+      'INSERT INTO outbox (contact_id, message_id, number_id, to_ext, type, text, media_ref, status, created_at, updated_at) ' +
+      "VALUES (?, last_insert_rowid(), ?, ?, ?, ?, ?, 'queued', ?, ?)"
+    ).bind(c.id, num.id, c.ext_id, type, text || '', mediaRef || '', ts, ts),
+    env.DB.prepare('UPDATE contacts SET last_message_at = ?, last_preview = ?, updated_at = ? WHERE id = ?').bind(ts, preview, ts, c.id),
+    auditStmt(env, user.email, 'chat-send', null, null, `chat#${c.id}${type === 'text' ? '' : ' ' + type}`)
+  ]);
+  const row = await env.DB.prepare('SELECT * FROM messages WHERE id = ?').bind(res[0].meta.last_row_id).first();
+  const seen = Date.parse(conn.last_seen_at || '');
+  const warning = !seen || Date.now() - seen > CONNECTOR_STALE_MS ? 'Сервер WhatsApp не на связи — сообщение уйдёт, когда он появится' : '';
+  return json({ ok: true, message: row ? messageOut(row) : null, warning });
+}
+
+async function sendChatMessage(env, user, idStr, b) {
+  const c = await loadChat(env, idStr);
+  const text = str(b.text, 4096, 'Сообщение');
+  if (!text) fail(400, 'Введите сообщение');
+  const num = await chatNumber(env, c);
+  const conn = await boundConnector(env, num);
+  if (conn) return queueOutgoing(env, user, c, num, conn, { type: 'text', text });
   const route = sendRoute(env, num);
   if (!route) fail(503, 'Номер не подключён');
   const last = Date.parse(c.last_inbound_at || '');
@@ -1264,6 +1309,39 @@ async function sendChatMessage(env, user, idStr, b) {
   ]);
   const row = await env.DB.prepare('SELECT * FROM messages WHERE id = ?').bind(ins.meta.last_row_id).first();
   return json({ ok: true, message: row ? messageOut(row) : null });
+}
+
+// Decodes a base64 file from the browser, validates mime and size, returns {mime, bytes}.
+function decodeFile(b, kind) {
+  const raw = typeof b.data === 'string' ? b.data.replace(/^data:[^,]*,/, '') : '';
+  if (!raw) fail(400, 'Файл не получен');
+  if (raw.length > Math.ceil(MAX_FILE / 3) * 4 + 8) fail(413, 'Файл больше 1,5 МБ');
+  const mime = String(b.mime || '').trim().toLowerCase().slice(0, 100);
+  const ok = kind === 'voice' ? /^audio\/(ogg|webm|mp4|mpeg|aac|x-m4a|wav)(;[ a-z0-9=.,_-]*)?$/.test(mime) : /^image\/(jpeg|png|webp)$/.test(mime);
+  if (!ok) fail(400, kind === 'voice' ? 'Формат записи не поддерживается' : 'Фото: только JPEG, PNG или WebP');
+  let bytes;
+  try { bytes = fromB64(raw); } catch (e) { fail(400, 'Файл повреждён'); }
+  if (!bytes.length) fail(400, 'Файл пустой');
+  if (bytes.length > MAX_FILE) fail(413, 'Файл больше 1,5 МБ');
+  return { mime, bytes };
+}
+
+async function storeMedia(env, mime, bytes) {
+  const id = toHex(crypto.getRandomValues(new Uint8Array(12)));
+  await env.DB.prepare('INSERT INTO media (id, mime, size, data, created_at) VALUES (?, ?, ?, ?, ?)').bind(id, mime, bytes.length, bytes, nowIso()).run();
+  return id;
+}
+
+// POST /api/chats/:id/voice | /image: {data: base64, mime, caption?}; only through the QR connector.
+async function sendChatFile(env, user, idStr, b, type) {
+  const c = await loadChat(env, idStr);
+  const num = await chatNumber(env, c);
+  const conn = await boundConnector(env, num);
+  if (!conn) fail(409, 'Голосовые и фото отправляются через «Сервер WhatsApp» (Настройки). Для этого номера он не подключён.');
+  const caption = type === 'image' ? str(b.caption, 1024, 'Подпись') : '';
+  const f = decodeFile(b, type);
+  const mediaRef = await storeMedia(env, f.mime, f.bytes);
+  return queueOutgoing(env, user, c, num, conn, { type, text: caption, mediaRef, mime: f.mime.split(';')[0] });
 }
 
 async function setChatSource(env, user, idStr, b) {
@@ -1319,12 +1397,25 @@ async function orderFromChat(env, user, idStr) {
 
 // Streams a message attachment from the Cloud API. The whole file is buffered (WhatsApp limits it to 16 MB) so that
 // Range requests, which Safari needs for audio and video, can be answered.
+// D1 returns BLOB columns as an array of byte values (or an ArrayBuffer, depending on the runtime).
+function blobBytes(v) {
+  if (v instanceof Uint8Array) return v;
+  if (v instanceof ArrayBuffer) return new Uint8Array(v);
+  return Uint8Array.from(Array.isArray(v) ? v : []);
+}
+
 async function mediaProxy(req, env, idStr) {
   const id = parseInt(idStr, 10);
-  const m = id > 0 ? await env.DB.prepare('SELECT media_id, media_url, media_mime FROM messages WHERE id = ?').bind(id).first() : null;
-  if (!m || (!m.media_id && !m.media_url)) fail(404, 'Файл не найден');
+  const m = id > 0 ? await env.DB.prepare('SELECT media_id, media_url, media_mime, media_ref FROM messages WHERE id = ?').bind(id).first() : null;
+  if (!m || (!m.media_id && !m.media_url && !m.media_ref)) fail(404, 'Файл не найден');
   let meta, buf;
-  if (m.media_url) {
+  if (m.media_ref) {
+    // File stored in D1 (connector files, voice notes and photos sent from the CRM).
+    const f = await env.DB.prepare('SELECT mime, data FROM media WHERE id = ?').bind(m.media_ref).first();
+    if (!f) fail(404, 'Файл удалён (вложения хранятся ограниченное время)');
+    buf = blobBytes(f.data).buffer;
+    meta = { mime_type: f.mime };
+  } else if (m.media_url) {
     // Connector-hosted file: only hosts listed in CONNECTOR_MEDIA_HOSTS (comma separated) may be fetched.
     let host = '';
     try { host = new URL(m.media_url).host.toLowerCase(); } catch (e) { host = ''; }
@@ -1564,10 +1655,244 @@ async function inboxApi(req, env, url, user) {
   if ((mt = p.match(/^\/api\/chats\/(\d+)\/send$/)) && m === 'POST') return sendChatMessage(env, user, mt[1], await readJson(req));
   if ((mt = p.match(/^\/api\/chats\/(\d+)\/source$/)) && m === 'POST') return setChatSource(env, user, mt[1], await readJson(req));
   if ((mt = p.match(/^\/api\/chats\/(\d+)\/order$/)) && m === 'POST') return orderFromChat(env, user, mt[1]);
+  if ((mt = p.match(/^\/api\/chats\/(\d+)\/voice$/)) && m === 'POST') return sendChatFile(env, user, mt[1], await readJson(req, MAX_FILE_JSON), 'voice');
+  if ((mt = p.match(/^\/api\/chats\/(\d+)\/image$/)) && m === 'POST') return sendChatFile(env, user, mt[1], await readJson(req, MAX_FILE_JSON), 'image');
   if ((mt = p.match(/^\/api\/media\/(\d+)$/)) && m === 'GET') return mediaProxy(req, env, mt[1]);
+  if (p === '/api/wa-server' || p.startsWith('/api/wa-server/')) return waServerApi(req, env, url, user);
   if (p === '/api/wa-numbers' || p.startsWith('/api/wa-numbers/')) return numbersApi(req, env, user, p, m);
   if (p === '/api/targets' || p.startsWith('/api/targets/')) return targetsApi(req, env, user, p, m);
   return null;
+}
+
+/* ---------- WhatsApp linked-device connector (QR) ----------
+   A small Node program on a free VM (connector/ in the repo) holds the WhatsApp Web session and only makes outbound HTTPS
+   calls here (pull model). Auth: Bearer key; only its SHA-256 is stored. Events go through the same ingestEvents() as every
+   other source; outgoing messages wait in the `outbox` table until the connector claims them. */
+const CONNECTOR_STATES = ['connecting', 'qr', 'open', 'closed', 'logged_out', 'banned'];
+const OUTBOX_BATCH = 5;
+const OUTBOX_STALE_MS = 2 * 60 * 1000;      // a claimed item without an ack goes back to the queue after 2 min
+const OUTBOX_MAX_ATTEMPTS = 3;
+const OUTBOX_EXPIRE_MS = 6 * 3600 * 1000;   // a reply nobody picked up for 6 h is not sent any more
+const MEDIA_KEEP_DAYS = 120;
+const QR_RE = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/;
+
+async function connectorInstalled(env) {
+  try {
+    const r = await env.DB.prepare('SELECT token_hash FROM connector WHERE id = 1').first();
+    return !!(r && r.token_hash);
+  } catch (e) { return false; }   // migration 0004 not applied yet
+}
+
+async function connectorAuth(req, env) {
+  const m = (req.headers.get('Authorization') || '').match(/^Bearer\s+([A-Za-z0-9_-]{20,200})$/);
+  const row = await env.DB.prepare('SELECT token_hash FROM connector WHERE id = 1').first();
+  // Hash the candidate even when no key exists, so the response time does not tell whether a key was ever created.
+  const hash = await sha256Hex(m ? m[1] : '');
+  if (!m || !row || !row.token_hash || !(await safeEqual(hash, row.token_hash))) fail(401, 'Нет доступа');
+}
+
+async function connectorApi(req, env, url) {
+  const p = url.pathname, m = req.method;
+  await connectorAuth(req, env);
+  let mt;
+  if (p === '/api/connector/state' && m === 'POST') return connectorState(env, await readJson(req));
+  if (p === '/api/connector/events' && m === 'POST') return connectorEvents(env, await readJson(req, MAX_HOOK_BODY));
+  if (p === '/api/connector/media' && m === 'POST') return connectorMediaPut(env, await readJson(req, MAX_FILE_JSON));
+  if ((mt = p.match(/^\/api\/connector\/media\/([A-Za-z0-9_-]{1,64})$/)) && m === 'GET') return connectorMediaGet(env, mt[1]);
+  if (p === '/api/connector/outbox' && m === 'GET') return connectorOutbox(env, url);
+  if (p === '/api/connector/ack' && m === 'POST') return connectorAck(env, await readJson(req));
+  fail(404, 'Не найдено');
+}
+
+// Number logged in on the connector: make sure it exists, is the only 'qr' number and (first time / after «Переподключить») becomes current.
+async function connectorOpened(env, row, phone) {
+  const ts = nowIso();
+  let num = await env.DB.prepare('SELECT * FROM wa_numbers WHERE phone = ?').bind(phone).first();
+  if (!num) {
+    await env.DB.prepare(
+      "INSERT INTO wa_numbers (phone, label, status, connection, is_current, note, created_at, updated_at) VALUES (?, '', 'active', 'qr', 0, 'Подключён по QR', ?, ?) ON CONFLICT DO NOTHING"
+    ).bind(phone, ts, ts).run();
+    num = await env.DB.prepare('SELECT * FROM wa_numbers WHERE phone = ?').bind(phone).first();
+  }
+  if (!num) return;
+  const cur = await env.DB.prepare('SELECT id FROM wa_numbers WHERE is_current = 1').first();
+  // A heartbeat of the very number that was linked before «Переподключить» must not undo the switch.
+  const switching = row.switch_on_open === 1 && phone !== row.phone;
+  const makeCurrent = (!cur && num.status === 'active') || switching;
+  const others = await env.DB.prepare("SELECT COUNT(*) AS n FROM wa_numbers WHERE connection = 'qr' AND id != ?").bind(num.id).first();
+  if (num.connection === 'qr' && !others.n && !makeCurrent && !(row.phone && row.phone !== phone)) return;
+  const stmts = [
+    env.DB.prepare("UPDATE wa_numbers SET connection = 'qr', status = CASE WHEN ?2 = 1 THEN 'active' ELSE status END, updated_at = ?3 WHERE id = ?1").bind(num.id, switching ? 1 : 0, ts),
+    env.DB.prepare("UPDATE wa_numbers SET connection = '', updated_at = ? WHERE connection = 'qr' AND id != ?").bind(ts, num.id)
+  ];
+  if (row.phone && row.phone !== phone) {
+    // Messages queued for the previous number must never leave through the new one.
+    stmts.push(env.DB.prepare("UPDATE messages SET status = 'failed' WHERE status = 'queued' AND id IN (SELECT message_id FROM outbox WHERE status IN ('queued', 'sending') AND number_id != ?)").bind(num.id));
+    stmts.push(env.DB.prepare("UPDATE outbox SET status = 'failed', error = 'Номер отключён', updated_at = ? WHERE status IN ('queued', 'sending') AND number_id != ?").bind(ts, num.id));
+  }
+  if (makeCurrent) {
+    stmts.push(env.DB.prepare('UPDATE wa_numbers SET is_current = 0, updated_at = ? WHERE is_current = 1 AND id != ?').bind(ts, num.id));
+    stmts.push(env.DB.prepare('UPDATE wa_numbers SET is_current = 1, updated_at = ? WHERE id = ?').bind(ts, num.id));
+    stmts.push(env.DB.prepare('UPDATE connector SET switch_on_open = 0 WHERE id = 1'));
+    stmts.push(auditStmt(env, 'connector', 'wa-current', null, null, `number#${num.id} qr`));
+  }
+  await env.DB.batch(stmts);
+}
+
+async function connectorState(env, b) {
+  const st = String(b.state || '');
+  if (!CONNECTOR_STATES.includes(st)) fail(400, 'Неизвестное состояние');
+  const row = await env.DB.prepare('SELECT * FROM connector WHERE id = 1').first();
+  const ts = nowIso();
+  const version = String(b.version || '').slice(0, 40);
+  if (row.pending_command === 'relink' && st === 'open') {
+    // Heartbeat of the session that is about to be replaced: only proves the server is alive.
+    await env.DB.prepare('UPDATE connector SET last_seen_at = ?, version = ? WHERE id = 1').bind(ts, version).run();
+    return json({ ok: true });
+  }
+  if (st === 'qr') {
+    const qr = typeof b.qr === 'string' && b.qr.length <= 60000 && QR_RE.test(b.qr) ? b.qr : '';
+    await env.DB.prepare(
+      "UPDATE connector SET state = 'qr', version = ?1, last_seen_at = ?2, qr_data = CASE WHEN ?3 != '' THEN ?3 ELSE qr_data END, qr_at = CASE WHEN ?3 != '' THEN ?2 ELSE qr_at END WHERE id = 1"
+    ).bind(version, ts, qr).run();
+  } else if (st === 'open') {
+    const phone = digitsOf(b.phone);
+    if (phone.length < 8 || phone.length > 15) fail(400, 'Не указан номер');
+    await env.DB.prepare("UPDATE connector SET state = 'open', qr_data = '', qr_at = '', phone = ?, name = ?, version = ?, last_seen_at = ? WHERE id = 1")
+      .bind(phone, String(b.name || '').slice(0, 100), version, ts).run();
+    await connectorOpened(env, row, phone);
+  } else {
+    await env.DB.prepare("UPDATE connector SET state = ?, qr_data = '', qr_at = '', version = ?, last_seen_at = ? WHERE id = 1").bind(st, version, ts).run();
+  }
+  return json({ ok: true });
+}
+
+async function connectorEvents(env, b) {
+  const row = await env.DB.prepare('SELECT phone FROM connector WHERE id = 1').first();
+  const list = Array.isArray(b.events) ? b.events : [];
+  // Events carry their own business number; the connector's current number fills in when it is missing.
+  for (const e of list) if (e && typeof e === 'object' && !digitsOf(e.numberPhone)) e.numberPhone = row.phone;
+  const n = await ingestEvents(env, normalizeInboxEvents({ events: list }), 'qr');
+  return json({ ok: true, accepted: n });
+}
+
+async function connectorMediaPut(env, b) {
+  const mime = String(b.mime || '').trim().toLowerCase().slice(0, 100);
+  if (!/^[a-z0-9.+-]+\/[a-z0-9.+-]+(;[ a-z0-9=.,_+-]*)?$/.test(mime)) fail(400, 'Неизвестный тип файла');
+  const raw = typeof b.data === 'string' ? b.data : '';
+  if (!raw) fail(400, 'Файл не получен');
+  if (raw.length > Math.ceil(MAX_FILE / 3) * 4 + 8) fail(413, 'Файл больше 1,5 МБ');
+  let bytes;
+  try { bytes = fromB64(raw); } catch (e) { fail(400, 'Файл повреждён'); }
+  if (!bytes.length || bytes.length > MAX_FILE) fail(413, 'Файл больше 1,5 МБ');
+  return json({ ok: true, id: await storeMedia(env, mime, bytes) }, 201);
+}
+
+async function connectorMediaGet(env, id) {
+  const f = await env.DB.prepare('SELECT mime, data FROM media WHERE id = ?').bind(id).first();
+  if (!f) fail(404, 'Файл не найден');
+  return new Response(blobBytes(f.data), { headers: { 'Content-Type': f.mime || 'application/octet-stream' } });
+}
+
+async function connectorOutbox(env, url) {
+  const ts = nowIso();
+  const cmd = await env.DB.prepare("UPDATE connector SET pending_command = '' WHERE id = 1 AND pending_command = 'relink'").run();
+  if (cmd.meta.changes) return json({ items: [], command: 'relink' });
+  // Housekeeping: stuck 'sending' items return to the queue (max 3 attempts), very old queued items expire.
+  const stale = new Date(Date.now() - OUTBOX_STALE_MS).toISOString();
+  const expire = new Date(Date.now() - OUTBOX_EXPIRE_MS).toISOString();
+  await env.DB.prepare("UPDATE outbox SET status = 'queued', updated_at = ? WHERE status = 'sending' AND updated_at < ? AND attempts < ?").bind(ts, stale, OUTBOX_MAX_ATTEMPTS).run();
+  const dead = await env.DB.batch([
+    env.DB.prepare("UPDATE outbox SET status = 'failed', error = 'Сервер WhatsApp не подтвердил отправку', updated_at = ?1 WHERE status = 'sending' AND updated_at < ?2 AND attempts >= ?3 RETURNING message_id").bind(ts, stale, OUTBOX_MAX_ATTEMPTS),
+    env.DB.prepare("UPDATE outbox SET status = 'failed', error = 'Сервер WhatsApp не вышел на связь', updated_at = ?1 WHERE status = 'queued' AND created_at < ?2 RETURNING message_id").bind(ts, expire)
+  ]);
+  const ids = [];
+  for (const r of dead) for (const x of (r.results || [])) if (x.message_id) ids.push(x.message_id);
+  if (ids.length) await env.DB.prepare(`UPDATE messages SET status = 'failed' WHERE status = 'queued' AND id IN (${ids.map(() => '?').join(',')})`).bind(...ids).run();
+  if (url.searchParams.get('ready') !== '1') return json({ items: [], command: null });
+  const conn = await env.DB.prepare('SELECT phone FROM connector WHERE id = 1').first();
+  const num = conn && conn.phone ? await env.DB.prepare('SELECT id FROM wa_numbers WHERE phone = ?').bind(conn.phone).first() : null;
+  if (!num) return json({ items: [], command: null });
+  // Atomic claim: the UPDATE itself picks the rows, so two pollers can never get the same message.
+  const { results } = await env.DB.prepare(
+    "UPDATE outbox SET status = 'sending', attempts = attempts + 1, updated_at = ?1 WHERE id IN " +
+    `(SELECT id FROM outbox WHERE status = 'queued' AND number_id = ?2 ORDER BY id LIMIT ${OUTBOX_BATCH}) RETURNING id, to_ext, type, text, media_ref`
+  ).bind(ts, num.id).all();
+  const items = (results || []).sort((a, b) => a.id - b.id)
+    .map((r) => ({ id: r.id, to: r.to_ext, type: r.type, text: r.text, mediaRef: r.media_ref }));
+  return json({ items, command: null });
+}
+
+async function connectorAck(env, b) {
+  const id = parseInt(b.id, 10);
+  const o = id > 0 ? await env.DB.prepare('SELECT * FROM outbox WHERE id = ?').bind(id).first() : null;
+  if (!o) fail(404, 'Не найдено');
+  if (o.status === 'sent') return json({ ok: true });
+  const ts = nowIso();
+  if (b.ok === true) {
+    const ext = String(b.extMsgId || '').slice(0, 200);
+    const stmts = [env.DB.prepare("UPDATE outbox SET status = 'sent', ext_msg_id = ?, error = '', updated_at = ? WHERE id = ?").bind(ext, ts, id)];
+    if (o.message_id) {
+      // If the phone-echo of this message was ingested before the ack, that row already owns the id: keep it, drop ours.
+      const twin = ext ? await env.DB.prepare('SELECT id FROM messages WHERE ext_msg_id = ? AND id != ?').bind(ext, o.message_id).first() : null;
+      if (twin) stmts.push(env.DB.prepare('UPDATE messages SET media_ref = CASE WHEN media_ref = \'\' THEN ?2 ELSE media_ref END WHERE id = ?1').bind(twin.id, o.media_ref || ''));
+      if (twin) stmts.push(env.DB.prepare('DELETE FROM messages WHERE id = ?').bind(o.message_id));
+      else stmts.push(env.DB.prepare("UPDATE messages SET ext_msg_id = ?, status = CASE WHEN status IN ('delivered', 'read') THEN status ELSE 'sent' END WHERE id = ?").bind(ext || null, o.message_id));
+    }
+    await env.DB.batch(stmts);
+    return json({ ok: true });
+  }
+  const error = String(b.error || 'Ошибка отправки').slice(0, 200);
+  if (/not connected/i.test(error) && o.attempts < OUTBOX_MAX_ATTEMPTS) {
+    await env.DB.prepare("UPDATE outbox SET status = 'queued', error = ?, updated_at = ? WHERE id = ?").bind(error, ts, id).run();
+    return json({ ok: true, retry: true });
+  }
+  const stmts = [env.DB.prepare("UPDATE outbox SET status = 'failed', error = ?, updated_at = ? WHERE id = ?").bind(error, ts, id)];
+  if (o.message_id) stmts.push(env.DB.prepare("UPDATE messages SET status = 'failed' WHERE id = ?").bind(o.message_id));
+  await env.DB.batch(stmts);
+  return json({ ok: true });
+}
+
+/* ----- «Сервер WhatsApp» in Settings (admin) ----- */
+function serverOut(r) {
+  const seen = Date.parse(r.last_seen_at || '');
+  const online = !!seen && Date.now() - seen <= CONNECTOR_STALE_MS;
+  return {
+    installed: !!r.token_hash, keyCreatedAt: r.token_created_at || '', state: r.state || '', online,
+    minutesAgo: seen ? Math.max(0, Math.round((Date.now() - seen) / 60000)) : null, lastSeenAt: r.last_seen_at || '',
+    phone: r.phone || '', name: r.name || '', version: r.version || '',
+    qr: r.state === 'qr' && online && r.qr_data ? r.qr_data : '',
+    relinkPending: r.pending_command === 'relink' || r.state === 'relinking'
+  };
+}
+
+async function waServerApi(req, env, url, user) {
+  requireAdmin(user);
+  const p = url.pathname, m = req.method;
+  if (p === '/api/wa-server' && m === 'GET') {
+    return json({ server: serverOut(await env.DB.prepare('SELECT * FROM connector WHERE id = 1').first()) });
+  }
+  if (p === '/api/wa-server/key' && m === 'POST') {
+    const token = randomToken();
+    const ts = nowIso();
+    await env.DB.batch([
+      env.DB.prepare("UPDATE connector SET token_hash = ?, token_created_at = ?, state = '', qr_data = '', qr_at = '', last_seen_at = '', version = '', pending_command = '', switch_on_open = 0 WHERE id = 1")
+        .bind(await sha256Hex(token), ts),
+      auditStmt(env, user.email, 'wa-server-key', null, null, '')
+    ]);
+    const script = CLOUD_INIT_TEMPLATE.replace('__CRM_URL__', url.origin).replace('__CONNECTOR_TOKEN__', token);
+    return json({ ok: true, script });
+  }
+  if (p === '/api/wa-server/relink' && m === 'POST') {
+    const row = await env.DB.prepare('SELECT * FROM connector WHERE id = 1').first();
+    if (!row.token_hash) fail(409, 'Сервер WhatsApp ещё не подключён: сначала создайте ключ и установите сервер.');
+    await env.DB.batch([
+      env.DB.prepare("UPDATE connector SET pending_command = 'relink', switch_on_open = 1, state = 'relinking', qr_data = '', qr_at = '' WHERE id = 1"),
+      auditStmt(env, user.email, 'wa-server-relink', null, null, '')
+    ]);
+    return json({ ok: true });
+  }
+  fail(404, 'Не найдено');
 }
 
 /* ----- public links: /wa and /wa/<code> ----- */
@@ -1596,6 +1921,12 @@ async function waLink(env, code, count) {
    GitHub's schedule stays as the backup; publish.yml runs one at a time and never posts a done slot twice. */
 const MORNING_CRON = '0 4 * * *'; // must match wrangler.toml [triggers]
 const EVENING_CRON = '0 17 * * *'; // 22:00 Almaty; GitHub's own schedule ran 3.5 h late on 2026-10-31
+
+// Files kept in D1 (connector media, voice notes): drop the old ones so the free database does not fill up.
+async function cleanupMedia(env) {
+  try { await env.DB.prepare('DELETE FROM media WHERE created_at < ?').bind(new Date(Date.now() - MEDIA_KEEP_DAYS * 86400000).toISOString()).run(); }
+  catch (e) { console.error('media cleanup failed'); }
+}
 
 async function autoPublish(env) {
   if (!env.GH_DISPATCH_TOKEN) return;
@@ -1637,6 +1968,7 @@ async function startReport(env, workflow) {
 
 export default {
   async scheduled(event, env, ctx) {
+    if (event.cron === MORNING_CRON) ctx.waitUntil(cleanupMedia(env));
     const job = event.cron === MORNING_CRON ? startReport(env, 'morning.yml')
       : event.cron === EVENING_CRON ? startReport(env, 'evening.yml') : autoPublish(env);
     ctx.waitUntil(job);

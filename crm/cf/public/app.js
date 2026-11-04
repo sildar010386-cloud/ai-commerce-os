@@ -32,7 +32,8 @@ var S = {
   tab: 'orders', filter: 'all', q: '', period: 'week', contentDay: null,
   drawer: false, card: null, resetFor: null,
   admin: false, loaded: {}, errors: {},
-  data: { orders: [], products: [], finance: {}, content: [], users: [], settings: null, bot: null, numbers: [], targets: [] },
+  data: { orders: [], products: [], finance: {}, content: [], users: [], settings: null, bot: null, numbers: [], targets: [], server: null },
+  serverScript: '', // initialization script shown once after «Создать ключ подключения» (kept in memory only)
   chat: null, waConnected: false,
   dirty: false, loginError: '',
   kz: null // Kazpost registry import panel (Заказы tab)
@@ -496,7 +497,7 @@ function renderSettings() {
     '<div class="fld"><label for="set-track_url">Ссылка для отслеживания</label><input id="set-track_url" type="text" autocomplete="off" value="' + esc(s.track_url || DEFAULT_TRACK_URL) + '" placeholder="https://.../{трек}">' +
     '<small>Должна начинаться с https:// и содержать {трек} — туда подставится номер посылки.</small></div>' +
     '<div><button type="button" class="btn pri" data-act="set-save">Сохранить</button></div></div>' +
-    waNumbersHTML() + targetsHTML();
+    waServerHTML() + waNumbersHTML() + targetsHTML();
 }
 
 function renderAccount() {
@@ -937,7 +938,7 @@ function sendTrack(id) {
 
 /* ---------- Inbox: chats ---------- */
 function freshChat() {
-  return { list: [], unreadTotal: 0, filter: 'all', q: '', openId: null, thread: null, draft: '', sending: false, loaded: false, error: '', seq: 0, sig: '' };
+  return { list: [], unreadTotal: 0, filter: 'all', q: '', openId: null, thread: null, draft: '', sending: false, loaded: false, error: '', seq: 0, sig: '', rec: null };
 }
 var chatSearchTimer = null;
 var CHAT_FILTERS = [['all', 'Все'], ['unread', 'Непрочитанные'], ['target', 'Таргет'], ['organic', 'Органика']];
@@ -978,32 +979,34 @@ function chatRowsHTML() {
   }).join('');
 }
 
+function noMedia(label, m) { return '<i>' + (m.body ? esc(m.body) : label + ' (вложение недоступно)') + '</i>'; }
+var OUT_STATUS = { queued: ' · в очереди', sent: ' · отправлено', delivered: ' · доставлено', read: ' · прочитано', failed: ' · ошибка' };
 function bubbleHTML(m) {
   var url = '/api/media/' + m.id, body;
   var media = m.hasMedia;
   switch (m.type) {
     case 'text': body = esc(m.body); break;
     case 'image':
-      body = media ? '<a href="' + url + '" target="_blank" rel="noopener noreferrer"><img class="mimg" loading="lazy" src="' + url + '" alt="Фото"></a>' : '<i>Фото (вложение недоступно)</i>';
+      body = media ? '<a href="' + url + '" target="_blank" rel="noopener noreferrer"><img class="mimg" loading="lazy" src="' + url + '" alt="Фото"></a>' : noMedia('Фото', m);
       if (m.caption) body += '<div>' + esc(m.caption) + '</div>';
       break;
-    case 'sticker': body = media ? '<img class="mimg stk" loading="lazy" src="' + url + '" alt="Стикер">' : '<i>Стикер</i>'; break;
+    case 'sticker': body = media ? '<img class="mimg stk" loading="lazy" src="' + url + '" alt="Стикер">' : noMedia('Стикер', m); break;
     case 'voice': case 'audio':
       body = media ? '<div class="mlbl">' + (m.type === 'voice' ? 'Голосовое сообщение' : 'Аудио') + '</div><audio controls preload="none" src="' + url + '"></audio>'
-        : '<i>' + (m.type === 'voice' ? 'Голосовое' : 'Аудио') + ' (вложение недоступно)</i>';
+        : noMedia(m.type === 'voice' ? 'Голосовое' : 'Аудио', m);
       break;
     case 'video': case 'document':
       body = (media ? '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + (m.type === 'video' ? 'Видео' : 'Файл') + (m.type === 'document' && m.caption ? ': ' + esc(m.caption) : '') + ' — открыть</a>'
-        : '<i>' + (m.type === 'video' ? 'Видео' : 'Файл') + ' (вложение недоступно)</i>');
+        : noMedia(m.type === 'video' ? 'Видео' : 'Файл', m) + (m.type === 'document' && m.caption ? '<div>' + esc(m.caption) + '</div>' : ''));
       if (m.type === 'video' && m.caption) body += '<div>' + esc(m.caption) + '</div>';
       break;
     case 'location': body = 'Геолокация: ' + esc(m.body); break;
     case 'reaction': body = 'Реакция: ' + esc(m.body); break;
     default: body = '<i>Сообщение, которое CRM не показывает. Посмотрите его в приложении WhatsApp.</i>';
   }
-  var st = m.direction === 'out' ? ({ sent: ' · отправлено', delivered: ' · доставлено', read: ' · прочитано', failed: ' · не доставлено' }[m.status] || '') : '';
-  return '<div class="msg ' + (m.direction === 'out' ? 'out' : 'in') + '"><div class="bub">' + body +
-    '<div class="mmeta">' + esc(fmtDate(m.ts)) + (m.fromApp ? ' · с телефона' : '') + st + '</div></div></div>';
+  var st = m.direction === 'out' ? (OUT_STATUS[m.status] || '') : '';
+  return '<div class="msg ' + (m.direction === 'out' ? 'out' : 'in') + '"><div class="bub' + (m.status === 'failed' && m.direction === 'out' ? ' mfail' : '') + '">' + body +
+    '<div class="mmeta">' + esc(fmtDate(m.ts)) + (m.fromApp ? ' · с телефона' : '') + (m.status === 'failed' && m.direction === 'out' ? '<b class="neg">' + st + '</b>' : st) + '</div></div></div>';
 }
 function chatMsgsHTML() {
   var th = S.chat.thread;
@@ -1029,17 +1032,34 @@ function chatHeadHTML() {
     (c.platform ? ' <small>' + esc(c.platform) + '</small>' : '') + (c.numberLabel ? ' <small>номер: ' + esc(c.numberLabel) + (c.numberStatus === 'blocked' ? ' (заблокирован)' : c.numberStatus === 'off' ? ' (выключен)' : '') + '</small>' : '') + '</div></div></div>' +
     '<div class="row-flex"><label class="sr" for="chat-src">Источник</label><select id="chat-src" class="chat-src">' + chatSourceOptions(c) + '</select>' + order + '</div>';
 }
+var MIC_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+var IMG_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M21 16l-5-5-9 9"/></svg>';
+function fmtSecs(n) { return Math.floor(n / 60) + ':' + pad2(n % 60); }
+function recHTML(R) {
+  if (R.mode === 'recording') {
+    return '<div class="chat-rec"><span class="rec-dot" aria-hidden="true"></span><span>Идёт запись <b id="rec-time">' + fmtSecs(R.secs) + '</b> из 2:00</span>' +
+      '<button type="button" class="btn pri" data-act="rec-stop">Остановить</button><button type="button" class="btn" data-act="rec-cancel">Отмена</button></div>';
+  }
+  return '<div class="chat-rec"><audio controls preload="auto" src="' + esc(R.url) + '"></audio>' +
+    '<button type="button" class="btn pri" id="rec-send" data-act="rec-send"' + (R.sending ? ' disabled' : '') + '>Отправить</button>' +
+    '<button type="button" class="btn" data-act="rec-cancel"' + (R.sending ? ' disabled' : '') + '>Отмена</button></div>';
+}
 function chatComposerHTML() {
   var th = S.chat.thread;
   if (!th) return '';
-  var c = th.chat, notes = '';
+  var c = th.chat, notes = '', qr = c.numberConnection === 'qr';
   if (!S.waConnected) notes += '<div class="notice">WhatsApp ещё не подключён: переписка видна, но отправить сообщение из CRM пока нельзя.</div>';
   if (c.numberStatus === 'blocked') notes += '<div class="notice">Номер, на который писал клиент, заблокирован. Ответьте из приложения WhatsApp или с запасного номера.</div>';
   else if (c.numberStatus === 'off') notes += '<div class="notice">Номер, на который писал клиент, выключен в настройках.</div>';
   var last = Date.parse(c.lastInboundAt || '');
-  if (!last || Date.now() - last > 24 * 3600e3) notes += '<div class="notice">Прошло больше 24 часов с последнего сообщения клиента — WhatsApp не даёт отправить обычное сообщение. Напишите из приложения на телефоне.</div>';
+  if (!qr && (!last || Date.now() - last > 24 * 3600e3)) notes += '<div class="notice">Прошло больше 24 часов с последнего сообщения клиента — WhatsApp не даёт отправить обычное сообщение. Напишите из приложения на телефоне.</div>';
+  var R = S.chat.rec;
+  if (R) return notes + '<div class="notice hide" id="chat-err" role="alert"></div>' + recHTML(R);
+  var tools = qr ? '<button type="button" class="icon-btn" data-act="rec-start" aria-label="Записать голосовое" title="Голосовое сообщение">' + MIC_SVG + '</button>' +
+    '<button type="button" class="icon-btn" data-act="chat-attach" aria-label="Прикрепить фото" title="Фото">' + IMG_SVG + '</button>' +
+    '<input type="file" id="chat-img" class="hide" accept="image/jpeg,image/png,image/webp" aria-label="Фото для отправки">' : '';
   return notes + '<div class="notice hide" id="chat-err" role="alert"></div>' +
-    '<div class="chat-compose"><label class="sr" for="chat-reply">Ответ клиенту</label><textarea id="chat-reply" rows="2" placeholder="Ответ клиенту (Ctrl+Enter — отправить)">' + esc(S.chat.draft) + '</textarea>' +
+    '<div class="chat-compose">' + tools + '<label class="sr" for="chat-reply">Ответ клиенту</label><textarea id="chat-reply" rows="2" placeholder="Ответ клиенту (Ctrl+Enter — отправить)">' + esc(S.chat.draft) + '</textarea>' +
     '<button type="button" class="btn pri" id="chat-send" data-act="chat-send"' + (S.chat.sending ? ' disabled' : '') + '>Отправить</button></div>';
 }
 function chatThreadHTML() {
@@ -1078,7 +1098,7 @@ function chatsPaintMessages() {
   var stick = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
   box.innerHTML = chatMsgsHTML();
   if (head) head.innerHTML = chatHeadHTML();
-  if (foot && !foot.contains(document.activeElement)) foot.innerHTML = chatComposerHTML();
+  if (foot && !foot.contains(document.activeElement) && !S.chat.rec) foot.innerHTML = chatComposerHTML();
   if (stick) box.scrollTop = box.scrollHeight;
 }
 async function chatsLoadList() {
@@ -1118,6 +1138,7 @@ async function chatsRefreshThread() {
 }
 async function chatOpen(id) {
   var C = S.chat;
+  recCancel(true);
   C.openId = id; C.thread = null; C.draft = ''; C.sig = '';
   C.list.forEach(function (c) { if (c.id === id) c.unread = 0; });
   chatsPaintList(); chatsPaintThread();
@@ -1130,7 +1151,7 @@ async function chatOpen(id) {
     chatsCount();
   } catch (e) { toast('Не открылось: ' + e.message, 'err'); }
 }
-function chatBack() { S.chat.openId = null; S.chat.thread = null; chatsPaintList(); chatsPaintThread(); chatsLoadList(); }
+function chatBack() { recCancel(true); S.chat.openId = null; S.chat.thread = null; chatsPaintList(); chatsPaintThread(); chatsLoadList(); }
 function showChatErr(msg) { var e = $('#chat-err'); if (e) { e.textContent = msg || ''; e.classList.toggle('hide', !msg); } }
 async function chatSend() {
   var C = S.chat, id = C.openId, text = C.draft.trim();
@@ -1145,11 +1166,131 @@ async function chatSend() {
     if (C.thread && d.message) { C.thread.messages.push(d.message); C.sig = ''; }
     chatsPaintMessages();
     chatsLoadList();
+    if (d.warning) showChatErr(d.warning);
   } catch (e) {
     C.sending = false;
     if (btn) btn.disabled = false;
     showChatErr(e.message);
   }
+}
+/* ----- voice notes (MediaRecorder) and photos from the chat ----- */
+var MAX_REC_SECS = 120, MAX_FILE_BYTES = 1.5 * 1024 * 1024;
+function repaintFoot() { var f = $('#chat-foot'); if (f) f.innerHTML = chatComposerHTML(); }
+function recRelease(R) {
+  if (!R) return;
+  clearInterval(R.timer);
+  if (R.stream) R.stream.getTracks().forEach(function (t) { try { t.stop(); } catch (x) { /* ignore */ } });
+  if (R.url) { try { URL.revokeObjectURL(R.url); } catch (x) { /* ignore */ } }
+}
+function recCancel(silent) {
+  var C = S.chat, R = C && C.rec;
+  if (!R) return;
+  R.cancelled = true;
+  if (R.mode === 'recording' && R.recorder && R.recorder.state !== 'inactive') { try { R.recorder.stop(); } catch (x) { /* ignore */ } }
+  recRelease(R);
+  C.rec = null;
+  if (!silent) repaintFoot();
+}
+async function recStart() {
+  var C = S.chat;
+  if (C.rec) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) { toast('Этот браузер не умеет записывать звук', 'err'); return; }
+  var stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { toast('Нет доступа к микрофону. Разрешите его в настройках браузера для этого сайта.', 'err'); return; }
+  var mime = ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].filter(function (t) { return MediaRecorder.isTypeSupported(t); })[0] || '';
+  var rec;
+  try { rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream); }
+  catch (e) { stream.getTracks().forEach(function (t) { t.stop(); }); toast('Не удалось начать запись', 'err'); return; }
+  var R = { mode: 'recording', chunks: [], mime: rec.mimeType || mime || 'audio/webm', secs: 0, started: Date.now(), stream: stream, recorder: rec, timer: null, url: '', blob: null, cancelled: false, sending: false };
+  rec.ondataavailable = function (e) { if (e.data && e.data.size) R.chunks.push(e.data); };
+  rec.onstop = function () {
+    clearInterval(R.timer);
+    R.stream.getTracks().forEach(function (t) { t.stop(); });
+    if (R.cancelled || C.rec !== R) return;
+    R.blob = new Blob(R.chunks, { type: R.mime });
+    if (!R.blob.size) { C.rec = null; repaintFoot(); toast('Запись получилась пустой', 'err'); return; }
+    R.url = URL.createObjectURL(R.blob); R.mode = 'preview';
+    repaintFoot();
+  };
+  R.timer = setInterval(function () {
+    R.secs = Math.min(MAX_REC_SECS, Math.floor((Date.now() - R.started) / 1000));
+    var el = $('#rec-time'); if (el) el.textContent = fmtSecs(R.secs);
+    if (R.secs >= MAX_REC_SECS && rec.state !== 'inactive') rec.stop();
+  }, 250);
+  C.rec = R;
+  rec.start();
+  repaintFoot();
+}
+function recStop() { var R = S.chat.rec; if (R && R.mode === 'recording' && R.recorder.state !== 'inactive') R.recorder.stop(); }
+function blobToDataUrl(blob) {
+  return new Promise(function (resolve, reject) {
+    var fr = new FileReader();
+    fr.onload = function () { resolve(String(fr.result)); };
+    fr.onerror = function () { reject(new Error('Не удалось прочитать файл')); };
+    fr.readAsDataURL(blob);
+  });
+}
+async function postChatFile(kind, blob, extra) {
+  var C = S.chat, id = C.openId;
+  var d = await api('POST', '/api/chats/' + id + '/' + kind, Object.assign({ data: await blobToDataUrl(blob), mime: blob.type }, extra || {}));
+  if (C.openId === id) {
+    if (C.thread && d.message) { C.thread.messages.push(d.message); C.sig = ''; }
+    chatsPaintMessages(); chatsLoadList();
+  }
+  return d;
+}
+async function recSend() {
+  var C = S.chat, R = C.rec;
+  if (!R || R.mode !== 'preview' || R.sending) return;
+  if (R.blob.size > MAX_FILE_BYTES) { toast('Запись больше 1,5 МБ — запишите покороче', 'err'); return; }
+  R.sending = true; repaintFoot();
+  try {
+    var d = await postChatFile('voice', R.blob);
+    recRelease(R); C.rec = null; repaintFoot();
+    if (d.warning) showChatErr(d.warning);
+  } catch (e) {
+    R.sending = false; repaintFoot(); showChatErr(e.message);
+  }
+}
+// Photos above 1.5 MB are scaled down in a canvas (JPEG) until they fit.
+function shrinkImage(file) {
+  return new Promise(function (resolve, reject) {
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('Не удалось открыть фото')); };
+    img.onload = function () {
+      URL.revokeObjectURL(url);
+      var scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)), q = 0.85;
+      (function attempt() {
+        var cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(img.naturalWidth * scale)); cv.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        var cx = cv.getContext('2d');
+        cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
+        cv.toBlob(function (b) {
+          if (!b) { reject(new Error('Не удалось уменьшить фото')); return; }
+          if (b.size <= MAX_FILE_BYTES * 0.93) { resolve(b); return; }
+          if (q > 0.55) q -= 0.1; else scale *= 0.8;
+          if (scale < 0.15) { reject(new Error('Фото слишком большое')); return; }
+          attempt();
+        }, 'image/jpeg', q);
+      })();
+    };
+    img.src = url;
+  });
+}
+async function chatSendImage(file) {
+  var C = S.chat;
+  if (C.openId == null || C.sending) return;
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { toast('Фото: только JPEG, PNG или WebP', 'err'); return; }
+  C.sending = true; showChatErr('');
+  try {
+    var blob = file.size > MAX_FILE_BYTES * 0.93 ? await shrinkImage(file) : file;
+    var caption = C.draft.trim();
+    var d = await postChatFile('image', blob, { caption: caption });
+    C.draft = ''; var ta = $('#chat-reply'); if (ta) ta.value = '';
+    if (d.warning) showChatErr(d.warning);
+  } catch (e) { showChatErr(e.message); }
+  C.sending = false;
 }
 async function chatSetSource(value) {
   var C = S.chat, id = C.openId;
@@ -1180,6 +1321,56 @@ function chatsPoll() {
   if (S.chat.openId != null) chatsRefreshThread();
 }
 
+/* ---------- Settings: «Сервер WhatsApp» (QR connector on a free VM) ---------- */
+var SRV_STATE_TEXT = {
+  open: 'WhatsApp подключён', qr: 'ждёт сканирования QR-кода', connecting: 'подключается к WhatsApp…', closed: 'связь с WhatsApp прервалась, пробует снова',
+  logged_out: 'номер отвязан, ждёт новый QR-код', banned: 'WhatsApp не пускает этот номер (возможно, он заблокирован)', relinking: 'переподключение…'
+};
+function serverStatusHTML(sv) {
+  if (!sv || !sv.installed) return '<b class="neg">Не установлен</b> <small>Создайте ключ и установите сервер по инструкции ниже.</small>';
+  if (!sv.lastSeenAt) return '<b class="neg">Не установлен</b> <small>Ключ создан, ждём первый запуск сервера.</small>';
+  var line = sv.online ? '<b class="pos">На связи</b>' : '<b class="neg">Нет связи ' + (sv.minutesAgo != null ? sv.minutesAgo + ' мин' : '') + '</b>';
+  var det = [];
+  if (sv.state && sv.online) det.push(SRV_STATE_TEXT[sv.state] || sv.state);
+  if (sv.phone) det.push('номер +' + sv.phone + (sv.name ? ' (' + sv.name + ')' : ''));
+  if (sv.version) det.push('версия ' + sv.version);
+  return line + (det.length ? ' <small>' + esc(det.join(' · ')) + '</small>' : '');
+}
+function waServerInner() {
+  var sv = S.data.server;
+  var h = '<div class="ws-status" id="ws-status">' + (sv ? serverStatusHTML(sv) : 'Загружаем…') + '</div>';
+  if (sv && sv.relinkPending && !sv.qr) h += '<div class="notice">Идёт переподключение: сервер отвязывает старый номер и покажет QR-код (обычно до минуты).</div>';
+  if (sv && sv.qr) {
+    h += '<div class="qrbox"><img src="' + esc(sv.qr) + '" width="320" height="320" alt="QR-код для привязки WhatsApp">' +
+      '<div class="qrhint"><b>Отсканируйте QR-код телефоном</b><br>WhatsApp Business → ⋮ → Связанные устройства → Привязать устройство.<br>' +
+      '<small>Код обновляется сам, страницу перезагружать не нужно.</small></div></div>';
+  }
+  if (S.serverScript) {
+    h += '<div class="notice"><b>Скрипт показан один раз.</b> Он содержит секретный ключ: никому его не отправляйте. Если потеряли, создайте новый ключ (старый перестанет работать).</div>' +
+      '<div class="fld"><label for="ws-script">Скрипт инициализации для Oracle Cloud</label><textarea id="ws-script" class="ws-script" readonly spellcheck="false">' + esc(S.serverScript) + '</textarea>' +
+      '<small>Oracle Cloud → Create instance → Show advanced options → Management → Initialization script → Paste cloud-init script. Установка занимает несколько минут, потом здесь появится QR-код.</small></div>' +
+      '<div class="row-flex"><button type="button" class="btn pri" data-act="ws-copy">Скопировать скрипт</button><button type="button" class="btn" data-act="ws-hide">Скрыть скрипт</button></div>';
+  }
+  h += '<div class="row-flex"><button type="button" class="btn' + (sv && sv.installed ? '' : ' pri') + '" data-act="ws-key">Создать ключ подключения</button>' +
+    '<button type="button" class="btn dng" data-act="ws-relink"' + (sv && sv.installed ? '' : ' disabled') + '>Переподключить на другой номер</button></div>';
+  return h;
+}
+function waServerHTML() {
+  if (!S.admin) return '';
+  return '<div class="h1">Сервер WhatsApp</div><div class="card col14"><div class="muted fs14">Небольшой бесплатный сервер держит один подключённый номер WhatsApp (как «Связанное устройство») и передаёт сообщения в CRM. ' +
+    'Номер заблокировали? Нажмите «Переподключить на другой номер» и отсканируйте QR-код другим телефоном: все ссылки /wa переключатся на новый номер.</div>' +
+    '<div class="col14" id="ws-box">' + waServerInner() + '</div></div>';
+}
+function paintServer() { var el = $('#ws-box'); if (el) el.innerHTML = waServerInner(); }
+async function serverRefresh() {
+  if (!S.auth || !S.admin) return;
+  try { var d = await api('GET', '/api/wa-server'); S.data.server = d.server; S.loaded.server = true; paintServer(); } catch (e) { /* the next tick retries */ }
+}
+function serverFast() {
+  var sv = S.data.server;
+  return !!sv && sv.installed && (sv.relinkPending || ['qr', 'logged_out', 'connecting', 'closed'].indexOf(sv.state) >= 0 || !sv.lastSeenAt);
+}
+
 /* ---------- Inbox: settings sections (admin) ---------- */
 function copyBtn(text, label) {
   return '<button type="button" class="icon-btn" data-act="copy-text" data-text="' + esc(text) + '">' + COPY_SVG + (label || 'Копировать') + '</button>';
@@ -1207,20 +1398,20 @@ function waNumbersHTML() {
       '<td data-l="Статус"><select data-wan="' + id + '" data-k="status" aria-label="Статус номера +' + esc(n.phone) + '">' + NUM_STATUS_LABELS.map(function (s) {
         return '<option value="' + s[0] + '"' + (n.status === s[0] ? ' selected' : '') + '>' + s[1] + '</option>';
       }).join('') + '</select></td>' +
-      '<td data-l="Подключение"><b>' + esc(CONN_LABELS[n.connection] || CONN_LABELS['']) + '</b><div><small>' + esc(agoText(n.lastSeenAt)) + '</small></div></td>' +
+      '<td data-l="Подключение"><b>' + esc(CONN_LABELS[n.connection] || CONN_LABELS['']) + '</b><div><small>' + esc(agoText(n.lastSeenAt)) + '</small></div>' +
+        (n.connection === 'cloud' ? '<details class="adv"><summary>Дополнительно</summary><label class="sr" for="pnid-' + id + '">Phone Number ID</label><input id="pnid-' + id + '" type="text" data-wan="' + id + '" data-k="phoneNumberId" value="' + esc(n.phoneNumberId) + '" placeholder="Phone Number ID" aria-label="Phone Number ID" maxlength="40"></details>' : '') + '</td>' +
       '<td class="ctr" data-l="Ссылки ведут сюда"><input type="radio" name="wa-cur" data-wan-cur="' + id + '"' + (n.isCurrent ? ' checked' : '') + (n.status !== 'active' ? ' disabled' : '') + ' aria-label="Ссылки ведут на +' + esc(n.phone) + '"></td>' +
-      '<td data-l="Phone Number ID"><input type="text" data-wan="' + id + '" data-k="phoneNumberId" value="' + esc(n.phoneNumberId) + '" placeholder="появится при подключении" aria-label="Phone Number ID" maxlength="40"></td>' +
       '<td>' + (n.isCurrent ? '' : '<button type="button" class="btn sm dng" data-act="wan-del" data-id="' + id + '">Удалить</button>') + '</td></tr>';
   }).join('');
   return '<div class="h1">Номера WhatsApp</div><div class="card col14">' +
     '<div class="muted fs14">' + esc(WA_HINT_BLOCK) + '</div>' + warn +
     '<div class="row-flex"><span class="fw6">Общая ссылка для рекламы и лендинга:</span> <code class="wrap-any">' + esc(origin) + '/wa</code>' + copyBtn(origin + '/wa') + '</div>' +
-    '<div class="scroll"><table class="t stack"><thead><tr><th>Номер</th><th>Подпись</th><th>Статус</th><th>Подключение</th><th>Ссылки ведут сюда</th><th>Phone Number ID</th><th></th></tr></thead><tbody>' +
-    (rows || '<tr><td colspan="7" class="muted">Номеров пока нет. Добавьте первый ниже.</td></tr>') + '</tbody></table></div>' +
+    '<div class="scroll"><table class="t stack"><thead><tr><th>Номер</th><th>Подпись</th><th>Статус</th><th>Подключение</th><th>Ссылки ведут сюда</th><th></th></tr></thead><tbody>' +
+    (rows || '<tr><td colspan="6" class="muted">Номеров пока нет. Добавьте первый ниже.</td></tr>') + '</tbody></table></div>' +
     '<div class="fw6">Добавить номер</div><div class="two">' +
     '<div class="fld"><label for="wn-phone">Номер (с кодом страны)</label><input id="wn-phone" type="text" inputmode="tel" autocomplete="off" placeholder="77011234567"></div>' +
     '<div class="fld"><label for="wn-label">Подпись</label><input id="wn-label" type="text" autocomplete="off" placeholder="Основной / Запасной" maxlength="60"></div>' +
-    '<div class="fld"><label for="wn-pnid">Phone Number ID (необязательно)</label><input id="wn-pnid" type="text" autocomplete="off" maxlength="40"></div></div>' +
+    '</div><details class="adv"><summary>Дополнительно</summary><div class="fld"><label for="wn-pnid">Phone Number ID (только для Cloud API, необязательно)</label><input id="wn-pnid" type="text" autocomplete="off" maxlength="40"></div></details>' +
     '<div><button type="button" class="btn pri" data-act="wan-add">Добавить номер</button></div>' +
     (S.waConnected ? '' : '<small>Номера подключаются отдельно (по QR через коннектор или через Cloud API): номера можно добавить заранее, ссылки /wa уже работают.</small>') + '</div>';
 }
@@ -1259,7 +1450,8 @@ var LOADERS = {
   users: ['GET', '/api/users', function (d) { S.data.users = d.users || []; }],
   bot: ['GET', '/api/bot', function (d) { S.data.bot = d.bot || null; }],
   numbers: ['GET', '/api/wa-numbers', function (d) { S.data.numbers = d.numbers || []; }],
-  targets: ['GET', '/api/targets', function (d) { S.data.targets = d.targets || []; }]
+  targets: ['GET', '/api/targets', function (d) { S.data.targets = d.targets || []; }],
+  server: ['GET', '/api/wa-server', function (d) { S.data.server = d.server || null; }]
 };
 async function load(key) {
   var l = LOADERS[key];
@@ -1274,7 +1466,7 @@ async function load(key) {
   S.loaded[key] = true;
   scheduleRender();
 }
-function allKeys() { return S.admin ? ['orders', 'products', 'content', 'settings', 'finance', 'users', 'bot', 'numbers', 'targets'] : ['orders', 'products', 'content', 'settings']; }
+function allKeys() { return S.admin ? ['orders', 'products', 'content', 'settings', 'finance', 'users', 'bot', 'numbers', 'targets', 'server'] : ['orders', 'products', 'content', 'settings']; }
 async function loadAll() { await Promise.all(allKeys().map(load)); }
 // Light periodic refresh: only what the open tab shows.
 function pollKeys() {
@@ -1282,7 +1474,7 @@ function pollKeys() {
   if (t === 'content') return ['content'];
   if (t === 'managers') return ['users'];
   if (t === 'bot') return ['bot'];
-  if (t === 'settings') return ['numbers', 'targets'];
+  if (t === 'settings') return S.admin ? ['numbers', 'targets', 'server'] : ['numbers', 'targets'];
   if (t === 'account' || t === 'chats') return [];
   return ['orders', 'products'];
 }
@@ -1352,7 +1544,7 @@ async function doPublish(date, time) {
 }
 
 var ACTIONS = {
-  'tab': function (t) { S.tab = t.dataset.tab; S.drawer = false; S.resetFor = null; if (S.tab === 'chats' && S.chat) S.chat.loaded = false; renderDrawer(); renderHeader(); doRender(true); window.scrollTo(0, 0); poll(); },
+  'tab': function (t) { recCancel(true); S.tab = t.dataset.tab; S.drawer = false; S.resetFor = null; if (S.tab === 'chats' && S.chat) S.chat.loaded = false; renderDrawer(); renderHeader(); doRender(true); window.scrollTo(0, 0); poll(); },
   'drawer': function () { S.drawer = !S.drawer; renderDrawer(); },
   'drawer-close': function () { S.drawer = false; renderDrawer(); },
   'logout': function () { doLogout(); },
@@ -1414,6 +1606,32 @@ var ACTIONS = {
   'chat-back': function () { chatBack(); },
   'chat-filter': function (t) { S.chat.filter = t.dataset.f; S.chat.loaded = false; doRender(true); chatsLoadList(); },
   'chat-send': function () { chatSend(); },
+  'rec-start': function () { recStart(); },
+  'rec-stop': function () { recStop(); },
+  'rec-cancel': function () { recCancel(); },
+  'rec-send': function () { recSend(); },
+  'chat-attach': function () { var f = document.getElementById('chat-img'); if (f) f.click(); },
+  'ws-key': async function () {
+    var sv = S.data.server;
+    if (sv && sv.installed && !window.confirm('Создать новый ключ? Старый ключ сразу перестанет работать: сервер придётся установить заново (или обновить в нём ключ). Продолжить?')) return;
+    try {
+      var d = await api('POST', '/api/wa-server/key', {});
+      S.serverScript = d.script || '';
+      await serverRefresh();
+      toast('Ключ создан. Скрипт показан один раз — скопируйте его.', 'ok');
+      var el = document.getElementById('ws-script'); if (el) el.scrollIntoView({ block: 'center' });
+    } catch (e) { toast('Не получилось: ' + e.message, 'err'); }
+  },
+  'ws-copy': function () { copyText(S.serverScript, 'Скрипт скопирован', 'ws-script'); },
+  'ws-hide': function () { S.serverScript = ''; paintServer(); },
+  'ws-relink': async function () {
+    if (!window.confirm('Переподключить на другой номер?\n\nТекущий номер будет отвязан от сервера, появится QR-код. После сканирования другим телефоном все ссылки /wa и /wa/<код> переключатся на новый номер.')) return;
+    try {
+      await api('POST', '/api/wa-server/relink', {});
+      toast('Команда отправлена. Через минуту здесь появится QR-код.', 'ok');
+      await serverRefresh();
+    } catch (e) { toast('Не получилось: ' + e.message, 'err'); }
+  },
   'chat-order': function () { chatMakeOrder(); },
   'chat-order-open': function (t) { chatOpenOrder(t.dataset.id); },
   'wan-add': async function () {
@@ -1481,6 +1699,7 @@ document.addEventListener('change', function (e) {
   if (!S.auth) return;
   if (t.id === 'kz-file') { kzLoadFile(t); return; }
   if (t.id === 'chat-src') { chatSetSource(t.value); return; }
+  if (t.id === 'chat-img') { var pf = t.files && t.files[0]; t.value = ''; if (pf) chatSendImage(pf); return; }
   if (t.dataset && t.dataset.wan) {
     var wp = {}; wp[t.dataset.k] = t.value.trim();
     run('Сохранено', function () { return api('PATCH', '/api/wa-numbers/' + t.dataset.wan, wp); }).then(function () { return load('numbers'); }).then(function () { doRender(true); });
@@ -1547,6 +1766,10 @@ document.addEventListener('keydown', function (e) {
 document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') poll(); });
 setInterval(poll, POLL_MS);
 setInterval(chatsPoll, CHAT_POLL_MS);
+// While the QR code or a relink is on screen the status refreshes every 3 s (only the «Сервер WhatsApp» block is repainted).
+setInterval(function () {
+  if (S.auth && S.admin && S.tab === 'settings' && document.visibilityState === 'visible' && serverFast()) serverRefresh();
+}, 3000);
 
 /* ---------- boot ---------- */
 async function boot() {

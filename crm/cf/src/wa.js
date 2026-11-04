@@ -3,6 +3,7 @@
 //   {kind:'message'|'echo'|'history', direction:'in'|'out', phoneNumberId, displayPhone, waId, profileName,
 //    msg:{id, ts, type, body, mediaId, mime, caption, voice, referral}}
 //   {kind:'status', phoneNumberId, id, status, ts}
+// Connector (QR) events may also carry msg.mediaRef: id of a file stored in the CRM media table.
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const s = (v) => (v == null ? '' : String(v));
@@ -162,7 +163,7 @@ export function normalizeInboxEvents(body) {
       out.push(Object.assign({ kind: e.kind, direction, waId, profileName: s(e.profileName).slice(0, 200) }, base, {
         msg: {
           id: s(m.id).slice(0, 200), ts: isoFromTs(m.ts), type, body: s(m.body).slice(0, 4096), mediaId: s(m.mediaId).slice(0, 300),
-          mediaUrl: /^https?:\/\//i.test(url) ? url.slice(0, 2000) : '', mime: s(m.mime).slice(0, 100), caption: s(m.caption).slice(0, 1024),
+          mediaUrl: /^https?:\/\//i.test(url) ? url.slice(0, 2000) : '', mediaRef: /^[A-Za-z0-9_-]{1,64}$/.test(s(m.mediaRef)) ? s(m.mediaRef) : '', mime: s(m.mime).slice(0, 100), caption: s(m.caption).slice(0, 1024),
           voice: type === 'voice', referral: isObj(m.referral) ? m.referral : null
         }
       }));
