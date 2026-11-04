@@ -1202,20 +1202,20 @@ function waNumbersHTML() {
     : cur.status !== 'active' ? '<div class="notice">Ссылки сейчас ведут на номер «' + esc(cur.label || cur.phone) + '», а он не активен. Выберите другой номер в колонке «Ссылки ведут сюда».</div>' : '';
   var rows = nums.map(function (n) {
     var id = esc(n.id);
-    return '<tr class="' + (n.status === 'active' ? '' : 'off') + '"><td><b>+' + esc(n.phone) + '</b></td>' +
-      '<td><input type="text" data-wan="' + id + '" data-k="label" value="' + esc(n.label) + '" aria-label="Подпись номера +' + esc(n.phone) + '" maxlength="60"></td>' +
-      '<td><select data-wan="' + id + '" data-k="status" aria-label="Статус номера +' + esc(n.phone) + '">' + NUM_STATUS_LABELS.map(function (s) {
+    return '<tr class="' + (n.status === 'active' ? '' : 'off') + '"><td data-l="Номер"><b>+' + esc(n.phone) + '</b></td>' +
+      '<td data-l="Подпись"><input type="text" data-wan="' + id + '" data-k="label" value="' + esc(n.label) + '" aria-label="Подпись номера +' + esc(n.phone) + '" maxlength="60"></td>' +
+      '<td data-l="Статус"><select data-wan="' + id + '" data-k="status" aria-label="Статус номера +' + esc(n.phone) + '">' + NUM_STATUS_LABELS.map(function (s) {
         return '<option value="' + s[0] + '"' + (n.status === s[0] ? ' selected' : '') + '>' + s[1] + '</option>';
       }).join('') + '</select></td>' +
-      '<td><b>' + esc(CONN_LABELS[n.connection] || CONN_LABELS['']) + '</b><div><small>' + esc(agoText(n.lastSeenAt)) + '</small></div></td>' +
-      '<td class="ctr"><input type="radio" name="wa-cur" data-wan-cur="' + id + '"' + (n.isCurrent ? ' checked' : '') + (n.status !== 'active' ? ' disabled' : '') + ' aria-label="Ссылки ведут на +' + esc(n.phone) + '"></td>' +
-      '<td><input type="text" data-wan="' + id + '" data-k="phoneNumberId" value="' + esc(n.phoneNumberId) + '" placeholder="появится при подключении" aria-label="Phone Number ID" maxlength="40"></td>' +
+      '<td data-l="Подключение"><b>' + esc(CONN_LABELS[n.connection] || CONN_LABELS['']) + '</b><div><small>' + esc(agoText(n.lastSeenAt)) + '</small></div></td>' +
+      '<td class="ctr" data-l="Ссылки ведут сюда"><input type="radio" name="wa-cur" data-wan-cur="' + id + '"' + (n.isCurrent ? ' checked' : '') + (n.status !== 'active' ? ' disabled' : '') + ' aria-label="Ссылки ведут на +' + esc(n.phone) + '"></td>' +
+      '<td data-l="Phone Number ID"><input type="text" data-wan="' + id + '" data-k="phoneNumberId" value="' + esc(n.phoneNumberId) + '" placeholder="появится при подключении" aria-label="Phone Number ID" maxlength="40"></td>' +
       '<td>' + (n.isCurrent ? '' : '<button type="button" class="btn sm dng" data-act="wan-del" data-id="' + id + '">Удалить</button>') + '</td></tr>';
   }).join('');
   return '<div class="h1">Номера WhatsApp</div><div class="card col14">' +
     '<div class="muted fs14">' + esc(WA_HINT_BLOCK) + '</div>' + warn +
     '<div class="row-flex"><span class="fw6">Общая ссылка для рекламы и лендинга:</span> <code class="wrap-any">' + esc(origin) + '/wa</code>' + copyBtn(origin + '/wa') + '</div>' +
-    '<div class="scroll"><table class="t"><thead><tr><th>Номер</th><th>Подпись</th><th>Статус</th><th>Подключение</th><th>Ссылки ведут сюда</th><th>Phone Number ID</th><th></th></tr></thead><tbody>' +
+    '<div class="scroll"><table class="t stack"><thead><tr><th>Номер</th><th>Подпись</th><th>Статус</th><th>Подключение</th><th>Ссылки ведут сюда</th><th>Phone Number ID</th><th></th></tr></thead><tbody>' +
     (rows || '<tr><td colspan="7" class="muted">Номеров пока нет. Добавьте первый ниже.</td></tr>') + '</tbody></table></div>' +
     '<div class="fw6">Добавить номер</div><div class="two">' +
     '<div class="fld"><label for="wn-phone">Номер (с кодом страны)</label><input id="wn-phone" type="text" inputmode="tel" autocomplete="off" placeholder="77011234567"></div>' +
@@ -1229,17 +1229,17 @@ function targetsHTML() {
   var rows = list.map(function (tg) {
     var id = esc(tg.id), link = origin + '/wa/' + tg.code;
     return '<tr class="' + (tg.active ? '' : 'off') + '">' +
-      '<td><input type="text" data-tg="' + id + '" data-k="productName" value="' + esc(tg.productName) + '" aria-label="Товар" maxlength="200"></td>' +
-      '<td><input type="text" class="codein" data-tg="' + id + '" data-k="code" value="' + esc(tg.code) + '" aria-label="Код" maxlength="12"></td>' +
-      '<td><textarea class="ta90 tgtext" data-tg="' + id + '" data-k="text" aria-label="Текст сообщения" maxlength="1000">' + esc(tg.text) + '</textarea></td>' +
-      '<td class="ctr"><input type="checkbox" data-tg-active="' + id + '"' + (tg.active ? ' checked' : '') + ' aria-label="Активен"></td>' +
-      '<td class="ctr">' + esc(tg.clicks) + '</td><td class="ctr">' + esc(tg.contacts) + '</td>' +
-      '<td><div class="wrap-any"><small>' + esc(link) + '</small></div>' + copyBtn(link) + '</td>' +
+      '<td data-l="Товар"><input type="text" data-tg="' + id + '" data-k="productName" value="' + esc(tg.productName) + '" aria-label="Товар" maxlength="200"></td>' +
+      '<td data-l="Код"><input type="text" class="codein" data-tg="' + id + '" data-k="code" value="' + esc(tg.code) + '" aria-label="Код" maxlength="12"></td>' +
+      '<td data-l="Текст сообщения"><textarea class="ta90 tgtext" data-tg="' + id + '" data-k="text" aria-label="Текст сообщения" maxlength="1000">' + esc(tg.text) + '</textarea></td>' +
+      '<td class="ctr" data-l="Активен"><input type="checkbox" data-tg-active="' + id + '"' + (tg.active ? ' checked' : '') + ' aria-label="Активен"></td>' +
+      '<td class="ctr" data-l="Клики">' + esc(tg.clicks) + '</td><td class="ctr" data-l="Обращения">' + esc(tg.contacts) + '</td>' +
+      '<td data-l="Ссылка"><div class="wrap-any"><small>' + esc(link) + '</small></div>' + copyBtn(link) + '</td>' +
       '<td><button type="button" class="btn sm dng" data-act="tg-del" data-id="' + id + '">Удалить</button></td></tr>';
   }).join('');
   return '<div class="h1">Таргет — товары и тексты</div><div class="card col14">' +
     '<div class="muted fs14">Этот текст клиент отправит сам из рекламы или лендинга. CRM по нему поймёт, что клиент из таргета и по какому товару.</div>' +
-    '<div class="scroll"><table class="t tgt"><thead><tr><th>Товар</th><th>Код</th><th>Текст сообщения</th><th>Активен</th><th>Клики</th><th>Обращения</th><th>Ссылка</th><th></th></tr></thead><tbody>' +
+    '<div class="scroll"><table class="t tgt stack"><thead><tr><th>Товар</th><th>Код</th><th>Текст сообщения</th><th>Активен</th><th>Клики</th><th>Обращения</th><th>Ссылка</th><th></th></tr></thead><tbody>' +
     (rows || '<tr><td colspan="8" class="muted">Текстов пока нет. Добавьте первый ниже.</td></tr>') + '</tbody></table></div>' +
     '<div class="fw6">Добавить товар</div><div class="two">' +
     '<div class="fld"><label for="tn-product">Товар</label><input id="tn-product" type="text" autocomplete="off" maxlength="200"></div>' +

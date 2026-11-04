@@ -291,6 +291,17 @@ td .codein{min-width:70px}
  .chat-list{max-height:none}
  .chats.thread-open .chat-list{display:none}
  .chats:not(.thread-open) .chat-thread{display:none}
- .chat-thread{height:calc(100dvh - 150px)}
+ .chat-thread{height:calc(100dvh - 220px)}
  .only-narrow{display:inline-flex}
+}
+@media (max-width:720px){
+ .stack thead{display:none}
+ .stack,.stack tbody,.stack tr,.stack td{display:block;width:100%}
+ .stack tr{padding:10px 0;border-bottom:1px solid var(--line)}
+ .stack td{border:0;padding:4px 0;text-align:left}
+ .stack td[data-l]::before{content:attr(data-l);display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
+ .stack td.ctr{text-align:left}
+ .stack input[type=text],.stack textarea,.stack select{width:100%;max-width:100%}
+ .stack .tgtext{min-width:0}
+ .stack td:empty{display:none}
 }
