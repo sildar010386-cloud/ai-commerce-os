@@ -6,7 +6,7 @@ export class CrmError extends Error {
   constructor(message, status) { super(message); this.status = status || 0; }
 }
 
-export function createCrm({ url, token, fetchImpl = globalThis.fetch, sleep = sleepDefault, timeoutMs = 20000, retries = 3, log = console }) {
+export function createCrm({ url, token, instanceId = '', fetchImpl = globalThis.fetch, sleep = sleepDefault, timeoutMs = 20000, retries = 3, log = console }) {
   const base = String(url || '').replace(/\/+$/, '');
 
   async function request(method, path, { body, raw = false, retry = retries } = {}) {
@@ -18,7 +18,7 @@ export function createCrm({ url, token, fetchImpl = globalThis.fetch, sleep = sl
       try {
         const resp = await fetchImpl(base + path, {
           method,
-          headers: Object.assign({ Authorization: `Bearer ${token}` }, body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+          headers: Object.assign({ Authorization: `Bearer ${token}` }, instanceId ? { 'X-Connector-Instance': instanceId } : {}, body !== undefined ? { 'Content-Type': 'application/json' } : {}),
           body: body !== undefined ? JSON.stringify(body) : undefined,
           signal: ctl.signal
         });
@@ -46,11 +46,11 @@ export function createCrm({ url, token, fetchImpl = globalThis.fetch, sleep = sl
 
   return {
     request,
-    state: (payload) => request('POST', '/api/connector/state', { body: payload, retry: 1 }),
+    state: (payload) => request('POST', '/api/connector/state', { body: instanceId ? Object.assign({ instance: instanceId }, payload) : payload, retry: 1 }),
     events: (events) => request('POST', '/api/connector/events', { body: { events } }),
     uploadMedia: (mime, buffer) => request('POST', '/api/connector/media', { body: { mime, data: buffer.toString('base64') } }),
     getMedia: (id) => request('GET', '/api/connector/media/' + encodeURIComponent(id), { raw: true }),
-    outbox: (ready) => request('GET', '/api/connector/outbox?ready=' + (ready ? 1 : 0), { retry: 0 }),
+    outbox: (ready) => request('GET', '/api/connector/outbox?ready=' + (ready ? 1 : 0) + (instanceId ? '&instance=' + instanceId : ''), { retry: 0 }),
     ack: (payload) => request('POST', '/api/connector/ack', { body: payload })
   };
 }

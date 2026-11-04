@@ -40,6 +40,7 @@ export function loadConfig(env = process.env, { platform = process.platform, rea
     appDir: home ? P.join(home, 'app') : '',
     autoUpdate: get('BIKAS_AUTOUPDATE') === '1',
     watchdogMinutes: Math.max(1, Number(get('WATCHDOG_MINUTES')) || 5),
-    lockPort: Number(get('BIKAS_LOCK_PORT')) || 47653
+    lockPort: Number(get('BIKAS_LOCK_PORT')) || 47653,
+    instancePort: Number(get('BIKAS_INSTANCE_PORT')) || 47654
   };
 }

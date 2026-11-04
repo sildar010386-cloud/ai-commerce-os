@@ -369,3 +369,122 @@ test('watchdog: a socket stuck in "connecting" is replaced; a quiet QR screen is
   for (let i = 0; i < 8; i++) { clock.v += 30000; await t2.bridge.watchdogTick(); }
   assert.equal(t2.sockets.length, 2);
 });
+
+/* ---------- field report: connection logging, 440, relink on a dead socket ---------- */
+const logSink = () => { const lines = []; return { lines, info: (m) => lines.push('I ' + m), warn: (m) => lines.push('W ' + m), error: (m) => lines.push('E ' + m) }; };
+const closeWith = (s, code, message) => s.ev.emit('connection.update', { connection: 'close', lastDisconnect: { error: Object.assign(new Error(message || 'x'), { output: { statusCode: code } }) } });
+
+test('every connection.update leaves one compact line: state, status code and reason, qr, open with the own number', async () => {
+  const log = logSink();
+  const t = setup({ log });
+  await t.bridge.connect();
+  const s = t.sockets[0];
+  s.ev.emit('connection.update', { connection: 'connecting' });
+  s.ev.emit('connection.update', { qr: 'QRSTRING' });
+  s.ev.emit('connection.update', { connection: 'open' });
+  for (let i = 0; i < 6; i++) await tick();
+  closeWith(s, 408, 'Connection Lost');
+  for (let i = 0; i < 6; i++) await tick();
+  const text = log.lines.join('\n');
+  assert.match(text, /conn: connection=connecting/);
+  assert.match(text, /conn: qr=issued/);
+  assert.match(text, /conn: open as \+77011112233/);
+  assert.match(text, /conn: connection=close code=408 reason="Connection Lost"/);
+  assert.match(text, /conn: reconnect in \d+ s/);
+  assert.ok(!/QRSTRING/.test(text), 'the QR string itself is never logged');
+});
+
+test('history progress is logged as counters only', async () => {
+  const log = logSink();
+  const t = setup({ log });
+  await open(t);
+  t.sockets[0].ev.emit('messaging-history.set', { messages: [{ key: { id: 'H1', remoteJid: '77019998877@s.whatsapp.net', fromMe: false }, message: { conversation: 'SECRET-TEXT' }, messageTimestamp: Math.floor(Date.now() / 1000) - 60 }], contacts: [], syncType: 2, progress: 40 });
+  for (let i = 0; i < 6; i++) await tick();
+  const h = log.lines.find((l) => /history:/.test(l));
+  assert.match(h, /history: 1 messages from 1 chats, 0 contacts, syncType 2, progress 40, total kept 1\//);
+  assert.ok(!/SECRET-TEXT/.test(log.lines.join('')));
+});
+
+test('close code 440 (connection replaced): loud log, state replaced posted, 30 s back-off, no auth wipe', async () => {
+  const log = logSink();
+  const delays = [];
+  const t = setup({ log, sleep: async (ms) => { delays.push(ms); } });
+  await open(t);
+  closeWith(t.sockets[0], 440, 'Stream Errored (conflict)');
+  for (let i = 0; i < 10; i++) await tick();
+  assert.ok(log.lines.some((l) => l.startsWith('E ') && /REPLACED \(440\)/.test(l)));
+  const st = t.calls.state.find((x) => x.state === 'replaced');
+  assert.ok(st && st.reason === 440);
+  assert.ok(delays.includes(30000), 'back-off 30 s: ' + delays);
+  assert.equal(t.wiped(), 0);
+  assert.equal(t.sockets.length, 2, 'it comes back after the wait');
+});
+
+test('relink when the socket is NOT open (closed, logout throws): still acknowledges, wipes auth and starts a socket that yields a QR', async () => {
+  const log = logSink();
+  const t = setup({ log });
+  await open(t);
+  const dead = t.sockets[0];
+  dead.logout = async () => { throw new Error('Connection Closed'); };
+  closeWith(dead, 408, 'Connection Lost');         // state is now "closed"
+  for (let i = 0; i < 3; i++) await tick();
+  assert.equal(t.bridge.getState().state, 'closed');
+  for (const x of t.sockets) x.logout = async () => { throw new Error('Connection Closed'); };
+  t.setOutbox({ items: [], command: 'relink', commandId: 'c0ffee01' });
+  await t.bridge.pollOnce();
+  for (let i = 0; i < 6; i++) await tick();
+  assert.equal(t.calls.ready, false, 'the poll happened with ready=0 and the command still arrived');
+  assert.equal(t.wiped(), 1);
+  const n = t.sockets.length;
+  assert.ok(n >= 2);
+  const states = t.calls.state.map((x) => x.state);
+  assert.ok(states.indexOf('relinking') < states.indexOf('logged_out'), 'acknowledged first: ' + states);
+  assert.equal(t.calls.state.find((x) => x.state === 'relinking').commandId, 'c0ffee01');
+  // the fresh socket asks for a QR and the CRM gets it
+  t.sockets.at(-1).ev.emit('connection.update', { qr: 'NEWQR' });
+  for (let i = 0; i < 4; i++) await tick();
+  assert.equal(t.calls.state.at(-1).state, 'qr');
+  assert.match(t.calls.state.at(-1).qr, /NEWQR/);
+  const text = log.lines.join('\n');
+  assert.match(text, /relink: command received \(c0ffee01\), socket state was closed/);
+  assert.match(text, /relink: logout failed \(Connection Closed\)/);
+  assert.match(text, /relink: auth wiped/);
+});
+
+test('relink: a hanging logout does not block it; a repeated command id is only acknowledged again, not executed twice', async () => {
+  const t = setup();
+  await open(t);
+  t.sockets[0].logout = () => new Promise(() => {});          // never answers; sleep() (8 s race) is instant in tests
+  t.setOutbox({ items: [], command: 'relink', commandId: 'id1' });
+  await t.bridge.pollOnce();
+  for (let i = 0; i < 6; i++) await tick();
+  assert.equal(t.wiped(), 1);
+  const before = t.calls.state.length;
+  t.setOutbox({ items: [], command: 'relink', commandId: 'id1' });     // the CRM did not hear the first acknowledgement
+  await t.bridge.pollOnce();
+  for (let i = 0; i < 4; i++) await tick();
+  assert.equal(t.wiped(), 1, 'not wiped again (it would destroy a QR the owner is scanning)');
+  assert.ok(t.calls.state.slice(before).some((x) => x.commandId === 'id1'), 're-acknowledged');
+  t.setOutbox({ items: [], command: 'relink', commandId: 'id2' });     // a new request
+  await t.bridge.pollOnce();
+  for (let i = 0; i < 6; i++) await tick();
+  assert.equal(t.wiped(), 2);
+});
+
+test('legacy CRM (no command id): relink still works', async () => {
+  const t = setup();
+  await open(t);
+  t.setOutbox({ items: [], command: 'relink' });
+  await t.bridge.pollOnce();
+  for (let i = 0; i < 6; i++) await tick();
+  assert.equal(t.wiped(), 1);
+  assert.ok(t.calls.state.some((x) => x.state === 'logged_out'));
+});
+
+test('start() reports the state at once (so the CRM learns the instance id) ', async () => {
+  const t = setup();
+  t.bridge.start();
+  for (let i = 0; i < 4; i++) await tick();
+  t.bridge.stop();
+  assert.ok(t.calls.state.length >= 1);
+});

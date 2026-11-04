@@ -7,7 +7,9 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { loadConfig } from './config.js';
-import { checkAndUpdate } from './update.js';
+import { checkAndUpdate, regenerateHelpers } from './update.js';
+import { reapOrphans, killTree } from './procs.js';
+import { EXIT_ANOTHER_RUNNING } from './instance.js';
 
 export class RotatingLog {
   constructor(file, { maxBytes = 1024 * 1024, keep = 2 } = {}) {
@@ -47,17 +49,33 @@ export function acquireLock(port) {
 
 export function backoffMs(fastCrashes) { return Math.min(60000, 5000 * 2 ** Math.min(fastCrashes, 4)); }
 
+// What to do after the connector exited: -> { fast, wait }. Exit 98 = "another connector is running": a leftover process of ours
+// holds the WhatsApp session, so it is killed and the start is retried soon (30 s when there was nothing to kill).
+export function planRestart({ code, ranMs, fast, reap }) {
+  if (code === EXIT_ANOTHER_RUNNING) {
+    const killed = reap();
+    return { fast, wait: killed.length ? 2000 : 30000, killed };
+  }
+  const f = ranMs < 30000 ? fast + 1 : 0;
+  return { fast: f, wait: backoffMs(f), killed: [] };
+}
+
 export async function run(env = process.env) {
   const cfg = loadConfig(env);
   const log = new RotatingLog(cfg.logFile);
   const lock = await acquireLock(cfg.lockPort);
   if (!lock) { log.line('another copy is already running: exiting'); return 99; }
   if (!cfg.home) { log.line('BIKAS_HOME is not set'); return 99; }
-  log.line(`start; home ${cfg.home}`);
+  log.line(`start; home ${cfg.home}, pid ${process.pid}`);
+  // A connector left over from an earlier supervisor (Windows keeps a child alive when its parent is killed) would use the same
+  // WhatsApp session: kill every other node process of this install before starting ours.
+  regenerateHelpers(cfg.home, { log: (m) => log.line(m, 'update') });   // the code is new, the helper scripts in the folder may be old
+  const reap = () => reapOrphans({ home: cfg.home, selfPid: process.pid, log: (m) => log.line(m) });
+  try { const k = reap(); if (k.length) log.line(`killed ${k.length} leftover process(es) at start`); } catch (e) { log.line('cleanup failed: ' + e.message); }
 
   let child = null, stopping = false, updating = false;
   const entry = path.join(cfg.appDir, 'src', 'index.js');
-  const childEnv = () => Object.assign({}, env, cfg.fileVals, { BIKAS_HOME: cfg.home, NODE_ENV: 'production' });
+  const childEnv = () => Object.assign({}, env, cfg.fileVals, { BIKAS_HOME: cfg.home, NODE_ENV: 'production', BIKAS_PARENT_PID: String(process.pid) });
   const pipe = (stream, tag) => {
     let buf = '';
     stream.on('data', (d) => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { log.line(buf.slice(0, i).replace(/\r$/, ''), tag); buf = buf.slice(i + 1); } });
@@ -65,10 +83,13 @@ export async function run(env = process.env) {
   const stopChild = () => new Promise((resolve) => {
     if (!child) return resolve();
     const c = child;
-    const t = setTimeout(() => { try { c.kill('SIGKILL'); } catch (e) { /* gone */ } }, 5000);
+    const t = setTimeout(() => { killTree(c.pid); try { c.kill('SIGKILL'); } catch (e) { /* gone */ } }, 5000);
     c.once('exit', () => { clearTimeout(t); resolve(); });
     try { c.kill(); } catch (e) { clearTimeout(t); resolve(); }
+    if (process.platform === 'win32') killTree(c.pid);       // the whole tree, at once
   });
+  // Whatever way this supervisor ends, its child must not outlive it.
+  process.on('exit', () => { if (child && child.pid) killTree(child.pid); });
   for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => { stopping = true; stopChild().then(() => process.exit(0)); });
 
   let updateExit = false;
@@ -93,17 +114,19 @@ export async function run(env = process.env) {
     if (!fs.existsSync(entry)) { log.line('app is missing: ' + entry); await new Promise((r) => setTimeout(r, 30000)); continue; }
     const started = Date.now();
     log.line('starting the connector');
-    await new Promise((resolve) => {
+    const exitCode = await new Promise((resolve) => {
       child = spawn(process.execPath, [entry], { cwd: cfg.appDir, env: childEnv(), stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
       pipe(child.stdout, 'out'); pipe(child.stderr, 'err');
-      child.on('error', (e) => { log.line('cannot start: ' + e.message); resolve(); });
-      child.on('exit', (code, sig) => { log.line(`connector exited (code ${code}, signal ${sig})`); child = null; resolve(); });
+      child.on('error', (e) => { log.line('cannot start: ' + e.message); resolve(null); });
+      child.on('exit', (code, sig) => { log.line(`connector exited (code ${code}, signal ${sig})`); child = null; resolve(code); });
     });
     if (stopping || updateExit) break;
     // an update may be running (the child was stopped on purpose): wait until it is over
     while (updating) await new Promise((r) => setTimeout(r, 1000));
-    fast = Date.now() - started < 30000 ? fast + 1 : 0;
-    const wait = backoffMs(fast);
+    const plan = planRestart({ code: exitCode, ranMs: Date.now() - started, fast, reap });
+    fast = plan.fast;
+    if (exitCode === EXIT_ANOTHER_RUNNING) log.line(`another connector was running: killed ${plan.killed.length} process(es)`);
+    const wait = plan.wait;
     log.line(`restart in ${Math.round(wait / 1000)} s`);
     await new Promise((r) => setTimeout(r, wait));
   }

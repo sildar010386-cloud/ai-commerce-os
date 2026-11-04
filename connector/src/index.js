@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import pino from 'pino';
+import crypto from 'node:crypto';
 import QRCode from 'qrcode';
 import makeWASocket, { useMultiFileAuthState, fetchLatestBaileysVersion, downloadMediaMessage, Browsers } from '@whiskeysockets/baileys';
 import { createCrm } from './crm.js';
@@ -12,6 +12,8 @@ import { createEventQueue } from './queue.js';
 import { createBridge } from './bridge.js';
 import { prepareVoice } from './media.js';
 import { loadConfig } from './config.js';
+import { makeBaileysLogger, short } from './safelog.js';
+import { acquireInstance, EXIT_ANOTHER_RUNNING } from './instance.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(fs.readFileSync(path.join(here, '..', 'package.json'), 'utf8'));
@@ -23,12 +25,30 @@ if (!/^https?:\/\//.test(CRM_URL) || !TOKEN) {
   console.error(`CRM_URL and CONNECTOR_TOKEN must be set (environment or ${cfg.envFile})`);
   process.exit(2);
 }
-fs.mkdirSync(AUTH_DIR, { recursive: true });
-fs.mkdirSync(STATE_DIR, { recursive: true });
 
-const logger = pino({ level: 'warn' });          // Baileys is chatty below warn
-const appLog = pino({ level: 'info' });          // the bridge's own progress lines (history import)
-const crm = createCrm({ url: CRM_URL, token: TOKEN, log: logger });
+// Plain one-line messages on stdout: the supervisor prefixes the time and writes them to connector.log.
+const line = (tag) => (m) => console.log(tag + short(m, 400));
+const logger = makeBaileysLogger(line(''), 'warn');            // Baileys: compact warn/error lines, no payloads
+const appLog = { info: line(''), warn: line('WARN '), error: line('ERROR ') };
+
+// Only one connector per computer: two processes on one WhatsApp session replace each other. Taken BEFORE the auth folder is touched.
+fs.mkdirSync(STATE_DIR, { recursive: true });
+const instanceLock = await acquireInstance({ port: cfg.instancePort, dir: STATE_DIR, log: (m) => console.log(m) });
+if (!instanceLock.ok) process.exit(EXIT_ANOTHER_RUNNING);
+fs.mkdirSync(AUTH_DIR, { recursive: true });
+
+const INSTANCE_ID = crypto.randomBytes(6).toString('hex');   // new on every start; sent to the CRM in every call
+appLog.info(`connector ${VERSION} started: pid ${process.pid}, instance ${INSTANCE_ID}`);
+// Windows does not kill a child with its parent: leave when the supervisor that started us is gone.
+const parentPid = Number(process.env.BIKAS_PARENT_PID) || 0;
+if (parentPid) {
+  setInterval(() => {
+    let alive = true;
+    try { process.kill(parentPid, 0); } catch (e) { alive = e && e.code === 'EPERM'; }
+    if (!alive) { appLog.info('the supervisor is gone: exiting'); process.exit(0); }
+  }, 5000).unref();
+}
+const crm = createCrm({ url: CRM_URL, token: TOKEN, instanceId: INSTANCE_ID, log: logger });
 const queue = createEventQueue({ file: cfg.queueFile, send: (events) => crm.events(events), log: logger });
 
 const voiceHint = { current: null };
@@ -79,5 +99,5 @@ const bridge = createBridge({
 
 bridge.start();
 for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => { bridge.stop(); setTimeout(() => process.exit(0), 300); });
-process.on('unhandledRejection', (e) => logger.error('unhandledRejection: ' + (e && e.message)));
-process.on('uncaughtException', (e) => { logger.error('uncaughtException: ' + (e && e.message)); setTimeout(() => process.exit(1), 300); });
+process.on('unhandledRejection', (e) => appLog.error('unhandledRejection: ' + short(e && e.message, 200)));
+process.on('uncaughtException', (e) => { appLog.error('uncaughtException: ' + short(e && e.message, 200)); setTimeout(() => process.exit(1), 300); });

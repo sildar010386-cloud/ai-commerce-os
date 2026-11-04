@@ -157,7 +157,37 @@ export async function applyUpdate({ home, commit, force = false, fetchImpl = fet
   }
   fs.writeFileSync(path.join(home, 'version.txt'), commit.sha + '\n');
   rmrf(old);
+  regenerateHelpers(home, { log });
   return commit.sha;
+}
+
+/* ---------- Windows helper scripts (tools.ps1 and the three .cmd files) ---------- */
+// They are written by the installer from connector/windows/setup.template.cmd, which is part of the downloaded code: after an update
+// they are rewritten from the new template, so a fix in them reaches the laptop without re-running the installer.
+// Does nothing where tools.ps1 does not exist (Linux server). Returns the names of the files written.
+export function regenerateHelpers(home, { log = () => {} } = {}) {
+  const written = [];
+  try {
+    const toolsFile = path.join(home, 'tools.ps1');
+    const tpl = path.join(home, 'app', 'windows', 'setup.template.cmd');
+    if (!exists(toolsFile) || !exists(tpl)) return written;
+    const payload = fs.readFileSync(tpl, 'utf8').replace(/\r\n/g, '\n').split(/^#PAYLOAD\s*$/m)[1] || '';
+    const m = /\$ToolsPs1 = @'\n([\s\S]*?)\n'@/.exec(payload);
+    if (!m) return written;
+    const put = (file, text, bom) => {
+      const buf = Buffer.concat([bom ? Buffer.from([0xef, 0xbb, 0xbf]) : Buffer.alloc(0), Buffer.from(text, bom ? 'utf8' : 'ascii')]);
+      let same = false;
+      try { same = fs.readFileSync(file).equals(buf); } catch (e) { /* new file */ }
+      if (!same) { fs.writeFileSync(file, buf); written.push(path.basename(file)); }
+    };
+    put(toolsFile, m[1].replace(/\r?\n/g, '\r\n'), true);
+    const names = { stop: 'Остановить.cmd', start: 'Запустить.cmd', uninstall: 'Удалить.cmd' };
+    for (const [k, name] of Object.entries(names)) {
+      put(path.join(home, name), '@echo off\r\ncopy /y "%~dp0tools.ps1" "%TEMP%\\bikas-tools.ps1" >nul\r\npowershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\\bikas-tools.ps1" ' + k + '\r\npause\r\n', false);
+    }
+    if (written.length) log('helper scripts regenerated: ' + written.join(', '));
+  } catch (e) { log('helper scripts not regenerated: ' + e.message); }
+  return written;
 }
 
 // -> 'none' (up to date) | 'updated' | 'failed'. A commit that failed is not retried for 24 h.

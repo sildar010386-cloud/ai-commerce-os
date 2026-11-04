@@ -2,6 +2,7 @@
 // All I/O is injected (socket factory, CRM client, queue, ffmpeg, clock), so it is testable with a fake socket.
 import fs from 'node:fs';
 import path from 'node:path';
+import { short, describeUpdate } from './safelog.js';
 import { mapMessage, mapUpdates, mapReceipts, selectHistory, readContacts, phoneOfJid, MAX_MEDIA_BYTES, chatIdOf } from './map.js';
 
 // base64 of 64 bytes (0..100) -> Uint8Array, otherwise null
@@ -12,7 +13,8 @@ export function parseWave(b64) {
   return new Uint8Array(buf);
 }
 
-const LOGGED_OUT = 401, FORBIDDEN = 403, RESTART_REQUIRED = 515;
+const LOGGED_OUT = 401, FORBIDDEN = 403, REPLACED = 440, RESTART_REQUIRED = 515;
+const REPLACED_BACKOFF_MS = 30000;
 const NOTE_MEDIA_FAIL = 'не удалось загрузить файл — откройте на телефоне';
 const HISTORY_BATCH = 15;
 const HISTORY_CAP = 6000, HISTORY_DAYS = 365, HISTORY_PER_CHAT = 30;
@@ -23,6 +25,8 @@ export function createBridge({
   now = Date.now, watchdogMs = 5 * 60000, watchTickMs = 15000, sleepGapMs = 60000, stuckMs = 3 * 60000
 }) {
   let gen = 0, sock = null, state = 'connecting', ownPhone = '', ownName = '';
+  let lastCommandId = '';
+  const info = (m) => { log.info && log.info(m); };
   let reconnectN = 0, relinking = false, stopped = false, historyCount = 0, pollTimer = null, beatTimer = null, watchTimer = null;
   let lastActivity = now(), lastTick = now(), stateSince = now(), wsHooked = false;
   const sentIds = new Map();      // message ids we sent ourselves (their echo must not be reported as "sent from the phone")
@@ -95,6 +99,7 @@ export function createBridge({
     if (stopped || my !== gen) return;
     const delay = ms != null ? ms : Math.min(60000, 2000 * 2 ** Math.min(reconnectN, 5));
     reconnectN++;
+    info(`conn: reconnect in ${Math.round(delay / 1000)} s (attempt ${reconnectN})`);
     await sleep(delay);
     if (stopped || my !== gen) return;
     try { sock && sock.end && sock.end(undefined); } catch (e) { /* ignore */ }
@@ -102,6 +107,7 @@ export function createBridge({
   }
 
   async function onConnection(my, u) {
+    info('conn: ' + describeUpdate(u));
     if (u.qr) {
       state = 'qr';
       let png = '';
@@ -111,6 +117,7 @@ export function createBridge({
     if (u.connection === 'connecting' && state !== 'qr') state = 'connecting';
     if (u.connection === 'open') {
       readOwn();
+      info(`conn: open as +${ownPhone || '?'}`);
       state = 'open'; reconnectN = 0; historyCount = 0;
       await postState();
       queue.flush();
@@ -120,6 +127,13 @@ export function createBridge({
       const code = err && err.output && err.output.statusCode;
       if (relinking) return;
       if (code === LOGGED_OUT) return freshStart(my, 'logged_out');
+      if (code === REPLACED) {
+        // Another connector (or WhatsApp Web session of this device) took the session over: do not fight it, wait.
+        log.error && log.error(`conn: SESSION REPLACED (440): another copy of the program is using this WhatsApp session; waiting ${REPLACED_BACKOFF_MS / 1000} s`);
+        state = 'replaced';
+        await postState({ reason: code });
+        return scheduleReconnect(my, REPLACED_BACKOFF_MS);
+      }
       if (code === FORBIDDEN) { state = 'banned'; await postState({ reason: code }); return scheduleReconnect(my, 5 * 60000); }
       state = 'closed';
       await postState({ reason: code || 0 });
@@ -129,21 +143,28 @@ export function createBridge({
 
   // The phone removed this linked device (or the number is gone): forget the session and show a new QR.
   async function freshStart(my, reason) {
+    info(`conn: ${reason}: wiping the session, a new QR will follow`);
     state = reason; ownPhone = ''; ownName = '';
     await postState();
     try { await wipeAuth(); } catch (e) { log.error && log.error('wipe auth failed: ' + e.message); }
     return scheduleReconnect(my, 1000);
   }
 
-  async function relink() {
+  async function relink(commandId = '') {
     if (relinking) return;
     relinking = true; gen++;
-    try { if (sock && sock.logout) await Promise.race([sock.logout(), sleep(8000)]); } catch (e) { /* the phone may already be gone */ }
+    info(`relink: command received${commandId ? ' (' + commandId + ')' : ''}, socket state was ${state}`);
+    // Acknowledge first: the CRM keeps the command pending until it hears this (a duplicate process cannot swallow it silently).
+    state = 'relinking';
+    await postState(commandId ? { commandId } : {});
+    try { if (sock && sock.logout) { await Promise.race([sock.logout(), sleep(8000)]); info('relink: logout done'); } }
+    catch (e) { info('relink: logout failed (' + short(e && e.message, 100) + '), continuing'); /* the phone may already be gone */ }
     try { sock && sock.end && sock.end(undefined); } catch (e) { /* ignore */ }
-    try { await wipeAuth(); } catch (e) { log.error && log.error('wipe auth failed: ' + e.message); }
+    try { await wipeAuth(); info('relink: auth wiped'); } catch (e) { log.error && log.error('relink: wipe auth failed: ' + short(e && e.message, 150)); }
     state = 'logged_out'; ownPhone = ''; ownName = ''; reconnectN = 0;
     await postState();
     relinking = false;
+    info('relink: starting a new socket (a QR should follow)');
     return connect();
   }
 
@@ -238,7 +259,7 @@ export function createBridge({
     }
     const withMsgs = new Set(events.filter((e) => e.profileName).map((e) => e.waId));
     const all = events.concat(contactEvents(found, withMsgs));
-    log.info && log.info(`history: ${events.length} messages from ${new Set(events.map((e) => e.waId)).size} chats, syncType ${h.syncType}, progress ${h.progress}`);
+    info(`history: ${events.length} messages from ${new Set(events.map((e) => e.waId)).size} chats, ${(h.contacts || []).length} contacts, syncType ${h.syncType}, progress ${h.progress}, total kept ${historyCount}/${HISTORY_CAP}`);
     for (let i = 0; i < all.length; i += HISTORY_BATCH) await emit(all.slice(i, i + HISTORY_BATCH));
   }
 
@@ -300,7 +321,13 @@ export function createBridge({
       const ready = state === 'open' && !!sock;
       let res;
       try { res = await crm.outbox(ready); } catch (e) { return; }
-      if (res && res.command === 'relink') { await relink(); return; }
+      if (res && res.command === 'relink') {
+        // The CRM repeats the command until it is acknowledged: a command already executed is only acknowledged again.
+        if (res.commandId && res.commandId === lastCommandId) { await postState({ commandId: res.commandId }); return; }
+        lastCommandId = res.commandId ? String(res.commandId) : '';
+        await relink(lastCommandId);
+        return;
+      }
       if (!ready) return;
       for (const item of (res && res.items) || []) {
         if (state !== 'open') break;
@@ -313,6 +340,7 @@ export function createBridge({
   function start() {
     stopped = false;
     connect();
+    postState();                       // tells the CRM at once which process is alive (its instance id)
     const loop = async () => { await pollOnce().catch(() => {}); if (!stopped) pollTimer = setTimeout(loop, 3000); };
     pollTimer = setTimeout(loop, 3000);
     beatTimer = setInterval(() => { postState(); queue.flush(); }, 60000);

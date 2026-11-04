@@ -35,11 +35,24 @@ $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 function Say([string]$text, [string]$color = 'Gray') { Write-Host $text -ForegroundColor $color }
 function Step([string]$text) { Write-Host ''; Write-Host $text -ForegroundColor Cyan }
 
+function Get-BikasProcs {
+  # Killing a parent does not kill its child on Windows, so a connector can outlive its supervisor: every node.exe that RUNS FROM the
+  # install folder (ExecutablePath) counts, whatever its command line, plus the wscript launcher (found by its command line).
+  $rootSlash = $Root.TrimEnd('\') + '\'
+  return @(Get-CimInstance Win32_Process | Where-Object {
+    ($_.Name -eq 'node.exe' -and (($_.ExecutablePath -and $_.ExecutablePath.StartsWith($rootSlash, [StringComparison]::OrdinalIgnoreCase)) -or ($_.CommandLine -and $_.CommandLine.IndexOf($Root, [StringComparison]::OrdinalIgnoreCase) -ge 0))) -or
+    ($_.Name -eq 'wscript.exe' -and $_.CommandLine -and $_.CommandLine.IndexOf($Root, [StringComparison]::OrdinalIgnoreCase) -ge 0)
+  })
+}
 function Stop-Bikas {
   try { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue } catch { }
-  for ($i = 0; $i -lt 3; $i++) {
-    $procs = @(Get-CimInstance Win32_Process | Where-Object { ($_.Name -eq 'wscript.exe' -or $_.Name -eq 'node.exe') -and $_.CommandLine -and $_.CommandLine.IndexOf($Root, [StringComparison]::OrdinalIgnoreCase) -ge 0 })
-    foreach ($p in $procs) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch { } }
+  for ($i = 0; $i -lt 5; $i++) {
+    $procs = @(Get-BikasProcs)
+    if ($procs.Count -eq 0) { break }
+    # the launcher first, so that it cannot start a new supervisor; the whole process tree of each one goes with it
+    foreach ($p in @($procs | Sort-Object { if ($_.Name -eq 'wscript.exe') { 0 } else { 1 } })) {
+      try { & taskkill.exe /PID $p.ProcessId /T /F 2>&1 | Out-Null } catch { }
+    }
     Start-Sleep -Milliseconds 700
   }
 }
@@ -125,11 +138,24 @@ $TaskName = 'BikasWhatsApp'
 $Launcher = Join-Path $Root 'launcher.vbs'
 $StartupVbs = Join-Path ([Environment]::GetFolderPath('Startup')) 'BikasWhatsApp.vbs'
 
+function Get-BikasProcs {
+  # Killing a parent does not kill its child on Windows, so a connector can outlive its supervisor: every node.exe that RUNS FROM the
+  # install folder (ExecutablePath) counts, whatever its command line, plus the wscript launcher (found by its command line).
+  $rootSlash = $Root.TrimEnd('\') + '\'
+  return @(Get-CimInstance Win32_Process | Where-Object {
+    ($_.Name -eq 'node.exe' -and (($_.ExecutablePath -and $_.ExecutablePath.StartsWith($rootSlash, [StringComparison]::OrdinalIgnoreCase)) -or ($_.CommandLine -and $_.CommandLine.IndexOf($Root, [StringComparison]::OrdinalIgnoreCase) -ge 0))) -or
+    ($_.Name -eq 'wscript.exe' -and $_.CommandLine -and $_.CommandLine.IndexOf($Root, [StringComparison]::OrdinalIgnoreCase) -ge 0)
+  })
+}
 function Stop-Bikas {
   try { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue } catch { }
-  for ($i = 0; $i -lt 3; $i++) {
-    $procs = @(Get-CimInstance Win32_Process | Where-Object { ($_.Name -eq 'wscript.exe' -or $_.Name -eq 'node.exe') -and $_.CommandLine -and $_.CommandLine.IndexOf($Root, [StringComparison]::OrdinalIgnoreCase) -ge 0 })
-    foreach ($p in $procs) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch { } }
+  for ($i = 0; $i -lt 5; $i++) {
+    $procs = @(Get-BikasProcs)
+    if ($procs.Count -eq 0) { break }
+    # the launcher first, so that it cannot start a new supervisor; the whole process tree of each one goes with it
+    foreach ($p in @($procs | Sort-Object { if ($_.Name -eq 'wscript.exe') { 0 } else { 1 } })) {
+      try { & taskkill.exe /PID $p.ProcessId /T /F 2>&1 | Out-Null } catch { }
+    }
     Start-Sleep -Milliseconds 700
   }
 }
