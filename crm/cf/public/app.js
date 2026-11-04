@@ -1012,7 +1012,30 @@ function bubbleHTML(m) {
 function chatMsgsHTML() {
   var th = S.chat.thread;
   if (!th) return '<div class="empty">Загружаем…</div>';
-  return th.messages.length ? th.messages.map(bubbleHTML).join('') : '<div class="empty">Сообщений нет.</div>';
+  return olderHTML(th) + (th.messages.length ? th.messages.map(bubbleHTML).join('') : '<div class="empty">' + (th.chat.historyDone ? 'Старые сообщения есть только на телефоне.' : 'Сообщений нет.') + '</div>');
+}
+// Top of the thread: «Загрузить более ранние сообщения» (the phone is asked for a page before the oldest message, like WhatsApp Web).
+// Disabled with «Загружаю…» while the request is pending; hidden when the phone has nothing older.
+function olderHTML(th) {
+  var c = th.chat;
+  if (c.channel !== 'whatsapp' || c.historyDone) return '';
+  var busy = !!(c.historyPending || S.chat.olderBusy === c.id);
+  return '<div class="chat-older"><button type="button" class="btn sm" id="chat-older" data-act="chat-older"' + (busy ? ' disabled' : '') + '>' +
+    (busy ? 'Загружаю…' : 'Загрузить более ранние сообщения') + '</button></div>';
+}
+async function chatOlder() {
+  var C = S.chat, id = C.openId;
+  if (id == null || C.olderBusy === id) return;
+  C.olderBusy = id;
+  var b = $('#chat-older'); if (b) { b.disabled = true; b.textContent = 'Загружаю…'; }
+  try {
+    await api('POST', '/api/chats/' + id + '/older', {});
+    await chatsRefreshThread();      // shows «Загружаю…» from the server state; the polling brings the messages when the phone answers
+  } catch (e) {
+    toast(e.message, 'err');
+  }
+  if (C.olderBusy === id) C.olderBusy = null;
+  if (C.openId === id && S.tab === 'chats') chatsPaintMessages();
 }
 function chatSourceOptions(c) {
   var cur = c.traffic === 'target' ? 'target:' + (c.targetCode || '') : c.traffic;
@@ -1097,10 +1120,16 @@ function chatsPaintMessages() {
   var box = $('#chat-msgs'), head = $('#chat-head'), foot = $('#chat-foot');
   if (!box) return;
   var stick = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  var fromBottom = box.scrollHeight - box.scrollTop;
+  var th = S.chat.thread, first = th && th.messages.length ? th.messages[0].id : null;
+  // older messages were inserted above: keep the same message under the eyes (the distance to the bottom stays the same)
+  var prepended = first != null && S.chat.firstId != null && S.chat.firstOpen === S.chat.openId && first !== S.chat.firstId;
+  S.chat.firstId = first; S.chat.firstOpen = S.chat.openId;
   box.innerHTML = chatMsgsHTML();
   if (head) head.innerHTML = chatHeadHTML();
   if (foot && !foot.contains(document.activeElement) && !S.chat.rec) foot.innerHTML = chatComposerHTML();
-  if (stick) box.scrollTop = box.scrollHeight;
+  if (prepended) box.scrollTop = box.scrollHeight - fromBottom;
+  else if (stick) box.scrollTop = box.scrollHeight;
 }
 async function chatsLoadList() {
   var C = S.chat, my = ++C.seq;
@@ -1132,7 +1161,7 @@ async function chatsRefreshThread() {
   try {
     var d = await api('GET', '/api/chats/' + id);
     if (C.openId !== id) return;
-    var sig = JSON.stringify([d.messages.map(function (m) { return m.id + m.status; }), d.chat.traffic, d.chat.targetCode, d.chat.orderId, d.chat.numberStatus]);
+    var sig = JSON.stringify([d.messages.map(function (m) { return m.id + m.status; }), d.chat.traffic, d.chat.targetCode, d.chat.orderId, d.chat.numberStatus, d.chat.historyPending, d.chat.historyDone]);
     C.thread = d;
     if (sig !== C.sig) { C.sig = sig; if (S.tab === 'chats') chatsPaintMessages(); }
   } catch (e) { /* keep the old thread; the next poll retries */ }
@@ -1148,6 +1177,7 @@ async function chatOpen(id) {
     var d = await api('GET', '/api/chats/' + id);
     if (C.openId !== id) return;
     C.thread = d; C.sig = '';
+    C.firstId = d.messages.length ? d.messages[0].id : null; C.firstOpen = id;
     chatsPaintThread();
     chatsCount();
   } catch (e) { toast('Не открылось: ' + e.message, 'err'); }
@@ -1347,6 +1377,20 @@ function serverStatusHTML(sv) {
   if (sv.version) det.push('версия ' + sv.version);
   return line + (det.length ? ' <small>' + esc(det.join(' · ')) + '</small>' : '');
 }
+// Numbers for one screenshot instead of logs: what the CRM holds and what the connector last complained about.
+function diagHTML(sv, d) {
+  if (!d) return '';
+  var rows = [
+    ['Чатов всего', d.contacts], ['С номером телефона', d.withPhone], ['Номер скрыт (только lid)', d.lidOnly], ['Сообщений всего', d.messages],
+    ['Сохранено связок lid → номер', d.aliases], ['Запросов старых сообщений в ожидании', d.historyPending], ['Чатов, где старое загружено до конца', d.historyDone],
+    ['Запросов старых сообщений с ошибкой', d.historyFailed]
+  ];
+  var h = '<div class="ws-opt"><div class="ws-opt-h">Диагностика</div><table class="diag"><tbody>' +
+    rows.map(function (r) { return '<tr><td>' + esc(r[0]) + '</td><td><b>' + esc(r[1] == null ? '—' : r[1]) + '</b></td></tr>'; }).join('') + '</tbody></table>' +
+    '<div class="muted fs14">Последняя ошибка программы при обмене с CRM: ' +
+    (sv && sv.lastError ? '<b class="neg">' + esc(sv.lastError) + '</b>' + (sv.lastErrorAt ? ' <small>(' + esc(fmtDate(sv.lastErrorAt)) + ')</small>' : '') : '<b class="pos">нет</b>') + '</div></div>';
+  return h;
+}
 function waServerInner() {
   var sv = S.data.server;
   var h = '<div class="ws-status" id="ws-status">' + (sv ? serverStatusHTML(sv) : 'Загружаем…') + '</div>';
@@ -1380,6 +1424,7 @@ function waServerInner() {
   h += '<div class="ws-opt"><div class="ws-opt-h">Старые чаты из телефона</div>' +
     '<div class="muted fs14">WhatsApp отдаёт список старых чатов только один раз, в момент привязки (как при входе в WhatsApp Web). Если они не появились, нажмите кнопку: программа заново привяжется к <b>тому же</b> телефону, покажет новый QR-код, а после сканирования загрузит старые чаты. Номер для ссылок /wa не меняется.</div>' +
     '<div class="row-flex"><button type="button" class="btn" data-act="ws-reload"' + (sv && sv.installed ? '' : ' disabled') + '>Загрузить старые чаты заново</button></div></div>';
+  h += diagHTML(sv, S.data.diag);
   h += '<div class="row-flex"><button type="button" class="btn dng" data-act="ws-relink"' + (sv && sv.installed ? '' : ' disabled') + '>Переподключить на другой номер</button></div>';
   return h;
 }
@@ -1392,7 +1437,7 @@ function waServerHTML() {
 function paintServer() { var el = $('#ws-box'); if (el) el.innerHTML = waServerInner(); }
 async function serverRefresh() {
   if (!S.auth || !S.admin) return;
-  try { var d = await api('GET', '/api/wa-server'); S.data.server = d.server; S.loaded.server = true; paintServer(); } catch (e) { /* the next tick retries */ }
+  try { var d = await api('GET', '/api/wa-server'); S.data.server = d.server; S.data.diag = d.diag || null; S.loaded.server = true; paintServer(); } catch (e) { /* the next tick retries */ }
 }
 function serverFast() {
   var sv = S.data.server;
@@ -1479,7 +1524,7 @@ var LOADERS = {
   bot: ['GET', '/api/bot', function (d) { S.data.bot = d.bot || null; }],
   numbers: ['GET', '/api/wa-numbers', function (d) { S.data.numbers = d.numbers || []; }],
   targets: ['GET', '/api/targets', function (d) { S.data.targets = d.targets || []; }],
-  server: ['GET', '/api/wa-server', function (d) { S.data.server = d.server || null; }]
+  server: ['GET', '/api/wa-server', function (d) { S.data.server = d.server || null; S.data.diag = d.diag || null; }]
 };
 async function load(key) {
   var l = LOADERS[key];
@@ -1687,6 +1732,7 @@ var ACTIONS = {
       await serverRefresh();
     } catch (e) { toast('Не получилось: ' + e.message, 'err'); }
   },
+  'chat-older': function () { chatOlder(); },
   'chat-order': function () { chatMakeOrder(); },
   'chat-order-open': function (t) { chatOpenOrder(t.dataset.id); },
   'wan-add': async function () {

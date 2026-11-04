@@ -138,6 +138,8 @@ export function parseWebhook(json) {
 
 // Events pushed by a connector (linked-device / QR bridge) to POST /api/hooks/inbox. Same shape as parseWebhook() output, but the
 // business number is identified by `numberPhone` (digits). Anything malformed is dropped; the function never throws.
+// "<digits>@s.whatsapp.net" | "<digits>@lid" (a 1:1 chat as WhatsApp addresses it), else ''
+export const cleanJid = (v) => (/^\d{5,20}@(s\.whatsapp\.net|lid)$/.test(s(v)) ? s(v) : '');
 const MSG_TYPES = ['text', 'voice', 'audio', 'image', 'video', 'document', 'sticker', 'location', 'reaction', 'other'];
 export function normalizeInboxEvents(body) {
   const out = [];
@@ -163,6 +165,21 @@ export function normalizeInboxEvents(body) {
         if (wa.length >= 5 && wa.length <= 20 && nm) out.push(Object.assign({ kind: 'contact', waId: wa, profileName: nm }, base));
         continue;
       }
+      if (e.kind === 'chat') {      // a chat of the phone without messages (WhatsApp sends those on demand): only the contact row
+        const wa = digits(e.waId), lid = digits(e.lid);
+        if (wa.length < 5 || wa.length > 20) continue;
+        const lastTs = Number(e.lastTs);
+        out.push(Object.assign({
+          kind: 'chat', waId: wa, lid: lid.length >= 8 && lid.length <= 20 ? lid : '', profileName: s(e.profileName).trim().slice(0, 200),
+          chatJid: cleanJid(e.chatJid), lastTs: isFinite(lastTs) && lastTs > 0 ? isoFromTs(lastTs) : ''
+        }, base));
+        continue;
+      }
+      if (e.kind === 'history_result') {   // the phone answered a «load older messages» request (outboxId); anchorTs = the anchor sent with it
+        const oid = parseInt(e.outboxId, 10), at = Number(e.anchorTs);
+        if (oid > 0 && isFinite(at) && at > 0) out.push(Object.assign({ kind: 'history_result', outboxId: oid, anchorTs: isoFromTs(at) }, base));
+        continue;
+      }
       if (e.kind !== 'message' && e.kind !== 'echo' && e.kind !== 'history') continue;
       const m = isObj(e.msg) ? e.msg : null;
       const waId = digits(e.waId);
@@ -171,7 +188,7 @@ export function normalizeInboxEvents(body) {
       const type = MSG_TYPES.includes(m.type) ? m.type : 'other';
       const url = s(m.mediaUrl);
       const lid = digits(e.lid);   // the anonymous id of this chat when it is a @lid chat (== waId when the phone is unknown)
-      out.push(Object.assign({ kind: e.kind, direction, waId, lid: lid.length >= 8 && lid.length <= 20 ? lid : '', profileName: s(e.profileName).slice(0, 200) }, base, {
+      out.push(Object.assign({ kind: e.kind, direction, waId, chatJid: cleanJid(e.chatJid), lid: lid.length >= 8 && lid.length <= 20 ? lid : '', profileName: s(e.profileName).slice(0, 200) }, base, {
         msg: {
           id: s(m.id).slice(0, 200), ts: isoFromTs(m.ts), type, body: s(m.body).slice(0, 4096), mediaId: s(m.mediaId).slice(0, 300),
           mediaUrl: /^https?:\/\//i.test(url) ? url.slice(0, 2000) : '', mediaRef: /^[A-Za-z0-9_-]{1,64}$/.test(s(m.mediaRef)) ? s(m.mediaRef) : '', mime: s(m.mime).slice(0, 100), caption: s(m.caption).slice(0, 1024),

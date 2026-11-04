@@ -49,7 +49,7 @@ if (parentPid) {
   }, 5000).unref();
 }
 const crm = createCrm({ url: CRM_URL, token: TOKEN, instanceId: INSTANCE_ID, log: logger });
-const queue = createEventQueue({ file: cfg.queueFile, send: (events) => crm.events(events), log: logger });
+const queue = createEventQueue({ file: cfg.queueFile, send: (events) => crm.events(events), log: appLog });
 
 const FULL_SYNC = process.env.SYNC_FULL_HISTORY === '1';
 const voiceHint = { current: null };

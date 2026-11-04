@@ -7,12 +7,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 // request classes: live messages, history/contact names, lid->phone aliases (each alias may move a whole chat in the CRM: few per request)
-const classOf = (e) => (!e ? 'live' : e.kind === 'alias' ? 'alias' : e.kind === 'history' || e.kind === 'contact' ? 'bulk' : 'live');
+const classOf = (e) => (!e ? 'live' : e.kind === 'alias' ? 'alias' : e.kind === 'history' || e.kind === 'contact' || e.kind === 'chat' || e.kind === 'history_result' ? 'bulk' : 'live');
 const permanent = (err) => { const s = err && err.status; return s >= 400 && s < 500 && s !== 408 && s !== 429; };
 
 export function createEventQueue({ file, send, log = console, batch = 5, historyBatch = 15, aliasBatch = 6, maxLines = 50000 }) {
   let lines = [];
   let flushing = false;
+  let lastErr = '', lastLogAt = 0, lastLogMsg = '';   // last CRM rejection (status + start of the answer), reported to the CRM in the state posts
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     if (fs.existsSync(file)) lines = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean);
@@ -43,10 +44,20 @@ export function createEventQueue({ file, send, log = console, batch = 5, history
     try {
       while (lines.length) {
         const { n, events } = nextChunk();
-        try { if (events.length) await send(events); }
+        try { if (events.length) await send(events); lastErr = ''; }
         catch (e) {
+          // every rejection is logged with the status and the start of the CRM's answer (it says why), and kept for the CRM's diagnostics
+          const kinds = {};
+          for (const ev of events) kinds[ev.kind] = (kinds[ev.kind] || 0) + 1;
+          const what = Object.entries(kinds).map(([k, v]) => k + ' x' + v).join(', ');
+          const why = `${e && e.status ? e.status : 'no answer'} ${String((e && e.body) || (e && e.message) || '').replace(/\s+/g, ' ').slice(0, 200)}`.trim();
+          lastErr = `${permanent(e) ? 'dropped' : 'retry'} [${what}] ${why}`.slice(0, 300);
+          const nowMs = Date.now();
+          if (permanent(e) || lastErr !== lastLogMsg || nowMs - lastLogAt > 60000) {
+            log.warn && log.warn(permanent(e) ? `dropping ${events.length} events the CRM rejected (${what}): ${why}` : `CRM did not accept ${events.length} events (${what}), will retry: ${why}`);
+            lastLogMsg = lastErr; lastLogAt = nowMs;
+          }
           if (!permanent(e)) throw e;
-          log.warn && log.warn(`dropping ${events.length} events the CRM rejected: ${e.message}`);
         }
         lines = lines.slice(n);
         persist();
@@ -64,5 +75,5 @@ export function createEventQueue({ file, send, log = console, batch = 5, history
     return flush();
   }
 
-  return { push, flush, size: () => lines.length };
+  return { push, flush, size: () => lines.length, lastError: () => lastErr };
 }

@@ -236,8 +236,11 @@ test('inbound media: connector uploads, event carries mediaRef, /api/media serve
   assert.equal(big.status, 413);
 });
 
+// older-history requests are covered by history_ondemand.test.js; here a chat opened in the thread must not queue one
+const quiet = async () => { await db.prepare('UPDATE contacts SET history_done = 1').run(); await db.prepare("DELETE FROM outbox WHERE type = 'history'").run(); };
 let chatId, firstOutId;
 test('sending text through a QR number queues it: message "queued", outbox claimed once, ack makes it "sent"', { skip }, async () => {
+  await quiet();
   chatId = (await j(await admin('GET', '/api/chats'))).chats[0].id;
   let r = await admin('POST', `/api/chats/${chatId}/send`, { text: 'Добрый день!' });
   assert.equal(r.status, 200);
@@ -262,6 +265,7 @@ test('sending text through a QR number queues it: message "queued", outbox claim
 });
 
 test('the echo of a CRM-sent message does not duplicate it', { skip }, async () => {
+  await quiet();
   await conn('POST', '/api/connector/events', { events: [ev({ kind: 'echo', msg: { id: 'OUT-A', ts: 1760000600, type: 'text', body: 'Добрый день!' } })] });
   const msgs = (await j(await admin('GET', '/api/chats/' + chatId))).messages;
   assert.equal(msgs.filter((x) => x.body === 'Добрый день!').length, 1);
@@ -296,6 +300,7 @@ test('voice and image from the CRM: stored in D1, queued with mediaRef, fetchabl
 });
 
 test('failed ack marks the message failed; "not connected" is retried; stale claims are requeued, then fail after 3 attempts', { skip }, async () => {
+  await quiet();
   await admin('POST', `/api/chats/${chatId}/send`, { text: 'fail me' });
   let o = await j(await conn('GET', '/api/connector/outbox?ready=1'));
   await conn('POST', '/api/connector/ack', { id: o.items[0].id, ok: false, error: 'not connected' });

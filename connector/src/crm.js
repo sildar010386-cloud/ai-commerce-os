@@ -3,8 +3,10 @@
 const sleepDefault = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export class CrmError extends Error {
-  constructor(message, status) { super(message); this.status = status || 0; }
+  constructor(message, status, body) { super(message); this.status = status || 0; this.body = body || ''; }
 }
+// start of an error answer: it tells why the CRM refused
+const bodyOf = async (resp) => { try { return String(await resp.text()).slice(0, 200); } catch (e) { return ''; } };
 
 export function createCrm({ url, token, instanceId = '', fetchImpl = globalThis.fetch, sleep = sleepDefault, timeoutMs = 20000, retries = 3, log = console }) {
   const base = String(url || '').replace(/\/+$/, '');
@@ -22,10 +24,10 @@ export function createCrm({ url, token, instanceId = '', fetchImpl = globalThis.
           body: body !== undefined ? JSON.stringify(body) : undefined,
           signal: ctl.signal
         });
-        if (resp.status === 429 || resp.status >= 500) throw new CrmError('CRM answered ' + resp.status, resp.status);
+        if (resp.status === 429 || resp.status >= 500) throw new CrmError('CRM answered ' + resp.status, resp.status, await bodyOf(resp));
         if (!resp.ok) {
           // 4xx: retrying will not help.
-          const e = new CrmError('CRM answered ' + resp.status, resp.status);
+          const e = new CrmError('CRM answered ' + resp.status, resp.status, await bodyOf(resp));
           e.final = true;
           throw e;
         }

@@ -1119,8 +1119,9 @@ async function processWaEvent(env, ctx, ev) {
     "last_inbound_at = CASE WHEN ?4 = 'in' AND ?2 > last_inbound_at THEN ?2 ELSE last_inbound_at END, " +
     'unread = unread + ?5, ' +
     'number_id = CASE WHEN ?6 = 1 AND ?7 IS NOT NULL THEN ?7 ELSE COALESCE(number_id, ?7) END, ' +
+    "wa_jid = CASE WHEN ?10 != '' THEN ?10 ELSE wa_jid END, " +
     'updated_at = ?8 WHERE id = ?9'
-  ).bind(ev.profileName || '', ts, preview, ev.direction, live ? 1 : 0, live ? 1 : 0, number ? number.id : null, nowIso(), contact.id).run();
+  ).bind(ev.profileName || '', ts, preview, ev.direction, live ? 1 : 0, live ? 1 : 0, number ? number.id : null, nowIso(), contact.id, ev.chatJid || '').run();
 }
 
 async function whatsappHook(req, env, url) {
@@ -1188,7 +1189,7 @@ async function learnAliases(env, pairs, maxMoves = 1000) {
     ).bind(...ids).all();
     const by = new Map((results || []).map((r) => [r.ext_id, r]));
     const groups = [[env.DB.prepare(
-      `INSERT INTO wa_alias (lid, phone, created_at) VALUES ${part.map(() => '(?, ?, ?)').join(', ')} ON CONFLICT(lid) DO UPDATE SET phone = excluded.phone`
+      `INSERT INTO wa_alias (lid, phone, created_at) VALUES ${part.map(() => '(?, ?, ?)').join(', ')} ON CONFLICT(lid) DO UPDATE SET phone = excluded.phone WHERE phone != excluded.phone`
     ).bind(...part.flatMap(([lid, phone]) => [lid, phone, ts]))]];
     for (const [lid, phone] of part) {
       const lc = by.get(lid), pc = by.get(phone);
@@ -1235,6 +1236,8 @@ async function learnAliases(env, pairs, maxMoves = 1000) {
 // was still written: a chat in the list with a preview and an empty thread. Now a chat whose messages already belong to another
 // contact is the same chat: lid + phone are merged (alias), anything else is routed to the owner of the messages. The summary
 // is only written for a contact that really has messages.
+// The chat id of the newest message of a chat of this batch that carried one.
+const jidOf = (c) => c.msgs.reduce((a, e) => (e.chatJid && (!a || e.msg.ts >= a.ts) ? { ts: e.msg.ts, jid: e.chatJid } : a), null)?.jid || '';
 async function ingestHistory(env, ctx, events) {
   const aliasPairs = events.filter((e) => e.kind === 'alias').map((e) => ({ lid: e.lid, phone: e.phone }));
   if (aliasPairs.length) await learnAliases(env, aliasPairs, 6);
@@ -1245,20 +1248,26 @@ async function ingestHistory(env, ctx, events) {
   // lid-only events -> the phone when an alias is known
   const known = new Map();
   const lidOnly = new Set(events.filter((e) => e.kind !== 'alias' && e.kind !== 'contact' && e.waId && e.lid && e.lid === e.waId).map((e) => e.lid));
-  const lookup = [...new Set([...lidOnly, ...events.filter((e) => e.kind === 'contact' && e.waId).map((e) => e.waId)])];
+  const lookup = [...new Set([...lidOnly, ...events.filter((e) => (e.kind === 'contact' || e.kind === 'chat') && e.waId).map((e) => e.waId)])];
   for (let i = 0; i < lookup.length; i += 90) {
     const part = lookup.slice(i, i + 90);
     const { results } = await env.DB.prepare(`SELECT lid, phone FROM wa_alias WHERE lid IN (${part.map(() => '?').join(',')})`).bind(...part).all();
     for (const r of results || []) known.set(r.lid, r.phone);
   }
-  const idOf = (ev) => ((ev.kind === 'contact' || (ev.lid && ev.lid === ev.waId)) && known.has(ev.waId) ? known.get(ev.waId) : ev.waId);
+  const idOf = (ev) => ((ev.kind === 'contact' || ev.kind === 'chat' || (ev.lid && ev.lid === ev.waId)) && known.has(ev.waId) ? known.get(ev.waId) : ev.waId);
 
   const chats = new Map();       // waId -> {name, number, msgs: [], lidOnly}
   const names = new Map();       // waId -> name from 'contact' events
+  const chatEvs = new Map();     // waId -> 'chat' event: a chat of the phone without messages (created as a contact only)
   for (const ev of events) {
     if (ev.kind === 'alias' || !ev.waId) continue;
     const waId = idOf(ev);
     if (ev.kind === 'contact') { if (ev.profileName) names.set(waId, ev.profileName); continue; }
+    if (ev.kind === 'chat') {
+      const prev = chatEvs.get(waId);
+      if (!prev || (ev.lastTs || '') > (prev.lastTs || '')) chatEvs.set(waId, Object.assign({}, ev, { lidOnly: lidOnly.has(waId), profileName: ev.profileName || (prev && prev.profileName) || '' }));
+      continue;
+    }
     if (!ev.msg) continue;
     let c = chats.get(waId);
     if (!c) { c = { name: '', number: await ensureWaNumber(env, ctx.numbers, ev.phoneNumberId, ev.displayPhone, ctx.connection), msgs: [], ids: new Set(), lidOnly: lidOnly.has(waId) }; chats.set(waId, c); }
@@ -1309,6 +1318,24 @@ async function ingestHistory(env, ctx, events) {
 
   const ts0 = nowIso();
   const stmts = [];
+  const number0 = chatEvs.size ? await ensureWaNumber(env, ctx.numbers, events.find((e) => e.kind === 'chat').phoneNumberId, events.find((e) => e.kind === 'chat').displayPhone, ctx.connection) : null;
+  // Chats without messages: one statement each. The row is created (traffic 'old'); an existing one only gets what it lacks
+  // (chat id, name, last-message time while it has no messages), and is not written at all when nothing changes.
+  for (const [waId, ev] of chatEvs) {
+    if (chats.has(waId)) continue;
+    const bindAll = [waId, ev.lidOnly ? '' : waId, ev.lidOnly ? 'lid' : 'pn', ev.profileName || names.get(waId) || '', number0 ? number0.id : null, ev.lastTs || '', ev.chatJid || '', ts0];
+    // INSERT ... SELECT ... WHERE NOT EXISTS and a guarded UPDATE: an existing, unchanged chat writes no D1 row at all
+    // (an INSERT ... ON CONFLICT on an AUTOINCREMENT table still writes one row to sqlite_sequence).
+    stmts.push(env.DB.prepare(
+      "INSERT INTO contacts (channel, ext_id, phone, id_kind, name, traffic, number_id, first_message_at, last_message_at, wa_jid, created_at, updated_at) " +
+      "SELECT 'whatsapp', ?1, ?2, ?3, ?4, 'old', ?5, '', ?6, ?7, ?8, ?8 WHERE NOT EXISTS (SELECT 1 FROM contacts WHERE channel = 'whatsapp' AND ext_id = ?1)"
+    ).bind(...bindAll));
+    stmts.push(env.DB.prepare(
+      "UPDATE contacts SET wa_jid = CASE WHEN ?7 != '' THEN ?7 ELSE wa_jid END, name = CASE WHEN name = '' THEN ?4 ELSE name END, " +
+      "last_message_at = CASE WHEN ?6 > last_message_at AND NOT EXISTS (SELECT 1 FROM messages WHERE contact_id = contacts.id) THEN ?6 ELSE last_message_at END, updated_at = ?8 " +
+      "WHERE channel = 'whatsapp' AND ext_id = ?1 AND ((?7 != '' AND wa_jid != ?7) OR (name = '' AND ?4 != '') OR (?6 > last_message_at AND NOT EXISTS (SELECT 1 FROM messages WHERE contact_id = contacts.id)))"
+    ).bind(waId, null, null, bindAll[3], null, bindAll[5], bindAll[6], ts0));
+  }
   for (const [waId, c] of chats) {
     const nm = c.name || names.get(waId) || '';
     const first = c.msgs.reduce((a, e) => (e.msg.ts < a ? e.msg.ts : a), c.msgs[0].msg.ts);
@@ -1337,9 +1364,17 @@ async function ingestHistory(env, ctx, events) {
       'last_preview = CASE WHEN ?3 >= last_message_at THEN ?4 ELSE last_preview END, ' +
       'last_message_at = CASE WHEN ?3 >= last_message_at THEN ?3 ELSE last_message_at END, ' +
       "last_inbound_at = CASE WHEN ?5 > last_inbound_at THEN ?5 ELSE last_inbound_at END, " +
-      "number_id = COALESCE(number_id, ?6), updated_at = ?7 WHERE channel = 'whatsapp' AND ext_id = ?8 " +
+      "number_id = COALESCE(number_id, ?6), wa_jid = CASE WHEN ?9 != '' THEN ?9 ELSE wa_jid END, updated_at = ?7 WHERE channel = 'whatsapp' AND ext_id = ?8 " +
       'AND EXISTS (SELECT 1 FROM messages WHERE contact_id = contacts.id)'
-    ).bind(c.name || names.get(waId) || '', first, latest.msg.ts, previewOf(latest.msg, latest.direction), lastIn, c.number ? c.number.id : null, ts0, waId));
+    ).bind(c.name || names.get(waId) || '', first, latest.msg.ts, previewOf(latest.msg, latest.direction), lastIn, c.number ? c.number.id : null, ts0, waId, jidOf(c)));
+  }
+  // Answers to «load older messages»: done = nothing older than the anchor arrived. Written after the messages of this batch.
+  for (const r of events) {
+    if (r.kind !== 'history_result') continue;
+    stmts.push(env.DB.prepare(
+      'UPDATE contacts SET history_answered_at = ?1, history_done = CASE WHEN EXISTS (SELECT 1 FROM messages WHERE contact_id = contacts.id AND ts < ?2) THEN 0 ELSE 1 END ' +
+      "WHERE id = (SELECT contact_id FROM outbox WHERE id = ?3 AND type = 'history')"
+    ).bind(ts0, r.anchorTs, r.outboxId));
   }
   for (const [waId, nm] of names) {
     if (!chats.has(waId)) stmts.push(env.DB.prepare("UPDATE contacts SET name = ?1, updated_at = ?2 WHERE channel = 'whatsapp' AND ext_id = ?3 AND name = ''").bind(nm, ts0, waId));
@@ -1351,7 +1386,7 @@ async function ingestHistory(env, ctx, events) {
 // A non-2xx answer makes the sender retry; inserts are idempotent (ext_msg_id), so a retry is safe.
 async function ingestEvents(env, events, connection) {
   if (!events.length) return 0;
-  const isBulk = (e) => e.kind === 'history' || e.kind === 'contact' || e.kind === 'alias';
+  const isBulk = (e) => e.kind === 'history' || e.kind === 'contact' || e.kind === 'alias' || e.kind === 'chat' || e.kind === 'history_result';
   const bulk = events.filter(isBulk);
   const live = bulk.length ? events.filter((e) => !isBulk(e)) : events;
   const { results: targets } = live.length ? await env.DB.prepare('SELECT * FROM target_texts WHERE active = 1').all() : { results: [] };
@@ -1395,7 +1430,8 @@ function chatOut(r) {
     productName: r.product_name, numberId: r.number_id, numberLabel: r.number_label || r.number_phone || '', numberStatus: r.number_status || '',
     numberConnection: r.number_connection || '',
     lastAt: r.last_message_at, lastInboundAt: r.last_inbound_at, preview: r.last_preview, unread: r.unread,
-    orderId: r.order_id == null ? null : r.order_id, orderNum: r.order_num == null ? null : r.order_num, manual: !!r.source_manual
+    orderId: r.order_id == null ? null : r.order_id, orderNum: r.order_num == null ? null : r.order_num, manual: !!r.source_manual,
+    historyDone: !!r.history_done
   };
 }
 function messageOut(r) {
@@ -1730,7 +1766,100 @@ async function openChat(env, idStr) {
   const { results } = await env.DB.prepare('SELECT * FROM messages WHERE contact_id = ? ORDER BY ts DESC, id DESC LIMIT 500').bind(c.id).all();
   if (c.unread) await env.DB.prepare('UPDATE contacts SET unread = 0 WHERE id = ?').bind(c.id).run();
   c.unread = 0;
-  return json({ chat: chatOut(c), messages: (results || []).reverse().map(messageOut) });
+  // A short thread (fewer than 30 messages) asks the phone for older ones by itself, once in 10 min per chat.
+  if ((results || []).length < HISTORY_MIN_MSGS) {
+    try { await queueHistory(env, c, { auto: true }); } catch (e) { console.error('history request failed:', e && e.message ? String(e.message).slice(0, 150) : 'unknown'); }
+  }
+  const chat = chatOut(c);
+  chat.historyPending = historyPending(c);
+  return json({ chat, messages: (results || []).reverse().map(messageOut) });
+}
+
+/* ----- older messages on demand (the way WhatsApp Web loads them: the phone is asked for a page before the oldest known message) ----- */
+const HISTORY_COUNT = 50;                       // messages asked per request
+const HISTORY_MIN_MSGS = 30;                    // a thread shorter than this asks by itself
+const HISTORY_AUTO_GAP_MS = 10 * 60 * 1000;     // ... not more often than once per chat in 10 min
+const HISTORY_PENDING_MS = 5 * 60 * 1000;       // an unanswered request counts as pending this long
+const HISTORY_RATE_MAX = 20, HISTORY_RATE_MS = 10 * 60 * 1000;   // at most 20 requests per 10 min overall
+const HISTORY_DAY_MAX = 60;                     // ... and 60 per 24 h: every answer of 50 messages writes ~215 D1 rows (4.3 per message), the free plan allows 100k rows a day
+
+const historyPending = (c) => !!c.history_requested_at && c.history_requested_at > (c.history_answered_at || '') && Date.now() - Date.parse(c.history_requested_at) < HISTORY_PENDING_MS;
+function historyPayload(text) {
+  try {
+    const o = JSON.parse(text || '{}');
+    return { chatJid: String(o.chatJid || ''), oldest: o.oldest && typeof o.oldest === 'object' ? o.oldest : null, count: Number(o.count) || HISTORY_COUNT, bestEffort: o.bestEffort === true };
+  } catch (e) { return { chatJid: '', oldest: null, count: HISTORY_COUNT, bestEffort: false }; }
+}
+const chatJidOf = (c) => c.wa_jid || `${c.ext_id}@${c.id_kind === 'lid' ? 'lid' : 's.whatsapp.net'}`;
+
+// Queues one 'history' outbox item for a chat. Returns {queued: true} or {queued: false, reason}:
+// done | pending | recent (auto only) | no-connector | rate | day | busy. Never throws for a normal "no".
+// The checks "one pending request per chat" and "rate limits" are part of the INSERT itself, so two parallel requests cannot both pass.
+async function queueHistory(env, c, { auto }) {
+  if (c.channel !== 'whatsapp') return { queued: false, reason: 'no-connector' };
+  if (c.history_done) return { queued: false, reason: 'done' };
+  if (historyPending(c)) return { queued: false, reason: 'pending' };
+  if (auto && c.history_requested_at && Date.now() - Date.parse(c.history_requested_at) < HISTORY_AUTO_GAP_MS) return { queued: false, reason: 'recent' };
+  const num = c.number_id ? await env.DB.prepare('SELECT * FROM wa_numbers WHERE id = ?').bind(c.number_id).first() : null;
+  const conn = num ? await boundConnector(env, num) : null;
+  const seen = conn ? Date.parse(conn.last_seen_at || '') : 0;
+  if (!conn || conn.state !== 'open' || !seen || Date.now() - seen > CONNECTOR_STALE_MS) return { queued: false, reason: 'no-connector' };
+  // Anchor: the oldest message we hold. A chat without messages (WhatsApp keeps only its entry in the list) is asked "before the
+  // last message time" without a message id: best effort, the phone may answer with nothing.
+  const a = await env.DB.prepare("SELECT ext_msg_id, direction, ts FROM messages WHERE contact_id = ? AND ext_msg_id IS NOT NULL AND ext_msg_id != '' ORDER BY ts ASC, id ASC LIMIT 1").bind(c.id).first();
+  let oldest, bestEffort = false;
+  if (a) oldest = { id: a.ext_msg_id, fromMe: a.direction === 'out', tsMs: Date.parse(a.ts) };
+  else {
+    const last = Date.parse(c.last_message_at || '');
+    oldest = { id: '', fromMe: false, tsMs: (last > 0 ? last : Date.now()) + 1000 };
+    bestEffort = true;
+  }
+  const ts = nowIso();
+  const payload = JSON.stringify({ chatJid: chatJidOf(c), oldest, count: HISTORY_COUNT, bestEffort });
+  const r = await env.DB.prepare(
+    "INSERT INTO outbox (contact_id, message_id, number_id, to_ext, type, text, media_ref, status, created_at, updated_at, seconds, waveform) " +
+    "SELECT ?1, NULL, ?2, ?3, 'history', ?4, '', 'queued', ?5, ?5, 0, '' " +
+    "WHERE NOT EXISTS (SELECT 1 FROM outbox WHERE contact_id = ?1 AND type = 'history' AND status IN ('queued', 'sending')) " +
+    "AND (SELECT COUNT(*) FROM outbox WHERE type = 'history' AND created_at > ?6) < ?7 " +
+    "AND (SELECT COUNT(*) FROM outbox WHERE type = 'history' AND created_at > ?8) < ?9"
+  ).bind(c.id, num.id, c.ext_id, payload, ts, new Date(Date.now() - HISTORY_RATE_MS).toISOString(), HISTORY_RATE_MAX, new Date(Date.now() - 86400000).toISOString(), HISTORY_DAY_MAX).run();
+  if (!r.meta.changes) {
+    const n = await env.DB.prepare(
+      "SELECT (SELECT COUNT(*) FROM outbox WHERE contact_id = ?1 AND type = 'history' AND status IN ('queued', 'sending')) AS mine, " +
+      "(SELECT COUNT(*) FROM outbox WHERE type = 'history' AND created_at > ?2) AS recent"
+    ).bind(c.id, new Date(Date.now() - HISTORY_RATE_MS).toISOString()).first();
+    return { queued: false, reason: n.mine ? 'pending' : n.recent >= HISTORY_RATE_MAX ? 'rate' : 'day' };
+  }
+  await env.DB.prepare('UPDATE contacts SET history_requested_at = ? WHERE id = ?').bind(ts, c.id).run();
+  c.history_requested_at = ts;
+  return { queued: true };
+}
+
+// POST /api/chats/:id/older — the button «Загрузить более ранние сообщения»
+async function olderMessages(env, idStr) {
+  const c = await loadChat(env, idStr);
+  const r = await queueHistory(env, c, { auto: false });
+  if (!r.queued) {
+    if (r.reason === 'pending') return json({ ok: true, pending: true });
+    if (r.reason === 'done') fail(409, 'Более ранних сообщений нет');
+    if (r.reason === 'no-connector') fail(409, 'Сервер WhatsApp не на связи или не подключён: попросить телефон показать старые сообщения сейчас нельзя');
+    fail(429, r.reason === 'rate' ? 'Слишком много запросов старых сообщений. Подождите несколько минут.' : 'На сегодня лимит запросов старых сообщений исчерпан. Попробуйте завтра.');
+  }
+  return json({ ok: true, pending: true });
+}
+
+// Numbers for the diagnostics block in Settings (one request, a few cheap COUNTs).
+async function diagnostics(env) {
+  const r = await env.DB.prepare(
+    "SELECT (SELECT COUNT(*) FROM contacts WHERE channel = 'whatsapp') AS contacts, " +
+    "(SELECT COUNT(*) FROM contacts WHERE channel = 'whatsapp' AND id_kind != 'lid') AS withPhone, " +
+    "(SELECT COUNT(*) FROM contacts WHERE channel = 'whatsapp' AND id_kind = 'lid') AS lidOnly, " +
+    "(SELECT COUNT(*) FROM messages) AS messages, (SELECT COUNT(*) FROM wa_alias) AS aliases, " +
+    "(SELECT COUNT(*) FROM outbox WHERE type = 'history' AND status IN ('queued', 'sending')) AS historyPending, " +
+    "(SELECT COUNT(*) FROM contacts WHERE history_done = 1) AS historyDone, " +
+    "(SELECT COUNT(*) FROM outbox WHERE type = 'history' AND status = 'failed') AS historyFailed"
+  ).first();
+  return r || {};
 }
 
 /* ----- numbers and targets ----- */
@@ -1890,6 +2019,7 @@ async function inboxApi(req, env, url, user) {
   let mt;
   if (p === '/api/chats' && m === 'GET') return listChats(env, url);
   if ((mt = p.match(/^\/api\/chats\/(\d+)$/)) && m === 'GET') return openChat(env, mt[1]);
+  if ((mt = p.match(/^\/api\/chats\/(\d+)\/older$/)) && m === 'POST') return olderMessages(env, mt[1]);
   if ((mt = p.match(/^\/api\/chats\/(\d+)\/send$/)) && m === 'POST') return sendChatMessage(env, user, mt[1], await readJson(req));
   if ((mt = p.match(/^\/api\/chats\/(\d+)\/source$/)) && m === 'POST') return setChatSource(env, user, mt[1], await readJson(req));
   if ((mt = p.match(/^\/api\/chats\/(\d+)\/order$/)) && m === 'POST') return orderFromChat(env, user, mt[1]);
@@ -1983,6 +2113,11 @@ async function connectorState(env, b) {
   const row = await env.DB.prepare('SELECT * FROM connector WHERE id = 1').first();
   const ts = nowIso();
   const version = String(b.version || '').slice(0, 40);
+  // The last CRM rejection the connector saw (status + start of the answer); '' clears it. Only a changed text costs a write.
+  if (typeof b.lastError === 'string') {
+    const le = b.lastError.slice(0, 300);
+    if (le !== row.last_error) await env.DB.prepare('UPDATE connector SET last_error = ?, last_error_at = ? WHERE id = 1').bind(le, le ? ts : '').run();
+  }
   // Random id of the connector process (new connectors only; '' keeps the previous one).
   const inst = /^[A-Za-z0-9]{4,40}$/.test(String(b.instance || '')) ? String(b.instance) : '';
   const SET_INST = "instance = CASE WHEN ?9 != '' THEN ?9 ELSE instance END";
@@ -2091,7 +2226,9 @@ async function connectorOutbox(env, url) {
     for (const r of lr.results || []) lidIds.add(r.id);
   }
   const items = (results || []).sort((a, b) => a.id - b.id)
-    .map((r) => Object.assign({ id: r.id, to: r.to_ext, type: r.type, text: r.text, mediaRef: r.media_ref, seconds: r.seconds || 0, waveform: r.waveform || '' }, lidIds.has(r.contact_id) ? { lid: true } : {}));
+    .map((r) => r.type === 'history'
+      ? Object.assign({ id: r.id, to: r.to_ext, type: 'history' }, historyPayload(r.text))
+      : Object.assign({ id: r.id, to: r.to_ext, type: r.type, text: r.text, mediaRef: r.media_ref, seconds: r.seconds || 0, waveform: r.waveform || '' }, lidIds.has(r.contact_id) ? { lid: true } : {}));
   return json({ items, command: null });
 }
 
@@ -2121,6 +2258,8 @@ async function connectorAck(env, b) {
   }
   const stmts = [env.DB.prepare("UPDATE outbox SET status = 'failed', error = ?, updated_at = ? WHERE id = ?").bind(error, ts, id)];
   if (o.message_id) stmts.push(env.DB.prepare("UPDATE messages SET status = 'failed' WHERE id = ?").bind(o.message_id));
+  // A failed history request is not pending any more (history_requested_at stays: the next automatic try is 10 min later).
+  if (o.type === 'history') stmts.push(env.DB.prepare('UPDATE contacts SET history_answered_at = ? WHERE id = ?').bind(ts, o.contact_id));
   await env.DB.batch(stmts);
   return json({ ok: true });
 }
@@ -2134,7 +2273,8 @@ function serverOut(r) {
     minutesAgo: seen ? Math.max(0, Math.round((Date.now() - seen) / 60000)) : null, lastSeenAt: r.last_seen_at || '',
     phone: r.phone || '', name: r.name || '', version: r.version || '',
     qr: r.state === 'qr' && online && r.qr_data ? r.qr_data : '',
-    relinkPending: r.pending_command === 'relink' || r.state === 'relinking'
+    relinkPending: r.pending_command === 'relink' || r.state === 'relinking',
+    lastError: r.last_error || '', lastErrorAt: r.last_error_at || ''
   };
 }
 
@@ -2158,7 +2298,8 @@ async function waServerApi(req, env, url, user) {
   requireAdmin(user);
   const p = url.pathname, m = req.method;
   if (p === '/api/wa-server' && m === 'GET') {
-    return json({ server: serverOut(await env.DB.prepare('SELECT * FROM connector WHERE id = 1').first()) });
+    const [row, diag] = await Promise.all([env.DB.prepare('SELECT * FROM connector WHERE id = 1').first(), diagnostics(env)]);
+    return json({ server: serverOut(row), diag });
   }
   if (p === '/api/wa-server/key' && m === 'POST') {
     const token = await rotateConnectorKey(env, user, '');

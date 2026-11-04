@@ -59,6 +59,9 @@ export function chatIdOf(key) {
   return null;
 }
 
+// The chat as WhatsApp addresses it (what fetchMessageHistory needs): the lid when the key was a lid, else the phone.
+export const chatJidOf = (chat) => (chat.lidUser ? chat.lidUser + '@lid' : chat.waId + '@s.whatsapp.net');
+
 // Peels the wrappers around the real content (disappearing messages, view-once, documents with caption, edits).
 export function unwrap(content) {
   let c = isObj(content) ? content : null;
@@ -153,6 +156,7 @@ export function mapMessage(m, ctx) {
       direction: fromMe ? 'out' : 'in', msg
     };
     if (chat.lidUser) event.lid = chat.lidUser;   // anonymous id of the chat (== waId when the phone is unknown)
+    event.chatJid = chatJidOf(chat);                      // the chat as WhatsApp addresses it: the CRM needs it to ask the phone for older messages
     return { event, media, chat };
   } catch (e) {
     return null;
@@ -203,7 +207,8 @@ export function mapReceipts(receipts, ownPhone) {
 // History batches: keep the last `days` days, at most `perChat` newest messages of each chat (so that many chats appear, not a few
 // chats with a deep history) and at most `cap` newest messages overall. Returns them grouped by chat, oldest first inside a chat.
 // A chat is the 1:1 chat the key resolves to (the same person under @lid and under the phone is ONE chat); a message id is taken once.
-export function selectHistory(messages, { days = 365, cap = 6000, perChat = 30, now = Date.now() } = {}) {
+export const HISTORY_CAP = 14000, HISTORY_PER_CHAT = 1000, HISTORY_DAYS = 365;
+export function selectHistory(messages, { days = HISTORY_DAYS, cap = HISTORY_CAP, perChat = HISTORY_PER_CHAT, now = Date.now() } = {}) {
   const min = Math.floor(now / 1000) - days * 86400;
   const chatKey = (m) => { const c = m && chatIdOf(m.key); return c ? c.waId : str(m && m.key && m.key.remoteJid); };
   const list = [], seen = new Set();
@@ -274,4 +279,29 @@ export function lidPairOfKey(key) {
 
 export function phoneOfJid(jid) {
   return digits(userPart(jid));
+}
+
+// Conversations of a messaging-history.set / HistorySync blob -> 'chat' events (a 1:1 chat of the phone, with or without messages in
+// this batch): {kind:'chat', waId, lid?, chatJid, profileName, lastTs (epoch s)}. The CRM creates the contact when it does not exist,
+// so the chat shows in the list even though WhatsApp sends its messages only on demand.
+// chat: {id, pnJid, lidJid, name, displayName, conversationTimestamp, lastMsgTimestamp}
+export function mapChats(chats, ownPhone, lidPn = new Map()) {
+  const out = [];
+  for (const c of Array.isArray(chats) ? chats : []) {
+    try {
+      if (!isObj(c)) continue;
+      const id = str(c.id);
+      const isLid = serverPart(id) === 'lid';
+      const alt = isLid ? str(c.pnJid) || (lidPn.get(userPart(id)) ? lidPn.get(userPart(id)) + '@s.whatsapp.net' : '') : '';
+      const ch = chatIdOf({ remoteJid: id, remoteJidAlt: alt, fromMe: false });
+      if (!ch) continue;
+      const lid = ch.lidUser || (serverPart(id) !== 'lid' && serverPart(c.lidJid) === 'lid' ? userPart(c.lidJid) : '');
+      const ts = toNum(c.conversationTimestamp) || toNum(c.lastMsgTimestamp);
+      if (!ts && !str(c.name || c.displayName).trim()) continue;   // nothing known about this entry: not worth a contact
+      const ev = { kind: 'chat', numberPhone: str(ownPhone), waId: ch.waId, chatJid: chatJidOf(ch), profileName: str(c.name || c.displayName).trim().slice(0, 200), lastTs: ts };
+      if (lid) ev.lid = lid;
+      out.push(ev);
+    } catch (e) { /* skip */ }
+  }
+  return out;
 }

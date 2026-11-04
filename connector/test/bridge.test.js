@@ -112,13 +112,13 @@ test('history: old chats are imported in small batches, grouped by chat, with na
   });
   for (let i = 0; i < 12; i++) await tick();
   const hist = t.calls.events.filter((e) => e.kind === 'history');
-  assert.equal(hist.length, 30 + 1 + 1, '30 newest of the long chat + the two lid chats');
+  assert.equal(hist.length, 100 + 1 + 1, 'per-chat cap is 1000: all 100 recent messages of the long chat + the two lid chats (the 800-day-old one is dropped)');
   assert.equal(t.calls.events.at(-1).kind, 'contact');
   assert.deepEqual([t.calls.events.at(-1).waId, t.calls.events.at(-1).profileName], ['77012223344', 'Без сообщений']);
   const aliya = hist.filter((e) => e.waId === '77019998877');
-  assert.equal(aliya.length, 30);
+  assert.equal(aliya.length, 100);
   assert.ok(aliya.every((e) => e.profileName === 'Клиент Алия'), 'chat name from history');
-  assert.equal(aliya[0].msg.id, 'H29');
+  assert.equal(aliya[0].msg.id, 'H99');
   assert.equal(aliya.at(-1).msg.id, 'H0');
   assert.ok(hist.find((e) => e.msg.id === 'L1').waId === '77015556677', 'lid mapped to the real phone');
   assert.ok(hist.find((e) => e.msg.id === 'L2').waId === '99990001', 'unknown lid stays addressable');
@@ -401,7 +401,7 @@ test('history progress is logged as counters only', async () => {
   t.sockets[0].ev.emit('messaging-history.set', { messages: [{ key: { id: 'H1', remoteJid: '77019998877@s.whatsapp.net', fromMe: false }, message: { conversation: 'SECRET-TEXT' }, messageTimestamp: Math.floor(Date.now() / 1000) - 60 }], contacts: [], syncType: 2, progress: 40 });
   for (let i = 0; i < 6; i++) await tick();
   const h = log.lines.find((l) => /history:/.test(l));
-  assert.match(h, /history: 1 messages from 1 chats, 0 contacts, syncType 2, progress 40, total kept 1\//);
+  assert.match(h, /history: 1 messages from 1 chats, 0 chats without messages, 0 contacts, syncType 2, progress 40, total kept 1\/14000/);
   assert.ok(!/SECRET-TEXT/.test(log.lines.join('')));
 });
 

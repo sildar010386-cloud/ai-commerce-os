@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { short, describeUpdate } from './safelog.js';
-import { mapMessage, mapUpdates, mapReceipts, selectHistory, readContacts, lidPairOfKey, unwrap, toNum, phoneOfJid, MAX_MEDIA_BYTES, chatIdOf } from './map.js';
+import { mapMessage, mapUpdates, mapReceipts, selectHistory, mapChats, readContacts, lidPairOfKey, unwrap, toNum, phoneOfJid, MAX_MEDIA_BYTES, chatIdOf, HISTORY_CAP, HISTORY_DAYS, HISTORY_PER_CHAT } from './map.js';
 
 // base64 of 64 bytes (0..100) -> Uint8Array, otherwise null
 export function parseWave(b64) {
@@ -17,12 +17,16 @@ const LOGGED_OUT = 401, FORBIDDEN = 403, REPLACED = 440, RESTART_REQUIRED = 515;
 const REPLACED_BACKOFF_MS = 30000;
 const NOTE_MEDIA_FAIL = 'не удалось загрузить файл — откройте на телефоне';
 const HISTORY_BATCH = 15;
-const HISTORY_CAP = 6000, HISTORY_DAYS = 365, HISTORY_PER_CHAT = 30;
+const SYNC_ON_DEMAND = 6;                 // proto HistorySyncType.ON_DEMAND
+const ON_DEMAND_PER_CHAT = 1000;          // one on-demand answer holds one page (<= 50) of one chat
+const EMPTY_CHATS_CAP = 3000;             // chats WITHOUT messages that a pairing sends to the CRM (one D1 row each)
+const REQ_KEEP_MS = 15 * 60000;           // an on-demand request nobody answered is forgotten after this
 
 export function createBridge({
   crm, queue, makeSocket, wipeAuth, renderQr, downloadMedia, downloadHistory, prepareVoice, version, stateDir, voiceHint = { current: null },
   log = console, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), random = Math.random,
-  now = Date.now, watchdogMs = 5 * 60000, watchTickMs = 15000, sleepGapMs = 60000, stuckMs = 3 * 60000
+  now = Date.now, watchdogMs = 5 * 60000, watchTickMs = 15000, sleepGapMs = 60000, stuckMs = 3 * 60000,
+  blobWaitMs = 60000, finalPassMs = 45000
 }) {
   let gen = 0, sock = null, state = 'connecting', ownPhone = '', ownName = '';
   let lastCommandId = '';
@@ -32,6 +36,10 @@ export function createBridge({
   const sentIds = new Map();      // message ids we sent ourselves (their echo must not be reported as "sent from the phone")
   const doneOutbox = new Map();   // outbox id -> extMsgId, protects against double sending when an ack got lost
   const lids = new Set();
+  const pendingBlobs = new Set();  // history-sync blobs being downloaded by harvestHistory: messaging-history.set waits for them
+  const historyReqs = new Map();   // on-demand request id -> {outboxId, chatJid, anchorTs, at}
+  const chatsSent = new Set();     // chats already announced to the CRM without messages
+  let finalTimer = null, emptyChats = 0;
   const lidPn = new Map();        // anonymous @lid user -> real phone number (history, contacts, live messages); kept in lidmap.json
   const names = new Map();        // wa id -> name from the phone book / push names
   const lidFile = stateDir ? path.join(stateDir, 'lids.json') : '';
@@ -59,7 +67,10 @@ export function createBridge({
   };
   const trim = (map) => { while (map.size > 500) map.delete(map.keys().next().value); };
   const postState = async (extra) => {
-    try { await crm.state(Object.assign({ state, version }, ownPhone && state === 'open' ? { phone: ownPhone, name: ownName } : {}, extra)); }
+    try {
+      const le = queue && typeof queue.lastError === 'function' ? { lastError: queue.lastError() } : {};
+      await crm.state(Object.assign({ state, version }, ownPhone && state === 'open' ? { phone: ownPhone, name: ownName } : {}, le, extra));
+    }
     catch (e) { log.warn && log.warn('state post failed: ' + e.message); }
   };
   const readOwn = () => {
@@ -219,7 +230,7 @@ export function createBridge({
     const min = Math.floor(Date.now() / 1000) - HISTORY_DAYS * 86400;
     const events = [];
     // The history-sync notification itself arrives here: Baileys drops the lid -> phone table of that blob, we read it ourselves.
-    for (const m0 of u.messages || []) harvestHistory(m0);
+    for (const m0 of u.messages || []) { const hp = harvestHistory(m0); if (hp) hp.catch(() => {}); }
     const pairs = [];
     for (const m0 of u.messages || []) { const p = m0 && lidPairOfKey(m0.key); if (p) pairs.push(p); }
     if (pairs.length) await announce(learnPairs(pairs));
@@ -271,16 +282,24 @@ export function createBridge({
   };
 
   const harvested = new Set();
-  async function harvestHistory(m) {
+  // Starts the download of the blob of a history-sync notification (our own copy: Baileys drops its lid -> phone table) and records the
+  // promise: Baileys emits messaging-history.set BEFORE this finishes, and onHistory must know the phones before it sends chats.
+  function harvestHistory(m) {
+    const c = unwrap(m && m.message);
+    const n = c && c.protocolMessage && c.protocolMessage.historySyncNotification;
+    if (!n || typeof downloadHistory !== 'function' || !(n.directPath || n.url)) return null;
+    const type = toNum(n.syncType);
+    if (type === 1 || type === 4) return null;                   // INITIAL_STATUS_V3, PUSH_NAME: no chats
+    const key = String(n.directPath || n.url) + ':' + type;
+    if (harvested.has(key)) return null;
+    harvested.add(key);
+    const p = harvestBlob(n, type);
+    pendingBlobs.add(p);
+    p.finally(() => pendingBlobs.delete(p)).catch(() => {});
+    return p;
+  }
+  async function harvestBlob(n, type) {
     try {
-      const c = unwrap(m && m.message);
-      const n = c && c.protocolMessage && c.protocolMessage.historySyncNotification;
-      if (!n || typeof downloadHistory !== 'function' || !(n.directPath || n.url)) return;
-      const type = toNum(n.syncType);
-      if (type === 1 || type === 4) return;                      // INITIAL_STATUS_V3, PUSH_NAME: no chats
-      const key = String(n.directPath || n.url) + ':' + type;
-      if (harvested.has(key)) return;
-      harvested.add(key);
       const data = await downloadHistory(n, {});
       const r = readContacts({
         chats: (data.conversations || []).map((x) => ({ id: x.id, pnJid: x.pnJid, lidJid: x.lidJid })),
@@ -310,15 +329,45 @@ export function createBridge({
   }
 
   // WhatsApp sends the old chats once, right after linking: a few messaging-history.set events (RECENT / FULL / PUSH_NAME).
+  // The notification of a history chunk arrives in messages.upsert right AFTER Baileys emitted messaging-history.set for it. Wait one
+  // tick (so onUpsert has started the blob download), then for every pending download (at most blobWaitMs).
+  async function waitBlobs() {
+    await new Promise((r) => setImmediate(r));
+    if (!pendingBlobs.size) return;
+    let timer;
+    const timeout = new Promise((r) => { timer = setTimeout(r, blobWaitMs); });
+    await Promise.race([Promise.allSettled([...pendingBlobs]), timeout]);
+    clearTimeout(timer);
+  }
+  // End of a pairing sync (no more chunks for a while): every lid we ever sent to the CRM as a lid-only chat is announced once more
+  // with its phone, so rows whose earlier alias batches were lost or came too late are merged now. Idempotent on the CRM side.
+  function scheduleFinalPass() {
+    clearTimeout(finalTimer);
+    finalTimer = setTimeout(() => { finalPass().catch((e) => log.warn && log.warn('final alias pass failed: ' + short(e && e.message, 100))); }, finalPassMs);
+    if (finalTimer.unref) finalTimer.unref();
+  }
+  async function finalPass() {
+    readOwn();
+    if (!ownPhone || stopped) return;
+    const pairs = [];
+    for (const lid of lids) { const phone = lidPn.get(lid); if (phone) pairs.push({ lid, phone }); }
+    info(`final alias pass: ${pairs.length} of ${lids.size} lid chats have a known phone`);
+    await announce(pairs);
+  }
+
   async function onHistory(h) {
+    await waitBlobs();
+    if (stopped) return;
     readOwn();
     if (!ownPhone) return;
     const found = learn(h);
     await announce(found.fresh);
-    const room = HISTORY_CAP - historyCount;
+    // ON_DEMAND = the phone's answer to fetchMessageHistory (a page of ONE chat, no cap, no age limit: it was asked for)
+    const onDemand = !!h.peerDataRequestSessionId || toNum(h.syncType) === SYNC_ON_DEMAND;
+    const room = onDemand ? ON_DEMAND_PER_CHAT : HISTORY_CAP - historyCount;
     const events = [];
     if (room > 0) {
-      const picked = selectHistory((h.messages || []).map(withPhone), { days: HISTORY_DAYS, cap: room, perChat: HISTORY_PER_CHAT });
+      const picked = selectHistory((h.messages || []).map(withPhone), { days: onDemand ? 36500 : HISTORY_DAYS, cap: room, perChat: HISTORY_PER_CHAT });
       for (const m of picked) {
         const mapped = mapMessage(m, { ownPhone, kind: 'history' });
         if (!mapped) continue;
@@ -328,12 +377,38 @@ export function createBridge({
         ev.profileName = names.get(ev.waId) || ev.profileName || '';
         events.push(ev);
       }
-      historyCount += events.length;
+      if (!onDemand) historyCount += events.length;
     }
     const withMsgs = new Set(events.filter((e) => e.profileName).map((e) => e.waId));
     const all = events.concat(contactEvents(found, withMsgs));
-    info(`history: ${events.length} messages from ${new Set(events.map((e) => e.waId)).size} chats, ${(h.contacts || []).length} contacts, syncType ${h.syncType}, progress ${h.progress}, total kept ${historyCount}/${HISTORY_CAP}`);
+    // Chats of the phone that came without messages (or beyond the cap): contact only. WhatsApp Web loads their messages on demand.
+    let empty = 0;
+    if (!onDemand) {
+      const have = new Set(events.map((e) => e.waId));
+      have.forEach((w) => chatsSent.add(w));
+      const min = Math.floor(Date.now() / 1000) - HISTORY_DAYS * 86400;
+      for (const ce of mapChats(h.chats, ownPhone, lidPn)) {
+        if (have.has(ce.waId) || chatsSent.has(ce.waId) || (ce.lastTs && ce.lastTs < min)) continue;
+        if (emptyChats >= EMPTY_CHATS_CAP) break;
+        ce.profileName = names.get(ce.waId) || ce.profileName;
+        chatsSent.add(ce.waId); emptyChats++; empty++;
+        all.push(ce);
+      }
+    }
+    let answered = '';
+    if (onDemand) {
+      const sid = String(h.peerDataRequestSessionId || '');
+      const key = historyReqs.has(sid) ? sid : (historyReqs.keys().next().value);   // an id we do not know: the oldest request is the one answered
+      const rq = key === undefined ? null : historyReqs.get(key);
+      if (rq) {
+        historyReqs.delete(key);
+        all.push({ kind: 'history_result', numberPhone: ownPhone, outboxId: rq.outboxId, chatJid: rq.chatJid, anchorTs: rq.anchorTs });
+        answered = ` (request ${rq.outboxId} answered)`;
+      }
+    }
+    info(`history: ${events.length} messages from ${new Set(events.map((e) => e.waId)).size} chats, ${empty} chats without messages, ${(h.contacts || []).length} contacts, syncType ${h.syncType}, progress ${h.progress}, total kept ${historyCount}/${HISTORY_CAP}${onDemand ? ', on demand' + answered : ''}`);
     for (let i = 0; i < all.length; i += HISTORY_BATCH) await emit(all.slice(i, i + HISTORY_BATCH));
+    if (!onDemand) scheduleFinalPass();
   }
 
   /* ---------- outbox ---------- */
@@ -348,6 +423,7 @@ export function createBridge({
     const id = item && Number(item.id);
     if (!id) return;
     if (doneOutbox.has(id)) { await crm.ack({ id, ok: true, extMsgId: doneOutbox.get(id) }).catch(() => {}); return; }
+    if (item.type === 'history') return requestHistory(item, id);
     // A human-like pause before every message.
     await sleep(1000 + Math.floor(random() * 2000));
     let ack;
@@ -380,6 +456,33 @@ export function createBridge({
       if (ext) { sentIds.set(ext, Date.now()); trim(sentIds); }
       doneOutbox.set(id, ext); trim(doneOutbox);
       ack = { id, ok: true, extMsgId: ext };
+    } catch (e) {
+      ack = { id, ok: false, error: String(e && e.message ? e.message : e).slice(0, 200) };
+    }
+    try { await crm.ack(ack); } catch (e) { log.warn && log.warn('ack failed: ' + e.message); }
+  }
+
+  // «Load older messages»: ask the phone for a page before the oldest message we hold, like WhatsApp Web. The answer is a separate
+  // messaging-history.set (syncType ON_DEMAND) handled by onHistory; here only the request is sent and acknowledged.
+  async function requestHistory(item, id) {
+    let ack;
+    try {
+      const jid = String(item.chatJid || '');
+      const o = item.oldest && typeof item.oldest === 'object' ? item.oldest : null;
+      const tsMs = Math.round(Number(o && o.tsMs));
+      const mid = o && o.id != null ? String(o.id) : '';
+      if (!/^\d{5,20}@(s\.whatsapp\.net|lid)$/.test(jid)) throw new Error('bad chat');
+      // the anchor is the oldest message we hold; a chat without messages is asked "before its last message time" (best effort)
+      if (!o || !(tsMs > 0) || (!mid && item.bestEffort !== true)) throw new Error('no anchor');
+      if (state !== 'open' || !sock || typeof sock.fetchMessageHistory !== 'function') throw new Error('not connected');
+      const count = Math.max(1, Math.min(50, Math.round(Number(item.count)) || 50));
+      const reqId = await sock.fetchMessageHistory(count, { remoteJid: jid, fromMe: o.fromMe === true, id: mid }, tsMs);
+      const rid = reqId ? String(reqId) : '';
+      const at = now();
+      for (const [k, v] of historyReqs) if (at - v.at > REQ_KEEP_MS) historyReqs.delete(k);
+      historyReqs.set(rid || 'req' + id, { outboxId: id, chatJid: jid, anchorTs: Math.floor(tsMs / 1000), at });
+      doneOutbox.set(id, rid); trim(doneOutbox);
+      ack = { id, ok: true, extMsgId: rid };
     } catch (e) {
       ack = { id, ok: false, error: String(e && e.message ? e.message : e).slice(0, 200) };
     }
@@ -422,7 +525,7 @@ export function createBridge({
   }
   function stop() {
     stopped = true; gen++;
-    clearTimeout(pollTimer); clearInterval(beatTimer); clearInterval(watchTimer);
+    clearTimeout(pollTimer); clearInterval(beatTimer); clearInterval(watchTimer); clearTimeout(finalTimer);
     try { sock && sock.end && sock.end(undefined); } catch (e) { /* ignore */ }
   }
 

@@ -284,7 +284,10 @@ test('migration + alias: old lid contacts (phone = lid digits) are blanked, an a
   await invariant('alias');
 });
 
+// older-history requests are covered by history_ondemand.test.js; here a chat opened in the thread must not queue one
+const quiet = async () => { await db.prepare('UPDATE contacts SET history_done = 1').run(); await db.prepare("DELETE FROM outbox WHERE type = 'history'").run(); };
 test('sending: a lid-only contact is addressed as lid in the outbox item, a phone contact is not', { skip }, async () => {
+  await quiet();
   const lidChat = (await chatsList()).find((x) => x.idKind === 'lid');
   assert.ok(lidChat);
   const phoneChat = (await chatsList()).find((x) => x.phone === P1);
