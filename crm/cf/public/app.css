@@ -386,3 +386,5 @@ table.mini tr.tot td{background:var(--line2)}
  table.mini.stack td.ctr{text-align:right}
  table.adt th.adh{min-width:104px}
 }
+@media (max-width:720px){ table.t.stack{min-width:0} table.adc td input,table.adc td select{min-width:0} }
+@media (max-width:520px){.kpi .v{font-size:23px}}
