@@ -188,6 +188,7 @@ function orderOut(r) {
     comment: r.comment, delivery: r.delivery, track: r.track, remindAt: r.remind_at, reserveNote: r.reserve_note,
     cancelNote: r.cancel_note, example: !!r.example, stockDeducted: !!r.stock_deducted, trackSentAt: r.track_sent_at || '',
     traffic: r.traffic || '', targetCode: r.target_code || '',
+    promo: r.promo || '', paidQty: r.paid_qty || r.qty, giftQty: r.gift_qty || 0,
     createdAt: r.created_at, updatedAt: r.updated_at
   };
 }
@@ -212,19 +213,51 @@ function auditStmt(env, actor, action, orderId, orderNum, detail) {
 }
 
 /* ---------- orders ---------- */
+const PROMOS = ['', '1+1', '2+1'];
+// Gift units for a promotion: 1+1 gives as many as were paid, 2+1 gives one per two paid.
+function giftFor(promo, paid) {
+  if (promo === '1+1') return paid;
+  if (promo === '2+1') return Math.floor(paid / 2);
+  return 0;
+}
+// Works out promo / paid_qty / gift_qty / qty (qty = shipped total = paid + gift) from the request `b` and the current row `cur`
+// (null on create). Returns {} when the request touches none of promo / paidQty / qty.
+// With a promotion the client's qty is ignored (the server owns the arithmetic); without one qty can be edited directly and paid = qty.
+function resolveQty(cur, b) {
+  const hasPromo = 'promo' in b, hasPaid = 'paidQty' in b, hasQty = 'qty' in b;
+  if (!hasPromo && !hasPaid && !hasQty) return {};
+  let promo = cur ? cur.promo || '' : '';
+  if (hasPromo) {
+    promo = b.promo == null ? '' : b.promo;
+    if (typeof promo !== 'string' || !PROMOS.includes(promo)) fail(400, 'Акция: «1+1», «2+1» или без акции');
+  }
+  const paidIn = hasPaid ? numIn(b.paidQty, 1, 10000, 'Оплачено, шт.', true) : null;
+  const qtyIn = hasQty ? numIn(b.qty, 1, 10000, 'Количество', true) : null;
+  const curPaid = cur ? cur.paid_qty || cur.qty || 1 : 1;
+  let paid, gift, qty;
+  if (promo) {
+    paid = paidIn != null ? paidIn : curPaid;
+    gift = giftFor(promo, paid);
+    qty = paid + gift;
+    if (qty > 10000) fail(400, 'Количество слишком большое');
+  } else {
+    qty = qtyIn != null ? qtyIn : paidIn != null ? paidIn : curPaid;
+    paid = qty; gift = 0;
+  }
+  return { promo, paid_qty: paid, gift_qty: gift, qty };
+}
 const ORDER_COLS = {
   name: 'name', phone: 'phone', city: 'city', address: 'address', productId: 'product_id', productName: 'product_name',
   qty: 'qty', sum: 'sum', source: 'source', post: 'post', comment: 'comment', delivery: 'delivery', track: 'track',
   remindAt: 'remind_at', reserveNote: 'reserve_note', cancelNote: 'cancel_note', traffic: 'traffic', targetCode: 'target_code'
 };
 // Validates the order fields present in `b`; returns {col: value} (DB column names).
-async function cleanOrderFields(env, b) {
+async function cleanOrderFields(env, b, cur) {
   const f = {};
   if ('name' in b) f.name = str(b.name, 200, 'Имя');
   if ('phone' in b) f.phone = str(b.phone, 40, 'Телефон');
   if ('city' in b) f.city = str(b.city, 120, 'Город');
   if ('address' in b) f.address = str(b.address, 400, 'Адрес');
-  if ('qty' in b) f.qty = numIn(b.qty, 1, 10000, 'Количество', true);
   if ('sum' in b) f.sum = numIn(b.sum, 0, 1e9, 'Сумма', false);
   if ('source' in b) f.source = str(b.source, 40, 'Откуда') || 'Другое';
   if ('post' in b) f.post = str(b.post, 500, 'Пост');
@@ -261,6 +294,7 @@ async function cleanOrderFields(env, b) {
   }
   const out = {};
   for (const k of Object.keys(f)) out[ORDER_COLS[k]] = f[k];
+  Object.assign(out, resolveQty(cur || null, b));
   return out;
 }
 function validateStatusFields(prevStatus, status, merged, touched) {
@@ -269,6 +303,19 @@ function validateStatusFields(prevStatus, status, merged, touched) {
     if (!DELIVERY.includes(merged.delivery)) fail(400, 'Для отправки выберите службу доставки');
     if (merged.delivery !== 'Курьер' && !merged.track) fail(400, 'Для отправки впишите трек-номер');
   }
+}
+
+// Owner's own cost lines of a product: [{name, amount, per: 'unit' | 'parcel'}], up to 20.
+function cleanExtras(v) {
+  if (!Array.isArray(v)) fail(400, 'Иные расходы: нужен список');
+  if (v.length > 20) fail(400, 'Иных расходов не больше 20');
+  return v.map((x) => {
+    if (!x || typeof x !== 'object') fail(400, 'Иные расходы указаны неверно');
+    const name = str(x.name, 40, 'Название расхода');
+    if (!name) fail(400, 'Впишите название расхода');
+    if (x.per !== 'unit' && x.per !== 'parcel') fail(400, 'Расход: «на штуку» или «на посылку»');
+    return { name, amount: numIn(x.amount == null ? 0 : x.amount, 0, 1e7, 'Сумма расхода', false), per: x.per };
+  });
 }
 
 async function listOrders(env) {
@@ -300,7 +347,7 @@ async function createOrder(env, user, b) {
   const status = b.status === undefined ? 'new' : b.status;
   if (!STATUSES.includes(status)) fail(400, 'Неизвестный статус');
   const cols = Object.assign({
-    name: '', phone: '', city: '', address: '', qty: 1, sum: 0, source: 'Другое', post: '', comment: '',
+    name: '', phone: '', city: '', address: '', qty: 1, promo: '', paid_qty: 1, gift_qty: 0, sum: 0, source: 'Другое', post: '', comment: '',
     delivery: '', track: '', remind_at: '', reserve_note: '', cancel_note: '', product_id: '', product_name: ''
   }, f);
   if (!cols.name && !cols.phone) fail(400, 'Укажите имя или телефон');
@@ -327,7 +374,7 @@ async function patchOrder(env, user, idStr, b, internal) {
   if (!(id > 0)) fail(404, 'Заказ не найден');
   const cur = await env.DB.prepare('SELECT * FROM orders WHERE id = ?').bind(id).first();
   if (!cur) fail(404, 'Заказ не найден');
-  const f = await cleanOrderFields(env, b);
+  const f = await cleanOrderFields(env, b, cur);
   let status = cur.status === 'work' ? 'accepted' : cur.status;
   const prev = status;
   if ('status' in b) {
@@ -929,6 +976,14 @@ async function api(req, env, url) {
     const keys = mt[1] === 'general' ? ['fixedMonth'] : ['buy', 'ship', 'pack', 'feePct', 'other'];
     const d = {};
     keys.forEach((k) => { d[k] = numIn(b[k] == null ? 0 : b[k], 0, 1e9, k, false); });
+    if (mt[1] !== 'general') {
+      if ('extras' in b) d.extras = cleanExtras(b.extras);
+      else { // a save without extras keeps the saved ones
+        const old = await env.DB.prepare('SELECT data FROM finance WHERE key = ?').bind(mt[1]).first();
+        let prev = {}; try { prev = old ? JSON.parse(old.data) : {}; } catch (e) { prev = {}; }
+        if (Array.isArray(prev.extras)) d.extras = prev.extras;
+      }
+    }
     await env.DB.prepare('INSERT INTO finance (key, data) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET data = excluded.data')
       .bind(mt[1], JSON.stringify(d)).run();
     return json({ ok: true });

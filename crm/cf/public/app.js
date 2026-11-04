@@ -244,6 +244,12 @@ function remindDue() {
   var t = todayP(), key = t ? t.key : '';
   return S.data.orders.filter(function (o) { return ostat(o) === 'reserve' && o.remindAt && o.remindAt <= key; });
 }
+// «×2» for a plain order; «3 шт. (2 + 1 в подарок)» with a «1+1» / «2+1» badge for a promo order.
+function qtyHTML(o) {
+  var lbl = o.promo ? Promo.qtyLabel(o) : '';
+  if (!lbl) return ' ×' + esc(o.qty || 1) + (o.promo ? ' <span class="badge b-promo">' + esc(o.promo) + '</span>' : '');
+  return ' <span class="badge b-promo">' + esc(o.promo) + '</span><small class="qty-l">' + esc(lbl) + '</small>';
+}
 function renderOrders() {
   if (!S.loaded.orders) return loadingHTML();
   var q = S.q.trim().toLowerCase(), qd = q.replace(/\D/g, '');
@@ -278,7 +284,7 @@ function renderOrders() {
       '<div class="c-num dim">№ ' + esc(o.num != null ? o.num : '—') + '</div>' +
       '<div class="c-dt dim">' + esc(fmtDate(o.createdAt)) + '</div>' +
       '<div class="cl"><b>' + esc(o.name || 'Без имени') + (o.example ? '<span class="badge b-ex">пример</span>' : '') + '</b><small>' + esc(o.city || '') + '</small></div>' +
-      '<div class="c-pr">' + esc(o.productName || '—') + ' ×' + esc(o.qty || 1) + '</div>' +
+      '<div class="c-pr">' + esc(o.productName || '—') + qtyHTML(o) + '</div>' +
       '<div class="sum">' + fmt(num(o.sum)) + '</div>' +
       '<div class="c-src">' + esc(o.source || '') + trafficBadge(o.traffic, o.targetCode) + '</div>' +
       '<div class="c-st">' + stSelectHTML(st, 'data-ost="' + esc(o.id) + '" aria-label="Статус заказа № ' + esc(o.num != null ? o.num : '') + '"', false) + sub + '</div></div>';
@@ -319,57 +325,82 @@ function renderSummary() {
   var topHtml = top.length ? top.map(function (p) {
     return '<div class="post-row"><span>' + esc(p) + '</span><span class="nw"><b>' + posts[p].n + '</b> <small>опл.</small></span></div>';
   }).join('') : '<div class="muted fs14">Пока нет оплаченных заказов с указанным постом.</div>';
+  var ps = Promo.promoStats(paid);
+  var promoCard = '<div class="card"><div class="fw6 mb12">Акции <small>оплаченные заказы периода</small></div>' +
+    '<div class="sum-line"><span>Заказов по акции «1+1»</span><b>' + ps.orders11 + '</b></div>' +
+    '<div class="sum-line"><span>Заказов по акции «2+1»</span><b>' + ps.orders21 + '</b></div>' +
+    '<div class="sum-line"><span>Подарено штук</span><b>' + ps.gift + ' шт.</b></div>' +
+    '<div class="sum-line"><span>Отправлено штук</span><b>' + ps.shipped + ' шт.</b></div>' +
+    '<div class="sum-line"><span>Оплачено штук</span><b>' + ps.paid + ' шт.</b></div></div>';
   var exCount = S.data.orders.filter(function (o) { return o.example; }).length;
   return errNotice('orders') + '<div class="h1">Статистика и касса</div>' + periodChips() +
     '<div class="kpis">' + kpis.map(function (k, i) { return '<div class="card kpi kc' + (i + 1) + '"><div class="k">' + k[0] + '</div><div class="v">' + k[1] + '</div></div>'; }).join('') + '</div>' +
     '<div class="two"><div class="card"><div class="fw6 mb12">Откуда пришли заказы</div>' + srcHtml + '</div>' +
     '<div class="card"><div class="fw6 mb6">С каких постов заказы</div>' + topHtml + '<small class="db mt8">Топ-5 постов по числу оплаченных заказов.</small></div></div>' +
+    '<div class="two">' + promoCard + '</div>' +
     '<small>Период считается по дате создания заказа, часовой пояс Алматы.' + (exCount && !COUNT_EXAMPLES ? ' Примеры (' + exCount + ') в расчёт не входят.' : '') + '</small>';
 }
 
 function calcProfit(period) {
   var list = periodOrders(period).filter(function (o) { return PAID[o.status]; });
-  var qty = 0, rev = 0, cost = 0, missing = {};
-  list.forEach(function (o) {
-    var q = num(o.qty) || 0, s = num(o.sum);
-    qty += q; rev += s;
-    var f = S.data.finance[o.productId];
-    if (!f) { missing[o.productName || 'товар не выбран'] = 1; return; }
-    cost += q * (num(f.buy) + num(f.ship) + num(f.pack) + num(f.other)) + s * num(f.feePct) / 100;
-  });
-  var fixed = num((S.data.finance.general || {}).fixedMonth) * periodDays(period) / 30;
-  return { qty: qty, rev: rev, cost: cost, fixed: fixed, net: rev - cost - fixed, missing: Object.keys(missing) };
+  return Promo.calcProfit(list, S.data.finance, periodDays(period));
 }
 function unitProfit(price, f) {
-  f = f || {};
-  return price - num(f.buy) - num(f.ship) - num(f.pack) - price * num(f.feePct) / 100 - num(f.other);
+  return Promo.orderProfit(price, f, '', 1).profit;
 }
-function renderProfit() {
-  if (!S.loaded.orders || !S.loaded.products || !S.loaded.finance) return loadingHTML();
-  var fields = [['buy', 'Закупка', '₸'], ['ship', 'Доставка Казпочтой (платим мы)', '₸'], ['pack', 'Упаковка', '₸'], ['feePct', 'Комиссия за оплату', '%'], ['other', 'Прочее на 1 шт.', '₸']];
-  var prods = activeProducts();
-  var blocks = prods.map(function (p) {
-    var f = S.data.finance[p.id] || {};
-    var price = num(p.price), up = unitProfit(price, f);
-    return '<div class="card"><div class="fw6 mb10">' + esc(p.name) + ': из чего складывается 1 штука</div>' +
-      '<div class="eco-row"><span>Цена продажи</span><span class="in"><b>' + fmt(price) + '</b><span class="u"></span></span></div>' +
-      fields.map(function (x) {
-        return '<div class="eco-row"><label for="fin-' + esc(p.id) + '-' + x[0] + '">' + x[1] + '</label><span class="in"><input class="num" id="fin-' + esc(p.id) + '-' + x[0] + '" type="number" inputmode="decimal" min="0" step="any" data-fin="' + esc(p.id) + '" value="' + esc(num(f[x[0]])) + '"><span class="u">' + x[2] + '</span></span></div>';
-      }).join('') +
-      '<div class="sum-line big"><span>Прибыль с 1 шт.</span><span class="' + (up < 0 ? 'neg' : 'pos') + '">' + fmt(up) + '</span></div></div>';
+function finInput(pid, k, label, unit) {
+  var f = S.data.finance[pid] || {};
+  return '<div class="eco-row"><label for="fin-' + esc(pid) + '-' + k + '">' + label + '</label><span class="in"><input class="num" id="fin-' + esc(pid) + '-' + k + '" type="number" inputmode="decimal" min="0" step="any" data-fin="' + esc(pid) + '" value="' + esc(num(f[k])) + '"><span class="u">' + unit + '</span></span></div>';
+}
+function extrasHTML(pid) {
+  var ex = (S.data.finance[pid] || {}).extras || [];
+  var rows = ex.map(function (x, i) {
+    var b = 'fx-' + esc(pid) + '-' + i;
+    return '<div class="ex-row"><label class="sr" for="' + b + '-n">Название расхода</label><input id="' + b + '-n" type="text" maxlength="40" placeholder="Например, Скотч" data-fin="' + esc(pid) + '" data-fx="n" value="' + esc(x.name) + '">' +
+      '<label class="sr" for="' + b + '-a">Сумма</label><input class="num" id="' + b + '-a" type="number" inputmode="decimal" min="0" step="any" data-fin="' + esc(pid) + '" data-fx="a" value="' + esc(num(x.amount)) + '">' +
+      '<label class="sr" for="' + b + '-p">Тип расхода</label><select id="' + b + '-p" data-fin="' + esc(pid) + '" data-fx="p"><option value="unit"' + (x.per === 'parcel' ? '' : ' selected') + '>на штуку</option><option value="parcel"' + (x.per === 'parcel' ? ' selected' : '') + '>на посылку</option></select>' +
+      '<button type="button" class="icon-btn" data-act="fx-del" data-pid="' + esc(pid) + '" data-i="' + i + '" aria-label="Удалить расход">✕</button></div>';
   }).join('');
-  if (!prods.length) blocks = '<div class="card empty">Активных товаров нет. Добавьте товар в разделе «Склад».</div>';
-  var fixedCard = '<div class="card"><div class="eco-row mgn0"><label for="fin-fixed">Общие расходы в месяц</label><span class="in"><input class="num" id="fin-fixed" type="number" inputmode="decimal" min="0" step="any" value="' + esc(num((S.data.finance.general || {}).fixedMonth)) + '"><span class="u">₸</span></span></div></div>';
+  return rows + '<button type="button" class="btn sm" data-act="fx-add" data-pid="' + esc(pid) + '">+ Добавить расход</button>';
+}
+function profitResHTML() {
   var c = calcProfit(S.period);
-  var res = '<div class="card top-g">' + periodChips() +
+  return '<div class="card top-g">' + periodChips() +
     '<div class="mt12">' +
-    '<div class="sum-line"><span>Продано (оплачено)</span><span>' + c.qty + ' шт.</span></div>' +
+    '<div class="sum-line"><span>Отправлено шт.</span><span>' + c.qty + ' шт.</span></div>' +
+    '<div class="sum-line"><span>Оплачено шт.</span><span>' + c.paidQty + ' шт.</span></div>' +
+    '<div class="sum-line"><span>Подарено по акциям шт. и их себестоимость (закупка × подарки)</span><span class="nw">' + c.giftQty + ' шт. · ' + fmt(c.giftCost) + '</span></div>' +
     '<div class="sum-line"><span>Касса (выручка)</span><span class="pos"><b>' + fmt(c.rev) + '</b></span></div>' +
     '<div class="sum-line"><span>Расходы на товар</span><span class="neg">− ' + fmt(c.cost).replace('−', '') + '</span></div>' +
     '<div class="sum-line"><span>Общие расходы за период</span><span class="neg">− ' + fmt(c.fixed).replace('−', '') + '</span></div>' +
     '<div class="sum-line big"><span>Чистая прибыль</span><span class="' + (c.net < 0 ? 'neg' : 'pos') + '">' + fmt(c.net) + '</span></div></div>' +
     (c.missing.length ? '<div class="notice mt12">Не заполнены расходы на 1 шт. для: ' + esc(c.missing.join(', ')) + ' — прибыль завышена.</div>' : '') +
-    '<small class="db mt10">Считается само: касса оплаченных заказов − расходы на товар − общие расходы (в месяц × дни периода / 30).</small></div>';
+    '<small class="db mt10">Считается само: касса оплаченных заказов − расходы на товар (по отправленным штукам, подарки включены) − общие расходы (в месяц × дни периода / 30).</small></div>';
+}
+function renderProfit() {
+  if (!S.loaded.orders || !S.loaded.products || !S.loaded.finance) return loadingHTML();
+  var prods = activeProducts();
+  var blocks = prods.map(function (p) {
+    var f = S.data.finance[p.id] || {};
+    var price = num(p.price), up = unitProfit(price, f);
+    var o21 = Promo.orderProfit(price, f, '2+1', 2), o11 = Promo.orderProfit(price, f, '1+1', 1);
+    var o31 = Promo.orderProfit(price, f, '2+1', 4);
+    return '<div class="card"><div class="fw6 mb10">' + esc(p.name) + ': расходы</div>' +
+      '<div class="eco-row"><span>Цена продажи</span><span class="in"><b>' + fmt(price) + '</b><span class="u"></span></span></div>' +
+      '<div class="grp">На 1 штуку <small>умножается на отправленные штуки, подарки тоже</small></div>' +
+      finInput(p.id, 'buy', 'Закупка', '₸') + finInput(p.id, 'other', 'Прочее на 1 шт.', '₸') +
+      '<div class="grp">На 1 посылку (заказ) <small>считается один раз на заказ, сколько бы штук в нём ни было</small></div>' +
+      finInput(p.id, 'ship', 'Доставка Казпочтой (платим мы)', '₸') + finInput(p.id, 'pack', 'Упаковка', '₸') +
+      '<div class="grp">Комиссия</div>' + finInput(p.id, 'feePct', 'Комиссия за оплату (от суммы)', '%') +
+      '<div class="grp">Иные расходы <small>добавьте свои: пакет, наклейка, скотч, курьер до почты</small></div>' + extrasHTML(p.id) +
+      '<div class="sum-line big"><span>Прибыль с заказа из 1 шт.</span><span class="' + (up < 0 ? 'neg' : 'pos') + '">' + fmt(up) + '</span></div>' +
+      '<div class="sum-line"><span>Заказ 1+1 (платит за 1, едет 2)</span><span class="' + (o11.profit < 0 ? 'neg' : 'pos') + '">' + fmt(o11.profit) + '</span></div>' +
+      '<div class="sum-line"><span>Заказ 2+1 (платит за 2, едет 3)</span><span class="' + (o21.profit < 0 ? 'neg' : 'pos') + '">' + fmt(o21.profit) + '</span></div>' +
+      '<small class="db">Доставка и упаковка раньше считались на штуку, теперь это расход на посылку: проверьте цифры.</small></div>';
+  }).join('');
+  if (!prods.length) blocks = '<div class="card empty">Активных товаров нет. Добавьте товар в разделе «Склад».</div>';
+  var fixedCard = '<div class="card"><div class="eco-row mgn0"><label for="fin-fixed">Общие расходы в месяц</label><span class="in"><input class="num" id="fin-fixed" type="number" inputmode="decimal" min="0" step="any" value="' + esc(num((S.data.finance.general || {}).fixedMonth)) + '"><span class="u">₸</span></span></div></div>';
+  var res = '<div id="profit-res">' + profitResHTML() + '</div>';
   return errNotice('finance') + '<div class="h1">Прибыль и расходы <small>видит только админ</small></div>' +
     '<div class="two"><div class="col12">' + blocks + fixedCard + '</div><div>' + res + '</div></div>';
 }
@@ -426,16 +457,18 @@ function renderGoods() {
         '<td><label class="sr" for="prod-' + id + '-price">Цена</label><input class="num" id="prod-' + id + '-price" type="number" inputmode="decimal" min="0" step="any" data-prod="' + id + '" data-k="price" value="' + esc(num(p.price)) + '"></td>' +
         '<td><label class="sr" for="prod-' + id + '-stock">Остаток</label><input class="num' + (low ? ' low' : '') + '" id="prod-' + id + '-stock" type="number" inputmode="numeric" step="1" data-prod="' + id + '" data-k="stock" value="' + esc(num(p.stock)) + '"></td>' +
         '<td>' + sold7(p.id) + ' шт.</td>' +
-        '<td><input type="checkbox" id="prod-' + id + '-active" data-prod-active="' + id + '"' + (p.active !== false ? ' checked' : '') + ' aria-label="Продаётся"></td></tr>';
+        '<td><input type="checkbox" id="prod-' + id + '-active" data-prod-active="' + id + '"' + (p.active !== false ? ' checked' : '') + ' aria-label="Продаётся"></td>' +
+        '<td><button type="button" class="btn sm" data-act="tab" data-tab="profit">Расходы</button></td></tr>';
     }
     return '<tr><td><b>' + name + '</b></td><td>' + fmt(num(p.price)) + '</td><td class="' + (low ? 'low' : '') + '">' + num(p.stock) + ' шт.</td><td>' + sold7(p.id) + ' шт.</td></tr>';
   }).join('');
-  var table = list.length ? '<div class="scroll"><table class="t"><thead><tr><th>Товар</th><th>Цена</th><th>Остаток</th><th>Продано за 7 дней</th>' + (S.admin ? '<th>Продаётся</th>' : '') + '</tr></thead><tbody>' + rows + '</tbody></table></div>'
+  var table = list.length ? '<div class="scroll"><table class="t"><thead><tr><th>Товар</th><th>Цена</th><th>Остаток</th><th>Продано за 7 дней</th>' + (S.admin ? '<th>Продаётся</th><th>Расходы</th>' : '') + '</tr></thead><tbody>' + rows + '</tbody></table></div>'
     : '<div class="card empty">Товаров пока нет.' + (S.admin ? ' Добавьте первый ниже.' : '') + '</div>';
   var add = S.admin ? '<div class="card"><div class="fw6 mb10">Добавить товар</div><div class="two mb12">' +
     '<div class="fld"><label for="p-name">Название</label><input id="p-name" type="text" autocomplete="off"></div>' +
     '<div class="pair"><div class="fld"><label for="p-price">Цена, ₸</label><input id="p-price" type="number" inputmode="decimal" min="0" step="any"></div>' +
     '<div class="fld"><label for="p-stock">Остаток, шт.</label><input id="p-stock" type="number" inputmode="numeric" min="0" step="1"></div></div></div>' +
+    '<small class="db mb12">Расходы на товар (закупка, доставка, упаковка, свои статьи) задаются на странице «Прибыль» — кнопка «Расходы» в строке товара.</small>' +
     '<button type="button" class="btn pri" data-act="prod-add">Добавить товар</button></div>' : '';
   return errNotice('products') + '<div class="h1">' + (S.admin ? 'Склад и товары' : 'Товары') + '</div>' + table +
     '<small>Красным — осталось ' + LOW_STOCK + ' штук или меньше. Остаток уменьшается сам, когда заказ получает статус «Отправлен».</small>' + add;
@@ -643,8 +676,12 @@ function cardHTML() {
     '<div class="fld"><label for="f-source">Откуда</label><select id="f-source">' + srcOpts + '</select></div></div>' +
     '<div class="fld"><label for="f-address">Адрес доставки</label><input id="f-address" type="text" autocomplete="off" value="' + esc(o.address) + '"></div>' +
     '<div class="fld"><label for="f-product">Товар</label><select id="f-product">' + opts + '</select></div>' +
-    '<div class="pair"><div class="fld"><label for="f-qty">Количество</label><input id="f-qty" type="number" inputmode="numeric" min="1" step="1" value="' + esc(num(o.qty) || 1) + '"></div>' +
-    '<div class="fld"><label for="f-sum">Сумма, ₸</label><input id="f-sum" type="number" inputmode="decimal" min="0" step="any" value="' + esc(num(o.sum)) + '"></div></div>' +
+    '<div class="pair"><div class="fld"><label for="f-promo">Акция</label><select id="f-promo">' +
+      [['', 'Без акции'], ['1+1', '1+1'], ['2+1', '2+1']].map(function (x) { return '<option value="' + x[0] + '"' + (x[0] === (o.promo || '') ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '</select></div>' +
+    '<div class="fld"><label for="f-paid">Оплачено, шт.</label><input id="f-paid" type="number" inputmode="numeric" min="1" step="1" value="' + esc(Promo.orderUnits(o).paid || 1) + '"></div></div>' +
+    '<div class="qty-box"><div class="sum-line"><span>В подарок:</span><b id="q-gift">0 шт.</b></div>' +
+    '<div class="sum-line"><span>Отправить всего:</span><b id="q-total">1 шт.</b></div></div>' +
+    '<div class="fld"><label for="f-sum">Сумма, ₸</label><input id="f-sum" type="number" inputmode="decimal" min="0" step="any" value="' + esc(num(o.sum)) + '"><small class="db mt6" id="sum-hint"></small></div>' +
     '<div class="fld"><label for="f-post">С какого поста</label><input id="f-post" type="text" autocomplete="off" value="' + esc(o.post) + '"></div>' +
     '<div class="fld"><label for="f-comment">Комментарий</label><textarea id="f-comment" class="ta90">' + esc(o.comment) + '</textarea></div>' +
     '<div class="row-flex"><button type="button" class="btn pri" id="card-save" data-act="card-save">Сохранить</button>' + payLink +
@@ -665,6 +702,10 @@ function openCard(id, draftStatus) {
   $('#card-root').innerHTML = cardHTML();
   syncExtra();
   syncWa();
+  // An existing order keeps its saved sum unless it equals price x paid (then it still follows the price).
+  var pr0 = cardPrice();
+  S.card.sumManual = !!o && num(o.sum) > 0 && !(pr0 && num(o.sum) === pr0 * cardQty().paid);
+  syncQty();
   var cb = $('#card-close'); if (cb) cb.focus();
   if (o) loadHistory(o.id);
 }
@@ -681,18 +722,42 @@ async function loadHistory(id) {
   } catch (e) { /* history is optional */ }
 }
 function closeCard() { S.card = null; $('#card-root').innerHTML = ''; if (S.dirty) doRender(true); }
+// Reads «Акция» / «Оплачено, шт.» of the open card: {promo, paid, gift, total}.
+function cardQty() {
+  var promo = fv('f-promo');
+  var paid = Math.max(1, Math.round(num(fv('f-paid'))) || 1);
+  var gift = Promo.giftFor(promo, paid);
+  return { promo: promo, paid: paid, gift: gift, total: paid + gift };
+}
+function cardPrice() {
+  var id = fv('f-product'), p = id && id !== '__keep' ? findProduct(id) : null;
+  return p && num(p.price) > 0 ? num(p.price) : 0;
+}
+// Live «В подарок / Отправить всего» lines and the hint under the sum.
+function syncQty() {
+  var q = cardQty(), g = document.getElementById('q-gift'), t = document.getElementById('q-total'), h = document.getElementById('sum-hint');
+  if (g) g.textContent = q.gift + ' шт.';
+  if (t) t.textContent = q.total + ' шт.';
+  if (h) {
+    var price = cardPrice();
+    if (!price) h.textContent = '';
+    else if (S.card && S.card.sumManual) { h.innerHTML = 'Сумма введена вручную. <button type="button" class="lnk" data-act="sum-auto">Пересчитать: цена × оплаченные шт.</button>'; }
+    else h.textContent = 'Сумма = цена × оплаченные шт.';
+  }
+}
+// Sum = price x PAID units (gifts are free), unless the sum was typed by hand.
 function autofillSum() {
-  var sel = $('#f-product'), id = sel ? sel.value : '';
-  var p = id && id !== '__keep' ? findProduct(id) : null;
-  if (!p) return;
-  var q = Math.max(1, Math.round(num($('#f-qty').value)) || 1);
-  $('#f-sum').value = String(num(p.price) * q);
+  syncQty();
+  if (S.card && S.card.sumManual) return;
+  var price = cardPrice();
+  if (!price) return;
+  $('#f-sum').value = String(price * cardQty().paid);
 }
 function readForm() {
   var g = function (id) { var e = document.getElementById(id); return e ? e.value : ''; };
   var d = {
     name: g('f-name').trim(), phone: g('f-phone').trim(), city: g('f-city').trim(), address: g('f-address').trim(),
-    qty: Math.max(1, Math.round(num(g('f-qty'))) || 1), sum: Math.max(0, num(g('f-sum'))),
+    promo: cardQty().promo, paidQty: cardQty().paid, qty: cardQty().total, sum: Math.max(0, num(g('f-sum'))),
     source: g('f-source'), post: g('f-post').trim(), track: g('f-track').trim(), comment: g('f-comment').trim(),
     delivery: g('f-delivery'), remindAt: g('f-remind'), reserveNote: g('f-reserve').trim(), cancelNote: g('f-cancel').trim()
   };
@@ -758,7 +823,7 @@ async function saveCard() {
     var patch = {}, o = c.orig;
     Object.keys(f).forEach(function (k) {
       var a = f[k], b = o[k];
-      var same = (k === 'qty' || k === 'sum') ? num(a) === num(b) : String(a == null ? '' : a) === String(b == null ? '' : b);
+      var same = (k === 'qty' || k === 'sum' || k === 'paidQty') ? num(a) === num(b) : String(a == null ? '' : a) === String(b == null ? '' : b);
       if (!same) patch[k] = a;
     });
     if (c.status !== o.status) patch.status = c.status;
@@ -1636,6 +1701,16 @@ var ACTIONS = {
   'card-del': function () { showDelConfirm(); },
   'card-del-no': function () { $('#del-area').innerHTML = ''; },
   'card-del-yes': function () { deleteCard(); },
+  'fx-add': function (t) {
+    var pid = t.dataset.pid, cur = Object.assign({}, S.data.finance[pid] || {}); cur.extras = readExtras(pid).concat([{ name: '', amount: 0, per: 'unit' }]);
+    S.data.finance[pid] = Object.assign(cur, finNums(pid)); doRender(true);
+    var ns = document.querySelectorAll('[data-fin="' + pid + '"][data-fx="n"]'); if (ns.length) ns[ns.length - 1].focus();
+  },
+  'fx-del': function (t) {
+    var pid = t.dataset.pid, cur = Object.assign({}, S.data.finance[pid] || {}, finNums(pid)); cur.extras = readExtras(pid);
+    cur.extras.splice(parseInt(t.dataset.i, 10), 1); S.data.finance[pid] = cur; doRender(true); saveFin(pid);
+  },
+  'sum-auto': function () { if (S.card) S.card.sumManual = false; autofillSum(); },
   'copy-phone': function () { copyText(textField('f-phone'), 'Номер скопирован', 'f-phone'); },
   'copy-pay': function () { copyText(S.data.settings && S.data.settings.payLink, 'Ссылка на оплату скопирована'); },
   'copy-setting': function (t) { copyText(S.data.settings && S.data.settings[t.dataset.k], 'Скопировано'); },
@@ -1765,12 +1840,29 @@ var ACTIONS = {
   }
 };
 
+// Reads the cost settings of one product from the page (numbers + the list of extra lines) and saves them.
+function finNums(pid) {
+  var o = {}; ['buy', 'ship', 'pack', 'feePct', 'other'].forEach(function (k) { o[k] = Math.max(0, num(numField('fin-' + pid + '-' + k))); });
+  return o;
+}
 async function saveFin(pid) {
   var ks = ['buy', 'ship', 'pack', 'feePct', 'other'], obj = {};
   ks.forEach(function (k) { obj[k] = Math.max(0, num(numField('fin-' + pid + '-' + k))); });
+  var draft = readExtras(pid);
+  obj.extras = draft.filter(function (x) { return x.name; });
   var ok = await run('Сохранено', function () { return api('PUT', '/api/finance/' + encodeURIComponent(pid), obj); });
-  if (ok) { await load('finance'); }
+  if (ok) { obj.extras = draft; S.data.finance[pid] = obj; refreshProfitCard(); }
 }
+function readExtras(pid) {
+  var out = [];
+  document.querySelectorAll('[data-fin="' + pid + '"][data-fx="n"]').forEach(function (n) {
+    var row = n.closest('.ex-row');
+    out.push({ name: n.value.trim().slice(0, 40), amount: Math.max(0, num($('[data-fx="a"]', row).value)), per: $('[data-fx="p"]', row).value === 'parcel' ? 'parcel' : 'unit' });
+  });
+  return out;
+}
+// Re-renders only the results card (inputs keep focus).
+function refreshProfitCard() { if (S.tab === 'profit') { var el = document.getElementById('profit-res'); if (el) el.innerHTML = profitResHTML(); } }
 
 /* ---------- event wiring ---------- */
 document.addEventListener('click', function (e) {
@@ -1791,7 +1883,8 @@ document.addEventListener('input', function (e) {
     chatSearchTimer = setTimeout(chatsLoadList, 250);
   }
   else if (t.id === 'chat-reply') S.chat.draft = t.value;
-  else if (t.id === 'f-qty') autofillSum();
+  else if (t.id === 'f-paid') autofillSum();
+  else if (t.id === 'f-sum') { if (S.card) S.card.sumManual = true; syncQty(); }
   else if (t.id === 'f-track') syncExtra();
   else if (t.id === 'f-phone') syncWa();
 });
@@ -1831,7 +1924,7 @@ document.addEventListener('change', function (e) {
   if (t.dataset && t.dataset.ost) { rowStatus(t); return; }
   if (t.id === 'card-st') { cardStatus(t.value); return; }
   if (t.id === 'f-remind' || t.id === 'f-delivery') { syncExtra(); return; }
-  if (t.id === 'f-product') { autofillSum(); return; }
+  if (t.id === 'f-product' || t.id === 'f-promo') { autofillSum(); return; }
   if (t.dataset && t.dataset.fin) { saveFin(t.dataset.fin); return; }
   if (t.id === 'fin-fixed') {
     var v = Math.max(0, num(t.value));

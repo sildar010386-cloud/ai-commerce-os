@@ -328,3 +328,16 @@ details.adv input{margin-top:6px}
  table.t.stack td input[data-k=productName]{min-width:0;max-width:100%}
  .stack td:empty{display:none}
 }
+
+/* promotions */
+.b-promo{background:var(--accent-bg);color:var(--accent);font-size:11px;font-weight:700;padding:2px 8px;margin-left:6px}
+.orow .c-pr small.qty-l{display:block;margin-top:3px;font-size:12px;color:var(--muted)}
+.qty-box{border-radius:10px;background:var(--line2);padding:6px 12px}
+.qty-box .sum-line{padding:3px 0;font-size:14px}
+.db{display:block}.mt6{margin-top:6px}
+button.lnk{border:0;background:none;padding:0;color:var(--accent);text-decoration:underline;font-size:inherit;cursor:pointer}
+.sum-line .nw{white-space:nowrap}
+.grp{font-weight:600;font-size:14px;margin:14px 0 8px;padding-top:10px;border-top:1px solid var(--line2)}
+.grp small{display:block;font-weight:400;color:var(--muted);margin-top:2px}
+.ex-row{display:grid;grid-template-columns:minmax(0,1fr) 90px 128px 44px;gap:8px;margin-bottom:8px;align-items:center}
+@media (max-width:520px){.ex-row{grid-template-columns:minmax(0,1fr) 96px 44px}.ex-row select{grid-column:1 / 3;grid-row:2}.ex-row .icon-btn{grid-row:1 / 3;grid-column:3}}
