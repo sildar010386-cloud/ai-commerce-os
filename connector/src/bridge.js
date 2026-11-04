@@ -9,11 +9,13 @@ const NOTE_MEDIA_FAIL = 'не удалось загрузить файл — о�
 const HISTORY_CAP = 5000, HISTORY_DAYS = 180;
 
 export function createBridge({
-  crm, queue, makeSocket, wipeAuth, renderQr, downloadMedia, convertVoice, version, stateDir,
-  log = console, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), random = Math.random
+  crm, queue, makeSocket, wipeAuth, renderQr, downloadMedia, prepareVoice, version, stateDir,
+  log = console, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), random = Math.random,
+  now = Date.now, watchdogMs = 5 * 60000, watchTickMs = 15000, sleepGapMs = 60000, stuckMs = 3 * 60000
 }) {
   let gen = 0, sock = null, state = 'connecting', ownPhone = '', ownName = '';
-  let reconnectN = 0, relinking = false, stopped = false, historyCount = 0, pollTimer = null, beatTimer = null;
+  let reconnectN = 0, relinking = false, stopped = false, historyCount = 0, pollTimer = null, beatTimer = null, watchTimer = null;
+  let lastActivity = now(), lastTick = now(), stateSince = now(), wsHooked = false;
   const sentIds = new Map();      // message ids we sent ourselves (their echo must not be reported as "sent from the phone")
   const doneOutbox = new Map();   // outbox id -> extMsgId, protects against double sending when an ack got lost
   const lids = new Set();
@@ -44,12 +46,36 @@ export function createBridge({
     catch (e) { log.error && log.error('socket start failed: ' + e.message); return scheduleReconnect(my); }
     if (my !== gen) { try { s.end && s.end(undefined); } catch (e) { /* ignore */ } return; }
     sock = s;
+    lastActivity = now(); stateSince = now();
     const guard = (fn) => (arg) => { if (my !== gen) return; Promise.resolve().then(() => fn(arg)).catch((e) => log.error && log.error('handler failed: ' + (e && e.message))); };
     s.ev.on('connection.update', guard((u) => onConnection(my, u)));
     s.ev.on('messages.upsert', guard(onUpsert));
     s.ev.on('messaging-history.set', guard(onHistory));
     s.ev.on('messages.update', guard((u) => emit(mapUpdates(u, ownPhone))));
     s.ev.on('message-receipt.update', guard((u) => emit(mapReceipts(u, ownPhone))));
+    // Any frame from WhatsApp (the keep-alive answers come every ~30 s) proves the connection is alive.
+    wsHooked = !!(s.ws && typeof s.ws.on === 'function');
+    if (wsHooked) for (const ev of ['message', 'ping', 'pong']) s.ws.on(ev, guard(() => { lastActivity = now(); }));
+  }
+
+  // The socket is dead but nobody told us (laptop slept, Wi-Fi changed, router dropped the connection): start over.
+  async function forceReconnect(reason) {
+    if (stopped || relinking) return;
+    log.warn && log.warn('watchdog: reconnecting (' + reason + ')');
+    gen++;
+    try { sock && sock.end && sock.end(undefined); } catch (e) { /* ignore */ }
+    reconnectN = 0; state = 'closed'; stateSince = now();
+    await connect();
+  }
+  let seenState = state;
+  function watchdogTick() {
+    const t = now(), gap = t - lastTick;
+    if (state !== seenState) { seenState = state; stateSince = t; }
+    lastTick = t;
+    if (stopped || relinking) return;
+    if (gap > sleepGapMs) return forceReconnect('woke up after ' + Math.round(gap / 1000) + ' s');
+    if (state === 'open' && wsHooked && t - lastActivity > watchdogMs) return forceReconnect('no frames for ' + Math.round((t - lastActivity) / 1000) + ' s');
+    if ((state === 'connecting' || state === 'closed') && t - stateSince > stuckMs) return forceReconnect('stuck in ' + state);
   }
 
   async function scheduleReconnect(my, ms) {
@@ -186,7 +212,7 @@ export function createBridge({
         content = { text: String(item.text) };
       } else if (item.type === 'voice') {
         const media = await crm.getMedia(item.mediaRef);
-        content = { audio: await convertVoice(media.buffer), mimetype: 'audio/ogg; codecs=opus', ptt: true };
+        content = await prepareVoice(media.buffer, media.mime);
       } else if (item.type === 'image') {
         const media = await crm.getMedia(item.mediaRef);
         content = { image: media.buffer };
@@ -230,12 +256,14 @@ export function createBridge({
     const loop = async () => { await pollOnce().catch(() => {}); if (!stopped) pollTimer = setTimeout(loop, 3000); };
     pollTimer = setTimeout(loop, 3000);
     beatTimer = setInterval(() => { postState(); queue.flush(); }, 60000);
+    lastTick = now(); lastActivity = now();
+    watchTimer = setInterval(() => { Promise.resolve(watchdogTick()).catch((e) => log.error && log.error('watchdog failed: ' + (e && e.message))); }, watchTickMs);
   }
   function stop() {
     stopped = true; gen++;
-    clearTimeout(pollTimer); clearInterval(beatTimer);
+    clearTimeout(pollTimer); clearInterval(beatTimer); clearInterval(watchTimer);
     try { sock && sock.end && sock.end(undefined); } catch (e) { /* ignore */ }
   }
 
-  return { start, stop, connect, pollOnce, relink, heartbeat: postState, getState: () => ({ state, ownPhone, ownName }), _lids: lids, _sentIds: sentIds, chatIdOf };
+  return { start, stop, connect, pollOnce, relink, heartbeat: postState, watchdogTick, forceReconnect, getState: () => ({ state, ownPhone, ownName }), _lids: lids, _sentIds: sentIds, chatIdOf };
 }

@@ -1,5 +1,6 @@
-// Entry point: wires Baileys, the CRM client and the bridge together. Config comes from the environment
-// (systemd EnvironmentFile=/etc/bikas-connector.env): CRM_URL, CONNECTOR_TOKEN, optional AUTH_DIR / STATE_DIR.
+// Entry point: wires Baileys, the CRM client and the bridge together. Config comes from the environment (systemd
+// EnvironmentFile=/etc/bikas-connector.env on Linux, config.env in the install folder on Windows): CRM_URL, CONNECTOR_TOKEN,
+// optional STATE_DIR / AUTH_DIR / QUEUE_FILE / LOG_FILE / ENV_FILE / BIKAS_HOME (see config.js).
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,25 +10,25 @@ import makeWASocket, { useMultiFileAuthState, fetchLatestBaileysVersion, downloa
 import { createCrm } from './crm.js';
 import { createEventQueue } from './queue.js';
 import { createBridge } from './bridge.js';
-import { convertToOpusOgg } from './media.js';
+import { prepareVoice } from './media.js';
+import { loadConfig } from './config.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(fs.readFileSync(path.join(here, '..', 'package.json'), 'utf8'));
 const VERSION = pkg.version;
 
-const CRM_URL = process.env.CRM_URL || '';
-const TOKEN = process.env.CONNECTOR_TOKEN || '';
-const STATE_DIR = process.env.STATE_DIR || '/var/lib/bikas-connector';
-const AUTH_DIR = process.env.AUTH_DIR || path.join(STATE_DIR, 'auth');
+const cfg = loadConfig(process.env);
+const CRM_URL = cfg.crmUrl, TOKEN = cfg.token, STATE_DIR = cfg.stateDir, AUTH_DIR = cfg.authDir;
 if (!/^https?:\/\//.test(CRM_URL) || !TOKEN) {
-  console.error('CRM_URL and CONNECTOR_TOKEN must be set (see /etc/bikas-connector.env)');
+  console.error(`CRM_URL and CONNECTOR_TOKEN must be set (environment or ${cfg.envFile})`);
   process.exit(2);
 }
 fs.mkdirSync(AUTH_DIR, { recursive: true });
+fs.mkdirSync(STATE_DIR, { recursive: true });
 
 const logger = pino({ level: 'warn' });
 const crm = createCrm({ url: CRM_URL, token: TOKEN, log: logger });
-const queue = createEventQueue({ file: path.join(STATE_DIR, 'queue.jsonl'), send: (events) => crm.events(events), log: logger });
+const queue = createEventQueue({ file: cfg.queueFile, send: (events) => crm.events(events), log: logger });
 
 let waVersion;
 async function makeSocket() {
@@ -39,7 +40,7 @@ async function makeSocket() {
     auth: state,
     version: waVersion,
     logger,
-    browser: Browsers.ubuntu('Chrome'),
+    browser: process.platform === 'win32' ? Browsers.windows('Chrome') : Browsers.ubuntu('Chrome'),
     markOnlineOnConnect: false,          // keep push notifications on the owner's phone
     syncFullHistory: process.env.SYNC_FULL_HISTORY === '1',
     generateHighQualityLinkPreview: false,
@@ -58,9 +59,11 @@ const bridge = createBridge({
   crm, queue, makeSocket, wipeAuth, version: VERSION, stateDir: STATE_DIR, log: logger,
   renderQr: (qr) => QRCode.toDataURL(qr, { width: 360, margin: 2, errorCorrectionLevel: 'M' }),
   downloadMedia: (m, sock) => downloadMediaMessage(m, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage }),
-  convertVoice: (buf) => convertToOpusOgg(buf)
+  prepareVoice: (buf, mime) => prepareVoice(buf, mime, { log: logger }),
+  watchdogMs: cfg.watchdogMinutes * 60000
 });
 
 bridge.start();
 for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => { bridge.stop(); setTimeout(() => process.exit(0), 300); });
 process.on('unhandledRejection', (e) => logger.error('unhandledRejection: ' + (e && e.message)));
+process.on('uncaughtException', (e) => { logger.error('uncaughtException: ' + (e && e.message)); setTimeout(() => process.exit(1), 300); });

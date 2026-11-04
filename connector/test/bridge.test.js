@@ -40,7 +40,7 @@ function setup(over = {}) {
     wipeAuth: async () => { wiped++; },
     renderQr: async (q) => 'data:image/png;base64,QR(' + q + ')',
     downloadMedia: async () => Buffer.alloc(1000, 1),
-    convertVoice: async (b) => Buffer.concat([Buffer.from('OGG:'), b]),
+    prepareVoice: async (b) => ({ audio: Buffer.concat([Buffer.from('OGG:'), b]), mimetype: 'audio/ogg; codecs=opus', ptt: true }),
     sleep: async () => {}, random: () => 0
   }, over));
   return { bridge, calls, sockets, queue, setOutbox: (o) => { outbox = o; }, wiped: () => wiped, dir };
@@ -247,4 +247,51 @@ test('crm client: bearer header, retries 5xx with backoff, no retry on 4xx', asy
   const crm2 = createCrm({ url: 'https://crm.example', token: 'T', sleep: async () => {}, fetchImpl: async () => { calls++; return { ok: false, status: 401, headers: new Headers() }; } });
   await assert.rejects(() => crm2.events([]), (e) => e.status === 401);
   assert.equal(calls, 1);
+});
+
+function wdSetup(clockRef, extra = {}) {
+  const sockets = [];
+  const t = setup(Object.assign({
+    now: () => clockRef.v, watchdogMs: 300000, sleepGapMs: 60000, stuckMs: 180000,
+    makeSocket: async () => { const s = fakeSock(); s.ws = new EventEmitter(); sockets.push(s); return s; }
+  }, extra));
+  t.sockets = sockets;
+  return t;
+}
+
+test('watchdog: waking up after a long sleep replaces the socket at once', async () => {
+  const clock = { v: 1_000_000 };
+  const t = wdSetup(clock);
+  await open(t);
+  clock.v += 15000; await t.bridge.watchdogTick();
+  assert.equal(t.sockets.length, 1, 'a normal tick does nothing');
+  clock.v += 2 * 3600 * 1000; await t.bridge.watchdogTick(); await tick();
+  assert.equal(t.sockets.length, 2);
+  assert.equal(t.sockets[0].ended, true);
+});
+
+test('watchdog: frames from WhatsApp keep the socket, silence for longer than the limit replaces it', async () => {
+  const clock = { v: 5_000_000 };
+  const t = wdSetup(clock);
+  await open(t);
+  for (let i = 0; i < 40; i++) { clock.v += 30000; t.sockets[0].ws.emit('message', Buffer.alloc(1)); await t.bridge.watchdogTick(); }
+  assert.equal(t.sockets.length, 1, '20 minutes with frames every 30 s: fine');
+  for (let i = 0; i < 6; i++) { clock.v += 59000; await t.bridge.watchdogTick(); }
+  await tick();
+  assert.equal(t.sockets.length, 2, 'more than 5 minutes of silence');
+});
+
+test('watchdog: a socket stuck in "connecting" is replaced; a quiet QR screen is not', async () => {
+  const clock = { v: 9_000_000 };
+  const t = wdSetup(clock);
+  await t.bridge.connect();
+  t.sockets[0].ev.emit('connection.update', { qr: 'Q' });
+  await tick(); await tick();
+  for (let i = 0; i < 20; i++) { clock.v += 30000; await t.bridge.watchdogTick(); }
+  assert.equal(t.sockets.length, 1, 'waiting for the QR scan is normal');
+  const t2 = wdSetup(clock);
+  await t2.bridge.connect();                       // state stays "connecting"
+  await t2.bridge.watchdogTick();                  // learns the state
+  for (let i = 0; i < 8; i++) { clock.v += 30000; await t2.bridge.watchdogTick(); }
+  assert.equal(t2.sockets.length, 2);
 });
