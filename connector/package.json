@@ -1,0 +1,19 @@
+{
+  "name": "bikas-connector",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WhatsApp linked-device connector for Bikas CRM (pull model, outbound HTTPS only)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "6.7.24",
+    "pino": "9.5.0",
+    "qrcode": "1.5.4"
+  }
+}
