@@ -22,6 +22,12 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CRM_API_KEY: ${{ secrets.CRM_API_KEY }}
       GH_DISPATCH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
+      WA_TOKEN: ${{ secrets.WA_TOKEN }}
+      WA_APP_SECRET: ${{ secrets.WA_APP_SECRET }}
+      WA_VERIFY_TOKEN: ${{ secrets.WA_VERIFY_TOKEN }}
+      CONNECTOR_URL: ${{ secrets.CONNECTOR_URL }}
+      CONNECTOR_KEY: ${{ secrets.CONNECTOR_KEY }}
+      CONNECTOR_MEDIA_HOSTS: ${{ secrets.CONNECTOR_MEDIA_HOSTS }}
       CRM_ADMIN_EMAIL: ${{ secrets.CRM_ADMIN_EMAIL }}
       CRM_ADMIN_PASSWORD: ${{ secrets.CRM_ADMIN_PASSWORD }}
       WRANGLER_SEND_METRICS: "false"
@@ -73,6 +79,14 @@ jobs:
           else
             echo "GH_DISPATCH_TOKEN is not set: the manual-publish button will open the GitHub page instead."
           fi
+          # Optional WhatsApp inbox secrets: Cloud API (WA_*) and the QR connector (CONNECTOR_*). Set only when non-empty.
+          for v in WA_TOKEN WA_APP_SECRET WA_VERIFY_TOKEN CONNECTOR_URL CONNECTOR_KEY CONNECTOR_MEDIA_HOSTS; do
+            if [ -n "${!v}" ]; then
+              printf '%s' "${!v}" | npx --yes "$WRANGLER" secret put "$v"
+            else
+              echo "$v is not set: that part of the WhatsApp inbox stays off."
+            fi
+          done
 
       - name: Create the first admin (409 = already exists, fine)
         run: |

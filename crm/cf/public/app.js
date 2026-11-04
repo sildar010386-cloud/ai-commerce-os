@@ -13,6 +13,8 @@ var PAID = { paid: 1, sent: 1, done: 1 };
 var SOURCES = ['Threads', 'Instagram', 'TikTok', 'WhatsApp', 'Другое'];
 var PERIODS = [['today', 'Сегодня', 1], ['week', 'Неделя', 7], ['month', 'Месяц', 30]];
 var ADMIN_TABS = { summary: 1, profit: 1, managers: 1, bot: 1, settings: 1 };
+var CHAT_POLL_MS = 10000;
+var WA_HINT_BLOCK = 'Если номер заблокировали — отметьте «заблокирован» и выберите другой номер для ссылок. Реклама и лендинг продолжат работать.';
 var COUNT_EXAMPLES = false; // orders with example:true are left out of all statistics
 var LOW_STOCK = 5;
 var TZ = 'Asia/Almaty';
@@ -30,7 +32,8 @@ var S = {
   tab: 'orders', filter: 'all', q: '', period: 'week', contentDay: null,
   drawer: false, card: null, resetFor: null,
   admin: false, loaded: {}, errors: {},
-  data: { orders: [], products: [], finance: {}, content: [], users: [], settings: null, bot: null },
+  data: { orders: [], products: [], finance: {}, content: [], users: [], settings: null, bot: null, numbers: [], targets: [] },
+  chat: null, waConnected: false,
   dirty: false, loginError: '',
   kz: null // Kazpost registry import panel (Заказы tab)
 };
@@ -177,15 +180,16 @@ function activeProducts() {
 function findProduct(id) { return S.data.products.filter(function (p) { return p.id === id; })[0]; }
 
 /* ---------- header / drawer ---------- */
-var TABS = [['orders', 'Заказы'], ['summary', 'Сводка', 1], ['content', 'Контент'], ['goods', 'Товары']];
+var TABS = [['orders', 'Заказы'], ['chats', 'Чаты'], ['summary', 'Сводка', 1], ['content', 'Контент'], ['goods', 'Товары']];
 var DRAWER = [
   ['summary', 'Статистика и касса', 'Обращения, заказы, оплаты, касса', 1],
   ['profit', 'Прибыль и расходы', 'Закупка, доставка, расходы → чистая прибыль', 1],
   ['orders', 'Заказы', 'Все заказы по статусам', 0],
+  ['chats', 'Чаты', 'Переписка WhatsApp, таргет или органика', 0],
   ['goods', 'Склад', 'Остатки и цены товаров', 0],
   ['managers', 'Менеджеры и доступы', 'Кто работает, пароли, доступ', 1],
   ['bot', 'Бот (ИИ-менеджер)', 'Сколько обработал, где позвал человека', 1],
-  ['settings', 'Настройки', 'WhatsApp, ссылка на оплату, шаблоны', 1],
+  ['settings', 'Настройки', 'Номера WhatsApp, таргет-тексты, ссылка на оплату, шаблоны', 1],
   ['account', 'Моя почта и пароль', 'Смена почты, пароля, номера WhatsApp', 0]
 ];
 var X_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -193,7 +197,8 @@ var COPY_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stro
 function renderHeader() {
   var mb = $('#menu-btn'); if (mb) mb.classList.toggle('hide', !S.auth);
   $('#tabs').innerHTML = !S.auth ? '' : TABS.filter(function (t) { return S.admin || !t[2]; }).map(function (t) {
-    return '<button type="button" class="tab' + (S.tab === t[0] ? ' on' : '') + '" data-act="tab" data-tab="' + t[0] + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + t[1] + '</button>';
+    return '<button type="button" class="tab' + (S.tab === t[0] ? ' on' : '') + '" data-act="tab" data-tab="' + t[0] + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + t[1] +
+      (t[0] === 'chats' && S.chat && S.chat.unreadTotal > 0 ? ' <span class="tbadge">' + esc(S.chat.unreadTotal > 99 ? '99+' : S.chat.unreadTotal) + '</span>' : '') + '</button>';
   }).join('');
   $('#role').textContent = S.auth && S.user ? (S.admin ? 'Админ' : 'Менеджер') + ' · ' + S.user.email : '';
 }
@@ -273,7 +278,7 @@ function renderOrders() {
       '<div class="cl"><b>' + esc(o.name || 'Без имени') + (o.example ? '<span class="badge b-ex">пример</span>' : '') + '</b><small>' + esc(o.city || '') + '</small></div>' +
       '<div class="c-pr">' + esc(o.productName || '—') + ' ×' + esc(o.qty || 1) + '</div>' +
       '<div class="sum">' + fmt(num(o.sum)) + '</div>' +
-      '<div class="c-src">' + esc(o.source || '') + '</div>' +
+      '<div class="c-src">' + esc(o.source || '') + trafficBadge(o.traffic, o.targetCode) + '</div>' +
       '<div class="c-st">' + stSelectHTML(st, 'data-ost="' + esc(o.id) + '" aria-label="Статус заказа № ' + esc(o.num != null ? o.num : '') + '"', false) + sub + '</div></div>';
   }).join('');
   return errNotice('orders') + plaque + kzPanelHTML() +
@@ -490,7 +495,8 @@ function renderSettings() {
     '<small>Подставляется: {имя} — имя клиента, {трек} — трек-номер, {ссылка} — ссылка для отслеживания.</small></div>' +
     '<div class="fld"><label for="set-track_url">Ссылка для отслеживания</label><input id="set-track_url" type="text" autocomplete="off" value="' + esc(s.track_url || DEFAULT_TRACK_URL) + '" placeholder="https://.../{трек}">' +
     '<small>Должна начинаться с https:// и содержать {трек} — туда подставится номер посылки.</small></div>' +
-    '<div><button type="button" class="btn pri" data-act="set-save">Сохранить</button></div></div>';
+    '<div><button type="button" class="btn pri" data-act="set-save">Сохранить</button></div></div>' +
+    waNumbersHTML() + targetsHTML();
 }
 
 function renderAccount() {
@@ -528,6 +534,7 @@ function renderView() {
     case 'managers': return renderManagers();
     case 'bot': return renderBot();
     case 'settings': return renderSettings();
+    case 'chats': return renderChats();
     case 'account': return renderAccount();
     default: return renderOrders();
   }
@@ -536,7 +543,7 @@ function renderView() {
 /* ---------- render scheduling ---------- */
 function fieldFocused() {
   var ae = document.activeElement;
-  return !!(ae && ae.id !== 'orders-search' && $('#view').contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName));
+  return !!(ae && ae.id !== 'orders-search' && ae.id !== 'chat-search' && ae.id !== 'chat-reply' && $('#view').contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName));
 }
 // Dynamic widths are set through CSSOM (allowed by the CSP, unlike style attributes).
 function applyDyn() {
@@ -555,6 +562,7 @@ function doRender(force) {
   $('#view').innerHTML = renderView();
   applyDyn();
   renderHeader();
+  if (S.tab === 'chats') chatsAfterRender();
   if (keep) {
     var el = document.getElementById(keep.id);
     if (el) { el.focus(); try { if (keep.s != null) el.setSelectionRange(keep.s, keep.e); } catch (x) { /* ignore */ } }
@@ -618,7 +626,7 @@ function cardHTML() {
   if (o.source && srcs.indexOf(o.source) < 0) srcs.push(o.source);
   var srcOpts = srcs.map(function (s) { return '<option value="' + esc(s) + '"' + (s === o.source ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('');
   var title = c.isNew ? 'Новый заказ' : 'Заказ № ' + esc(o.num != null ? o.num : '—');
-  var info = c.isNew ? '' : '<small>Создан ' + esc(fmtDate(o.createdAt)) + (o.example ? ' · пример' : '') + '</small>';
+  var info = c.isNew ? '' : '<small>Создан ' + esc(fmtDate(o.createdAt)) + (o.example ? ' · пример' : '') + '</small>' + trafficBadge(o.traffic, o.targetCode);
   var payLink = S.data.settings && S.data.settings.payLink ? '<button type="button" class="btn" data-act="copy-pay">Копировать ссылку на оплату</button>' : '';
   return '<div class="cardwrap"><div class="panel" role="dialog" aria-modal="true" aria-label="Карточка заказа">' +
     '<div class="ph"><div class="t">' + title + '</div><button type="button" class="icon-btn" id="card-close" data-act="close-card" aria-label="Закрыть">' + X_SVG + '</button></div>' +
@@ -927,6 +935,320 @@ function sendTrack(id) {
   }).catch(function (e) { toast('Текст скопирован, но отметка не сохранилась: ' + e.message, 'err'); });
 }
 
+/* ---------- Inbox: chats ---------- */
+function freshChat() {
+  return { list: [], unreadTotal: 0, filter: 'all', q: '', openId: null, thread: null, draft: '', sending: false, loaded: false, error: '', seq: 0, sig: '' };
+}
+var chatSearchTimer = null;
+var CHAT_FILTERS = [['all', 'Все'], ['unread', 'Непрочитанные'], ['target', 'Таргет'], ['organic', 'Органика']];
+
+function trafficBadge(traffic, code) {
+  if (traffic === 'target') return ' <span class="badge b-tr tb-t">Таргет' + (code ? ' · ' + esc(code) : '') + '</span>';
+  if (traffic === 'organic') return ' <span class="badge b-tr tb-o">Органика</span>';
+  return '';
+}
+function chatSrcBadge(c) {
+  if (c.traffic === 'target') {
+    var label = 'Таргет' + (c.productName ? ' · ' + c.productName : '') + (c.targetCode ? ' (' + c.targetCode + ')' : '');
+    return '<span class="badge b-tr tb-t"' + (c.platform ? ' title="' + esc(c.platform) + '"' : '') + '>' + esc(label) + '</span>';
+  }
+  if (c.traffic === 'old') return '<span class="badge b-tr tb-old">Старый</span>';
+  return '<span class="badge b-tr tb-o">Органика</span>';
+}
+function chatName(c) { return c.name || (c.phone ? '+' + c.phone : 'Без имени'); }
+function chatTime(iso) {
+  var p = almaty(iso), t = todayP();
+  if (!p || !t) return '';
+  var diff = t.dn - p.dn;
+  if (diff === 0) return pad2(p.h) + ':' + pad2(p.mi);
+  if (diff === 1) return 'вчера';
+  return p.d + ' ' + MONTHS[p.m - 1];
+}
+
+function chatRowsHTML() {
+  var C = S.chat;
+  if (!C.loaded) return '<div class="empty">Загружаем…</div>';
+  if (C.error) return '<div class="notice">Не загрузилось: ' + esc(C.error) + '</div>';
+  if (!C.list.length) return '<div class="empty">' + (C.q || C.filter !== 'all' ? 'Ничего не найдено.' : 'Чатов пока нет. Они появятся, когда клиенты напишут на подключённый номер WhatsApp.') + '</div>';
+  return C.list.map(function (c) {
+    return '<button type="button" class="crow' + (C.openId === c.id ? ' on' : '') + (c.unread ? ' unr' : '') + '" data-act="chat-open" data-id="' + c.id + '">' +
+      '<span class="cr1"><b>' + esc(chatName(c)) + '</b><small>' + esc(chatTime(c.lastAt)) + '</small></span>' +
+      '<span class="cr2"><span class="prev">' + esc(c.preview || '') + '</span>' + (c.unread ? '<span class="ubadge">' + esc(c.unread) + '</span>' : '') + '</span>' +
+      '<span class="cr3">' + chatSrcBadge(c) + (c.numberLabel ? ' <small>' + esc(c.numberLabel) + (c.numberStatus === 'blocked' ? ' (заблокирован)' : '') + '</small>' : '') + '</span></button>';
+  }).join('');
+}
+
+function bubbleHTML(m) {
+  var url = '/api/media/' + m.id, body;
+  var media = m.hasMedia;
+  switch (m.type) {
+    case 'text': body = esc(m.body); break;
+    case 'image':
+      body = media ? '<a href="' + url + '" target="_blank" rel="noopener noreferrer"><img class="mimg" loading="lazy" src="' + url + '" alt="Фото"></a>' : '<i>Фото (вложение недоступно)</i>';
+      if (m.caption) body += '<div>' + esc(m.caption) + '</div>';
+      break;
+    case 'sticker': body = media ? '<img class="mimg stk" loading="lazy" src="' + url + '" alt="Стикер">' : '<i>Стикер</i>'; break;
+    case 'voice': case 'audio':
+      body = media ? '<div class="mlbl">' + (m.type === 'voice' ? 'Голосовое сообщение' : 'Аудио') + '</div><audio controls preload="none" src="' + url + '"></audio>'
+        : '<i>' + (m.type === 'voice' ? 'Голосовое' : 'Аудио') + ' (вложение недоступно)</i>';
+      break;
+    case 'video': case 'document':
+      body = (media ? '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + (m.type === 'video' ? 'Видео' : 'Файл') + (m.type === 'document' && m.caption ? ': ' + esc(m.caption) : '') + ' — открыть</a>'
+        : '<i>' + (m.type === 'video' ? 'Видео' : 'Файл') + ' (вложение недоступно)</i>');
+      if (m.type === 'video' && m.caption) body += '<div>' + esc(m.caption) + '</div>';
+      break;
+    case 'location': body = 'Геолокация: ' + esc(m.body); break;
+    case 'reaction': body = 'Реакция: ' + esc(m.body); break;
+    default: body = '<i>Сообщение, которое CRM не показывает. Посмотрите его в приложении WhatsApp.</i>';
+  }
+  var st = m.direction === 'out' ? ({ sent: ' · отправлено', delivered: ' · доставлено', read: ' · прочитано', failed: ' · не доставлено' }[m.status] || '') : '';
+  return '<div class="msg ' + (m.direction === 'out' ? 'out' : 'in') + '"><div class="bub">' + body +
+    '<div class="mmeta">' + esc(fmtDate(m.ts)) + (m.fromApp ? ' · с телефона' : '') + st + '</div></div></div>';
+}
+function chatMsgsHTML() {
+  var th = S.chat.thread;
+  if (!th) return '<div class="empty">Загружаем…</div>';
+  return th.messages.length ? th.messages.map(bubbleHTML).join('') : '<div class="empty">Сообщений нет.</div>';
+}
+function chatSourceOptions(c) {
+  var cur = c.traffic === 'target' ? 'target:' + (c.targetCode || '') : c.traffic;
+  var opts = [['organic', 'Органика'], ['old', 'Старый клиент'], ['target:', 'Таргет (товар не определён)']];
+  S.data.targets.forEach(function (tg) { opts.push(['target:' + tg.code, 'Таргет · ' + (tg.productName || 'без названия') + ' (' + tg.code + ')']); });
+  if (opts.every(function (o) { return o[0] !== cur; })) opts.push([cur, 'Таргет · ' + (c.productName || '') + ' (' + c.targetCode + ')']);
+  return opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('');
+}
+function chatHeadHTML() {
+  var th = S.chat.thread;
+  if (!th) return '';
+  var c = th.chat;
+  var order = c.orderId
+    ? '<button type="button" class="btn" data-act="chat-order-open" data-id="' + esc(c.orderId) + '">Открыть заказ № ' + esc(c.orderNum != null ? c.orderNum : '') + '</button>'
+    : '<button type="button" class="btn pri" data-act="chat-order">Оформить заказ</button>';
+  return '<div class="row-flex"><button type="button" class="btn sm only-narrow" data-act="chat-back">&larr; Чаты</button>' +
+    '<div class="grow1"><b>' + esc(chatName(c)) + '</b> <small>' + (c.name && c.phone ? '+' + esc(c.phone) : '') + '</small><div>' + chatSrcBadge(c) +
+    (c.platform ? ' <small>' + esc(c.platform) + '</small>' : '') + (c.numberLabel ? ' <small>номер: ' + esc(c.numberLabel) + (c.numberStatus === 'blocked' ? ' (заблокирован)' : c.numberStatus === 'off' ? ' (выключен)' : '') + '</small>' : '') + '</div></div></div>' +
+    '<div class="row-flex"><label class="sr" for="chat-src">Источник</label><select id="chat-src" class="chat-src">' + chatSourceOptions(c) + '</select>' + order + '</div>';
+}
+function chatComposerHTML() {
+  var th = S.chat.thread;
+  if (!th) return '';
+  var c = th.chat, notes = '';
+  if (!S.waConnected) notes += '<div class="notice">WhatsApp ещё не подключён: переписка видна, но отправить сообщение из CRM пока нельзя.</div>';
+  if (c.numberStatus === 'blocked') notes += '<div class="notice">Номер, на который писал клиент, заблокирован. Ответьте из приложения WhatsApp или с запасного номера.</div>';
+  else if (c.numberStatus === 'off') notes += '<div class="notice">Номер, на который писал клиент, выключен в настройках.</div>';
+  var last = Date.parse(c.lastInboundAt || '');
+  if (!last || Date.now() - last > 24 * 3600e3) notes += '<div class="notice">Прошло больше 24 часов с последнего сообщения клиента — WhatsApp не даёт отправить обычное сообщение. Напишите из приложения на телефоне.</div>';
+  return notes + '<div class="notice hide" id="chat-err" role="alert"></div>' +
+    '<div class="chat-compose"><label class="sr" for="chat-reply">Ответ клиенту</label><textarea id="chat-reply" rows="2" placeholder="Ответ клиенту (Ctrl+Enter — отправить)">' + esc(S.chat.draft) + '</textarea>' +
+    '<button type="button" class="btn pri" id="chat-send" data-act="chat-send"' + (S.chat.sending ? ' disabled' : '') + '>Отправить</button></div>';
+}
+function chatThreadHTML() {
+  var C = S.chat;
+  if (C.openId == null) return '<div class="empty">Выберите чат слева.</div>';
+  return '<div class="chat-head" id="chat-head">' + chatHeadHTML() + '</div><div class="chat-msgs" id="chat-msgs">' + chatMsgsHTML() + '</div><div class="chat-foot" id="chat-foot">' + chatComposerHTML() + '</div>';
+}
+function renderChats() {
+  if (!S.chat) S.chat = freshChat();
+  var C = S.chat;
+  var chips = CHAT_FILTERS.map(function (f) {
+    return '<button type="button" class="chip' + (C.filter === f[0] ? ' on' : '') + '" data-act="chat-filter" data-f="' + f[0] + '">' + f[1] + '</button>';
+  }).join('');
+  return '<div class="chats' + (C.openId != null ? ' thread-open' : '') + '" id="chats">' +
+    '<div class="card chat-list"><div class="chat-tools"><div class="row-flex chat-chips">' + chips + '</div>' +
+    '<label class="sr" for="chat-search">Поиск по чатам</label><input id="chat-search" type="search" placeholder="Поиск: имя, телефон, текст" value="' + esc(C.q) + '" autocomplete="off"></div>' +
+    '<div id="chat-rows">' + chatRowsHTML() + '</div></div>' +
+    '<div class="card chat-thread" id="chat-thread">' + chatThreadHTML() + '</div></div>';
+}
+function chatsAfterRender() {
+  var el = $('#chat-msgs');
+  if (el) el.scrollTop = el.scrollHeight;
+  if (!S.chat.loaded && !S.chat.loading) chatsEnter();
+}
+
+function chatsPaintList() { var el = $('#chat-rows'); if (el) el.innerHTML = chatRowsHTML(); }
+function chatsPaintThread() {
+  var el = $('#chat-thread'), root = $('#chats');
+  if (root) root.classList.toggle('thread-open', S.chat.openId != null);
+  if (el) { el.innerHTML = chatThreadHTML(); var m = $('#chat-msgs'); if (m) m.scrollTop = m.scrollHeight; }
+}
+// Repaints the messages and header without touching the reply box (the owner may be typing).
+function chatsPaintMessages() {
+  var box = $('#chat-msgs'), head = $('#chat-head'), foot = $('#chat-foot');
+  if (!box) return;
+  var stick = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  box.innerHTML = chatMsgsHTML();
+  if (head) head.innerHTML = chatHeadHTML();
+  if (foot && !foot.contains(document.activeElement)) foot.innerHTML = chatComposerHTML();
+  if (stick) box.scrollTop = box.scrollHeight;
+}
+async function chatsLoadList() {
+  var C = S.chat, my = ++C.seq;
+  var qs = '?filter=' + encodeURIComponent(C.filter) + (C.q.trim() ? '&q=' + encodeURIComponent(C.q.trim()) : '');
+  try {
+    var d = await api('GET', '/api/chats' + qs);
+    if (my !== C.seq) return;
+    C.list = d.chats || []; C.unreadTotal = d.unreadTotal || 0; C.error = '';
+  } catch (e) {
+    if (e.status === 401 || my !== C.seq) return;
+    C.error = e.message;
+  }
+  C.loaded = true; C.loading = false;
+  if (S.tab === 'chats') chatsPaintList();
+  renderHeader();
+}
+async function chatsCount() {
+  if (!S.auth || !S.chat) return;
+  try { var d = await api('GET', '/api/chats?count=1'); S.chat.unreadTotal = d.unreadTotal || 0; renderHeader(); } catch (e) { /* the badge is optional */ }
+}
+function chatsEnter() {
+  S.chat.loading = true;
+  load('targets').then(function () { if (S.chat.thread && S.tab === 'chats') { var h = $('#chat-head'); if (h) h.innerHTML = chatHeadHTML(); } });
+  chatsLoadList();
+}
+async function chatsRefreshThread() {
+  var C = S.chat, id = C.openId;
+  if (id == null) return;
+  try {
+    var d = await api('GET', '/api/chats/' + id);
+    if (C.openId !== id) return;
+    var sig = JSON.stringify([d.messages.map(function (m) { return m.id + m.status; }), d.chat.traffic, d.chat.targetCode, d.chat.orderId, d.chat.numberStatus]);
+    C.thread = d;
+    if (sig !== C.sig) { C.sig = sig; if (S.tab === 'chats') chatsPaintMessages(); }
+  } catch (e) { /* keep the old thread; the next poll retries */ }
+}
+async function chatOpen(id) {
+  var C = S.chat;
+  C.openId = id; C.thread = null; C.draft = ''; C.sig = '';
+  C.list.forEach(function (c) { if (c.id === id) c.unread = 0; });
+  chatsPaintList(); chatsPaintThread();
+  window.scrollTo(0, 0);
+  try {
+    var d = await api('GET', '/api/chats/' + id);
+    if (C.openId !== id) return;
+    C.thread = d; C.sig = '';
+    chatsPaintThread();
+    chatsCount();
+  } catch (e) { toast('Не открылось: ' + e.message, 'err'); }
+}
+function chatBack() { S.chat.openId = null; S.chat.thread = null; chatsPaintList(); chatsPaintThread(); chatsLoadList(); }
+function showChatErr(msg) { var e = $('#chat-err'); if (e) { e.textContent = msg || ''; e.classList.toggle('hide', !msg); } }
+async function chatSend() {
+  var C = S.chat, id = C.openId, text = C.draft.trim();
+  if (id == null || !text || C.sending) return;
+  C.sending = true; showChatErr('');
+  var btn = $('#chat-send'); if (btn) btn.disabled = true;
+  try {
+    var d = await api('POST', '/api/chats/' + id + '/send', { text: text });
+    C.sending = false;
+    if (C.openId !== id) return;
+    C.draft = ''; var ta = $('#chat-reply'); if (ta) ta.value = '';
+    if (C.thread && d.message) { C.thread.messages.push(d.message); C.sig = ''; }
+    chatsPaintMessages();
+    chatsLoadList();
+  } catch (e) {
+    C.sending = false;
+    if (btn) btn.disabled = false;
+    showChatErr(e.message);
+  }
+}
+async function chatSetSource(value) {
+  var C = S.chat, id = C.openId;
+  if (id == null) return;
+  var traffic = value.split(':')[0], code = value.indexOf(':') >= 0 ? value.slice(value.indexOf(':') + 1) : '';
+  var ok = await run('Источник сохранён', function () { return api('POST', '/api/chats/' + id + '/source', { traffic: traffic, code: code }); });
+  if (ok) { await chatsRefreshThread(); chatsLoadList(); if (S.data.orders.length) load('orders'); }
+  else chatsPaintMessages();
+}
+async function chatMakeOrder() {
+  var id = S.chat.openId;
+  if (id == null) return;
+  try {
+    var d = await api('POST', '/api/chats/' + id + '/order', {});
+    toast(d.existing ? 'Заказ уже оформлен' : 'Заказ № ' + d.num + ' создан', 'ok');
+    await Promise.all([load('orders'), chatsRefreshThread()]);
+    chatsPaintMessages();
+    openCard(d.id);
+  } catch (e) { toast('Не получилось: ' + e.message, 'err'); }
+}
+async function chatOpenOrder(orderId) {
+  if (!S.data.orders.some(function (o) { return o.id === String(orderId); })) await load('orders');
+  openCard(String(orderId));
+}
+function chatsPoll() {
+  if (!S.auth || S.tab !== 'chats' || document.visibilityState !== 'visible' || !S.chat) return;
+  chatsLoadList();
+  if (S.chat.openId != null) chatsRefreshThread();
+}
+
+/* ---------- Inbox: settings sections (admin) ---------- */
+function copyBtn(text, label) {
+  return '<button type="button" class="icon-btn" data-act="copy-text" data-text="' + esc(text) + '">' + COPY_SVG + (label || 'Копировать') + '</button>';
+}
+var CONN_LABELS = { qr: 'по QR', cloud: 'Cloud API', '': 'не подключён' };
+function agoText(iso) {
+  var t = Date.parse(iso || '');
+  if (!t) return 'ещё не было сообщений';
+  var m = Math.max(0, Math.round((Date.now() - t) / 60000));
+  if (m < 1) return 'последнее сообщение только что';
+  if (m < 60) return 'последнее сообщение ' + m + ' мин назад';
+  if (m < 1440) return 'последнее сообщение ' + Math.round(m / 60) + ' ч назад';
+  return 'последнее сообщение ' + Math.round(m / 1440) + ' дн назад';
+}
+var NUM_STATUS_LABELS = [['active', 'активен'], ['blocked', 'заблокирован'], ['off', 'выключен']];
+function waNumbersHTML() {
+  var nums = S.data.numbers || [], origin = location.origin;
+  var cur = nums.filter(function (n) { return n.isCurrent; })[0];
+  var warn = !cur ? '<div class="notice">Сейчас ни один номер не выбран для ссылок: страница /wa показывает «Номер временно недоступен». Выберите номер в колонке «Ссылки ведут сюда».</div>'
+    : cur.status !== 'active' ? '<div class="notice">Ссылки сейчас ведут на номер «' + esc(cur.label || cur.phone) + '», а он не активен. Выберите другой номер в колонке «Ссылки ведут сюда».</div>' : '';
+  var rows = nums.map(function (n) {
+    var id = esc(n.id);
+    return '<tr class="' + (n.status === 'active' ? '' : 'off') + '"><td><b>+' + esc(n.phone) + '</b></td>' +
+      '<td><input type="text" data-wan="' + id + '" data-k="label" value="' + esc(n.label) + '" aria-label="Подпись номера +' + esc(n.phone) + '" maxlength="60"></td>' +
+      '<td><select data-wan="' + id + '" data-k="status" aria-label="Статус номера +' + esc(n.phone) + '">' + NUM_STATUS_LABELS.map(function (s) {
+        return '<option value="' + s[0] + '"' + (n.status === s[0] ? ' selected' : '') + '>' + s[1] + '</option>';
+      }).join('') + '</select></td>' +
+      '<td><b>' + esc(CONN_LABELS[n.connection] || CONN_LABELS['']) + '</b><div><small>' + esc(agoText(n.lastSeenAt)) + '</small></div></td>' +
+      '<td class="ctr"><input type="radio" name="wa-cur" data-wan-cur="' + id + '"' + (n.isCurrent ? ' checked' : '') + (n.status !== 'active' ? ' disabled' : '') + ' aria-label="Ссылки ведут на +' + esc(n.phone) + '"></td>' +
+      '<td><input type="text" data-wan="' + id + '" data-k="phoneNumberId" value="' + esc(n.phoneNumberId) + '" placeholder="появится при подключении" aria-label="Phone Number ID" maxlength="40"></td>' +
+      '<td>' + (n.isCurrent ? '' : '<button type="button" class="btn sm dng" data-act="wan-del" data-id="' + id + '">Удалить</button>') + '</td></tr>';
+  }).join('');
+  return '<div class="h1">Номера WhatsApp</div><div class="card col14">' +
+    '<div class="muted fs14">' + esc(WA_HINT_BLOCK) + '</div>' + warn +
+    '<div class="row-flex"><span class="fw6">Общая ссылка для рекламы и лендинга:</span> <code class="wrap-any">' + esc(origin) + '/wa</code>' + copyBtn(origin + '/wa') + '</div>' +
+    '<div class="scroll"><table class="t"><thead><tr><th>Номер</th><th>Подпись</th><th>Статус</th><th>Подключение</th><th>Ссылки ведут сюда</th><th>Phone Number ID</th><th></th></tr></thead><tbody>' +
+    (rows || '<tr><td colspan="7" class="muted">Номеров пока нет. Добавьте первый ниже.</td></tr>') + '</tbody></table></div>' +
+    '<div class="fw6">Добавить номер</div><div class="two">' +
+    '<div class="fld"><label for="wn-phone">Номер (с кодом страны)</label><input id="wn-phone" type="text" inputmode="tel" autocomplete="off" placeholder="77011234567"></div>' +
+    '<div class="fld"><label for="wn-label">Подпись</label><input id="wn-label" type="text" autocomplete="off" placeholder="Основной / Запасной" maxlength="60"></div>' +
+    '<div class="fld"><label for="wn-pnid">Phone Number ID (необязательно)</label><input id="wn-pnid" type="text" autocomplete="off" maxlength="40"></div></div>' +
+    '<div><button type="button" class="btn pri" data-act="wan-add">Добавить номер</button></div>' +
+    (S.waConnected ? '' : '<small>Номера подключаются отдельно (по QR через коннектор или через Cloud API): номера можно добавить заранее, ссылки /wa уже работают.</small>') + '</div>';
+}
+function targetsHTML() {
+  var list = S.data.targets || [], origin = location.origin;
+  var rows = list.map(function (tg) {
+    var id = esc(tg.id), link = origin + '/wa/' + tg.code;
+    return '<tr class="' + (tg.active ? '' : 'off') + '">' +
+      '<td><input type="text" data-tg="' + id + '" data-k="productName" value="' + esc(tg.productName) + '" aria-label="Товар" maxlength="200"></td>' +
+      '<td><input type="text" class="codein" data-tg="' + id + '" data-k="code" value="' + esc(tg.code) + '" aria-label="Код" maxlength="12"></td>' +
+      '<td><textarea class="ta90 tgtext" data-tg="' + id + '" data-k="text" aria-label="Текст сообщения" maxlength="1000">' + esc(tg.text) + '</textarea></td>' +
+      '<td class="ctr"><input type="checkbox" data-tg-active="' + id + '"' + (tg.active ? ' checked' : '') + ' aria-label="Активен"></td>' +
+      '<td class="ctr">' + esc(tg.clicks) + '</td><td class="ctr">' + esc(tg.contacts) + '</td>' +
+      '<td><div class="wrap-any"><small>' + esc(link) + '</small></div>' + copyBtn(link) + '</td>' +
+      '<td><button type="button" class="btn sm dng" data-act="tg-del" data-id="' + id + '">Удалить</button></td></tr>';
+  }).join('');
+  return '<div class="h1">Таргет — товары и тексты</div><div class="card col14">' +
+    '<div class="muted fs14">Этот текст клиент отправит сам из рекламы или лендинга. CRM по нему поймёт, что клиент из таргета и по какому товару.</div>' +
+    '<div class="scroll"><table class="t tgt"><thead><tr><th>Товар</th><th>Код</th><th>Текст сообщения</th><th>Активен</th><th>Клики</th><th>Обращения</th><th>Ссылка</th><th></th></tr></thead><tbody>' +
+    (rows || '<tr><td colspan="8" class="muted">Текстов пока нет. Добавьте первый ниже.</td></tr>') + '</tbody></table></div>' +
+    '<div class="fw6">Добавить товар</div><div class="two">' +
+    '<div class="fld"><label for="tn-product">Товар</label><input id="tn-product" type="text" autocomplete="off" maxlength="200"></div>' +
+    '<div class="fld"><label for="tn-code">Код (например A3)</label><input id="tn-code" type="text" autocomplete="off" maxlength="12"></div></div>' +
+    '<div class="fld"><label for="tn-text">Текст сообщения</label><textarea id="tn-text" class="ta90" maxlength="1000" placeholder="Здравствуйте! Хочу заказать отпариватель, подскажите цену и доставку (A3)"></textarea>' +
+    '<small>Код в скобках в конце текста помогает CRM узнать клиента точнее: клиент может поменять слова, но код обычно остаётся.</small></div>' +
+    '<div><button type="button" class="btn pri" data-act="tg-add">Добавить</button></div></div>';
+}
+
 /* ---------- data loading ---------- */
 var LOADERS = {
   orders: ['GET', '/api/orders', function (d) { S.data.orders = d.orders || []; }],
@@ -935,7 +1257,9 @@ var LOADERS = {
   settings: ['GET', '/api/settings', function (d) { S.data.settings = d.settings || null; }],
   finance: ['GET', '/api/finance', function (d) { S.data.finance = d.finance || {}; }],
   users: ['GET', '/api/users', function (d) { S.data.users = d.users || []; }],
-  bot: ['GET', '/api/bot', function (d) { S.data.bot = d.bot || null; }]
+  bot: ['GET', '/api/bot', function (d) { S.data.bot = d.bot || null; }],
+  numbers: ['GET', '/api/wa-numbers', function (d) { S.data.numbers = d.numbers || []; }],
+  targets: ['GET', '/api/targets', function (d) { S.data.targets = d.targets || []; }]
 };
 async function load(key) {
   var l = LOADERS[key];
@@ -950,7 +1274,7 @@ async function load(key) {
   S.loaded[key] = true;
   scheduleRender();
 }
-function allKeys() { return S.admin ? ['orders', 'products', 'content', 'settings', 'finance', 'users', 'bot'] : ['orders', 'products', 'content', 'settings']; }
+function allKeys() { return S.admin ? ['orders', 'products', 'content', 'settings', 'finance', 'users', 'bot', 'numbers', 'targets'] : ['orders', 'products', 'content', 'settings']; }
 async function loadAll() { await Promise.all(allKeys().map(load)); }
 // Light periodic refresh: only what the open tab shows.
 function pollKeys() {
@@ -958,18 +1282,20 @@ function pollKeys() {
   if (t === 'content') return ['content'];
   if (t === 'managers') return ['users'];
   if (t === 'bot') return ['bot'];
-  if (t === 'settings' || t === 'account') return [];
+  if (t === 'settings') return ['numbers', 'targets'];
+  if (t === 'account' || t === 'chats') return [];
   return ['orders', 'products'];
 }
 async function poll() {
   if (!S.auth || document.visibilityState !== 'visible' || S.card) return;
   await Promise.all(pollKeys().map(load));
+  if (S.tab !== 'chats') chatsCount();
 }
 
 /* ---------- auth ---------- */
 function applyMe(me) {
   S.user = me.user; S.admin = me.user.role === 'admin'; S.canDispatch = !!me.canDispatch;
-  S.publishUrl = me.publishUrl || PUBLISH_URL; S.auth = true;
+  S.publishUrl = me.publishUrl || PUBLISH_URL; S.auth = true; S.waConnected = !!me.waConnected; S.chat = freshChat();
 }
 function goLogin() {
   if (!S.auth && S.booted) return; // already on the login screen
@@ -977,7 +1303,8 @@ function goLogin() {
 }
 function resetSession() {
   S.auth = false; S.user = null; S.admin = false; S.loaded = {}; S.errors = {}; S.card = null; S.drawer = false; S.kz = null;
-  S.data = { orders: [], products: [], finance: {}, content: [], users: [], settings: null, bot: null };
+  S.data = { orders: [], products: [], finance: {}, content: [], users: [], settings: null, bot: null, numbers: [], targets: [] };
+  S.chat = freshChat();
   $('#card-root').innerHTML = '';
   renderAll();
 }
@@ -992,6 +1319,7 @@ async function doLogin(form) {
     S.tab = 'orders'; S.loaded = {};
     renderAll();
     loadAll();
+    chatsCount();
   } catch (e) {
     S.loginError = e.message;
     S.auth = false;
@@ -1024,7 +1352,7 @@ async function doPublish(date, time) {
 }
 
 var ACTIONS = {
-  'tab': function (t) { S.tab = t.dataset.tab; S.drawer = false; S.resetFor = null; renderDrawer(); renderHeader(); doRender(true); window.scrollTo(0, 0); poll(); },
+  'tab': function (t) { S.tab = t.dataset.tab; S.drawer = false; S.resetFor = null; if (S.tab === 'chats' && S.chat) S.chat.loaded = false; renderDrawer(); renderHeader(); doRender(true); window.scrollTo(0, 0); poll(); },
   'drawer': function () { S.drawer = !S.drawer; renderDrawer(); },
   'drawer-close': function () { S.drawer = false; renderDrawer(); },
   'logout': function () { doLogout(); },
@@ -1081,6 +1409,33 @@ var ACTIONS = {
     var ok = await run('Пароль изменён', function () { return api('POST', '/api/me/password', { current: cur, password: p1 }); });
     if (ok) doRender(true);
   },
+  'copy-text': function (t) { copyText(t.dataset.text, 'Скопировано'); },
+  'chat-open': function (t) { chatOpen(parseInt(t.dataset.id, 10)); },
+  'chat-back': function () { chatBack(); },
+  'chat-filter': function (t) { S.chat.filter = t.dataset.f; S.chat.loaded = false; doRender(true); chatsLoadList(); },
+  'chat-send': function () { chatSend(); },
+  'chat-order': function () { chatMakeOrder(); },
+  'chat-order-open': function (t) { chatOpenOrder(t.dataset.id); },
+  'wan-add': async function () {
+    var data = { phone: textField('wn-phone'), label: textField('wn-label'), phoneNumberId: textField('wn-pnid') };
+    var ok = await run('Номер добавлен', function () { return api('POST', '/api/wa-numbers', data); });
+    if (ok) { await load('numbers'); doRender(true); }
+  },
+  'wan-del': async function (t) {
+    if (!window.confirm('Удалить этот номер из списка?')) return;
+    var ok = await run('Номер удалён', function () { return api('DELETE', '/api/wa-numbers/' + t.dataset.id); });
+    if (ok) { await load('numbers'); doRender(true); }
+  },
+  'tg-add': async function () {
+    var data = { productName: textField('tn-product'), code: textField('tn-code'), text: textField('tn-text'), active: true };
+    var ok = await run('Текст добавлен', function () { return api('POST', '/api/targets', data); });
+    if (ok) { await load('targets'); doRender(true); }
+  },
+  'tg-del': async function (t) {
+    if (!window.confirm('Удалить этот текст? Ссылка с его кодом перестанет подставлять текст.')) return;
+    var ok = await run('Удалено', function () { return api('DELETE', '/api/targets/' + t.dataset.id); });
+    if (ok) { await load('targets'); doRender(true); }
+  },
   'set-save': async function () {
     var data = { wa1: textField('set-wa1'), wa2: textField('set-wa2'), payLink: textField('set-payLink'), templates: rawField('set-templates'), track_msg: rawField('set-track_msg'), track_url: textField('set-track_url') };
     if (data.track_url && !(/^https:\/\//i.test(data.track_url) && data.track_url.indexOf('{трек}') >= 0)) {
@@ -1112,6 +1467,11 @@ document.addEventListener('submit', function (e) {
 document.addEventListener('input', function (e) {
   var t = e.target;
   if (t.id === 'orders-search') { S.q = t.value; doRender(true); }
+  else if (t.id === 'chat-search') {
+    S.chat.q = t.value; clearTimeout(chatSearchTimer);
+    chatSearchTimer = setTimeout(chatsLoadList, 250);
+  }
+  else if (t.id === 'chat-reply') S.chat.draft = t.value;
   else if (t.id === 'f-qty') autofillSum();
   else if (t.id === 'f-track') syncExtra();
   else if (t.id === 'f-phone') syncWa();
@@ -1120,6 +1480,29 @@ document.addEventListener('change', function (e) {
   var t = e.target;
   if (!S.auth) return;
   if (t.id === 'kz-file') { kzLoadFile(t); return; }
+  if (t.id === 'chat-src') { chatSetSource(t.value); return; }
+  if (t.dataset && t.dataset.wan) {
+    var wp = {}; wp[t.dataset.k] = t.value.trim();
+    run('Сохранено', function () { return api('PATCH', '/api/wa-numbers/' + t.dataset.wan, wp); }).then(function () { return load('numbers'); }).then(function () { doRender(true); });
+    if (t.dataset.k === 'status' && t.value !== 'active') {
+      var cn = S.data.numbers.filter(function (n) { return String(n.id) === t.dataset.wan; })[0];
+      if (cn && cn.isCurrent) toast('Ссылки ещё ведут на этот номер. Выберите другой номер в колонке «Ссылки ведут сюда».', 'err');
+    }
+    return;
+  }
+  if (t.dataset && t.dataset.wanCur) {
+    run('Ссылки теперь ведут на этот номер', function () { return api('POST', '/api/wa-numbers/' + t.dataset.wanCur + '/current', {}); }).then(function () { return load('numbers'); }).then(function () { doRender(true); });
+    return;
+  }
+  if (t.dataset && t.dataset.tg) {
+    var tp = {}; tp[t.dataset.k] = t.value.trim();
+    run('Сохранено', function () { return api('PATCH', '/api/targets/' + t.dataset.tg, tp); }).then(function () { return load('targets'); }).then(function () { doRender(true); });
+    return;
+  }
+  if (t.dataset && t.dataset.tgActive) {
+    run('Сохранено', function () { return api('PATCH', '/api/targets/' + t.dataset.tgActive, { active: !!t.checked }); }).then(function () { return load('targets'); }).then(function () { doRender(true); });
+    return;
+  }
   if (t.dataset && t.dataset.kz !== undefined && S.kz && S.kz.items) {
     S.kz.items[parseInt(t.dataset.kz, 10)].orderId = t.value;
     doRender(true);
@@ -1156,12 +1539,14 @@ document.addEventListener('keydown', function (e) {
     openCard(e.target.dataset.id);
     return;
   }
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.id === 'chat-reply') { e.preventDefault(); chatSend(); return; }
   if (e.key !== 'Escape') return;
   if (S.card) closeCard();
   else if (S.drawer) { S.drawer = false; renderDrawer(); }
 });
 document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') poll(); });
 setInterval(poll, POLL_MS);
+setInterval(chatsPoll, CHAT_POLL_MS);
 
 /* ---------- boot ---------- */
 async function boot() {
@@ -1169,7 +1554,7 @@ async function boot() {
   try {
     var me = await api('GET', '/api/me');
     S.booted = true;
-    if (me.user) { applyMe(me); renderAll(); loadAll(); } else renderAll();
+    if (me.user) { applyMe(me); renderAll(); loadAll(); chatsCount(); } else renderAll();
   } catch (e) {
     S.booted = true; S.auth = false;
     if (e.status && e.status !== 401) S.loginError = e.message;

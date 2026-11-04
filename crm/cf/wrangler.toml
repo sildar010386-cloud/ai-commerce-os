@@ -30,3 +30,4 @@ binding = "AI"
 GH_DISPATCH_REF = "claude/ai-ecommerce-automation-3n1lgz"
 
 # Secrets (set with `wrangler secret put`, never in this file): CRM_API_KEY, GH_DISPATCH_TOKEN (optional).
+# Optional WhatsApp inbox secrets: WA_TOKEN, WA_APP_SECRET, WA_VERIFY_TOKEN (Cloud API webhook), CONNECTOR_URL, CONNECTOR_KEY, CONNECTOR_MEDIA_HOSTS (QR connector).

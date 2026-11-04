@@ -2,6 +2,9 @@
 // Plain JS, no framework, no build step. All SQL is parameterized (prepare/bind).
 // User-facing messages are in Russian. Client names and phones are never logged.
 
+import { detectSource } from './source.js';
+import { parseWebhook, normalizeInboxEvents } from './wa.js';
+
 const GITHUB_REPO = 'sildar010386-cloud/ai-commerce-os';
 const PUBLISH_URL = `https://github.com/${GITHUB_REPO}/actions/workflows/publish.yml`;
 
@@ -182,6 +185,7 @@ function orderOut(r) {
     productId: r.product_id, productName: r.product_name, qty: r.qty, sum: r.sum, source: r.source, post: r.post,
     comment: r.comment, delivery: r.delivery, track: r.track, remindAt: r.remind_at, reserveNote: r.reserve_note,
     cancelNote: r.cancel_note, example: !!r.example, stockDeducted: !!r.stock_deducted, trackSentAt: r.track_sent_at || '',
+    traffic: r.traffic || '', targetCode: r.target_code || '',
     createdAt: r.created_at, updatedAt: r.updated_at
   };
 }
@@ -209,7 +213,7 @@ function auditStmt(env, actor, action, orderId, orderNum, detail) {
 const ORDER_COLS = {
   name: 'name', phone: 'phone', city: 'city', address: 'address', productId: 'product_id', productName: 'product_name',
   qty: 'qty', sum: 'sum', source: 'source', post: 'post', comment: 'comment', delivery: 'delivery', track: 'track',
-  remindAt: 'remind_at', reserveNote: 'reserve_note', cancelNote: 'cancel_note'
+  remindAt: 'remind_at', reserveNote: 'reserve_note', cancelNote: 'cancel_note', traffic: 'traffic', targetCode: 'target_code'
 };
 // Validates the order fields present in `b`; returns {col: value} (DB column names).
 async function cleanOrderFields(env, b) {
@@ -236,6 +240,12 @@ async function cleanOrderFields(env, b) {
   }
   if ('reserveNote' in b) f.reserveNote = str(b.reserveNote, 300, 'Причина');
   if ('cancelNote' in b) f.cancelNote = str(b.cancelNote, 300, 'Причина отказа');
+  if ('traffic' in b) {
+    const tr = str(b.traffic, 20, 'Трафик');
+    if (tr && !['target', 'organic'].includes(tr)) fail(400, 'Трафик: «target» или «organic»');
+    f.traffic = tr;
+  }
+  if ('targetCode' in b) f.targetCode = str(b.targetCode, 20, 'Код');
   if ('productId' in b) {
     const pid = str(b.productId, 64, 'Товар');
     if (!pid) { f.productId = ''; f.productName = ''; }
@@ -742,6 +752,9 @@ async function api(req, env, url) {
   const m = req.method, p = url.pathname;
   let mt;
 
+  // Meta webhook: verified by the verify token (GET) and the HMAC signature (POST), not by the CRM key.
+  if (p === '/api/hooks/whatsapp') return whatsappHook(req, env, url);
+
   // Machine endpoints: X-Api-Key, no cookie and no CSRF check.
   if (p === '/api/bootstrap' || p.startsWith('/api/hooks/')) {
     if (m !== 'POST') fail(405, 'Метод не поддерживается');
@@ -753,6 +766,7 @@ async function api(req, env, url) {
       await createUser(env, b, 'admin');
       return json({ ok: true }, 201);
     }
+    if (p === '/api/hooks/inbox') return inboxHook(env, b);
     if (p === '/api/hooks/lead') return leadHook(env, b);
     if (p === '/api/hooks/content-sync') return contentSync(env, b);
     if (p === '/api/hooks/content-status') return contentStatus(env, b);
@@ -778,7 +792,8 @@ async function api(req, env, url) {
   if (p === '/api/me' && m === 'GET') {
     return json({
       user: { email: user.email, name: user.name, role: user.role },
-      canDispatch: user.role === 'admin' && !!env.GH_DISPATCH_TOKEN, publishUrl: PUBLISH_URL
+      canDispatch: user.role === 'admin' && !!env.GH_DISPATCH_TOKEN, publishUrl: PUBLISH_URL,
+      waConnected: !!env.WA_TOKEN
     });
   }
   if (p === '/api/me/password' && m === 'POST') {
@@ -892,6 +907,9 @@ async function api(req, env, url) {
     }
   }
 
+  const inbox = await inboxApi(req, env, url, user);
+  if (inbox) return inbox;
+
   /* everything below is admin only */
   if (p === '/api/finance' && m === 'GET') {
     requireAdmin(user);
@@ -966,6 +984,612 @@ async function api(req, env, url) {
   fail(404, 'Не найдено');
 }
 
+/* ---------- Inbox: WhatsApp chats, business numbers, ad ("target") texts ----------
+   Connection: official WhatsApp Cloud API (Business app coexistence). Secrets: WA_TOKEN (send + media), WA_APP_SECRET
+   (webhook signature), WA_VERIFY_TOKEN (webhook verification). Without them the inbox stays usable and says so.
+   Client names, phones and message texts are never logged and never written to the audit table. */
+const WA_GRAPH = 'https://graph.facebook.com/v21.0';
+const WA_WINDOW_MS = 24 * 3600 * 1000;      // free-form replies are allowed 24 h after the client's last message
+const TRAFFIC = ['target', 'organic', 'old'];
+const NUMBER_STATUSES = ['active', 'blocked', 'off'];
+const MSG_STATUSES = ['sent', 'delivered', 'read', 'failed'];
+const MAX_HOOK_BODY = 4 * 1024 * 1024;
+const MEDIA_TYPES = /^(image|audio|video)\/[a-z0-9.+-]+$|^application\/pdf$/i;
+
+async function hmacHex(secret, data) {
+  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return toHex(await crypto.subtle.sign('HMAC', key, data));
+}
+
+function previewOf(msg, direction) {
+  let t;
+  switch (msg.type) {
+    case 'text': t = msg.body; break;
+    case 'voice': t = '[Голосовое]'; break;
+    case 'audio': t = '[Аудио]'; break;
+    case 'image': t = '[Фото]' + (msg.caption ? ' ' + msg.caption : ''); break;
+    case 'video': t = '[Видео]' + (msg.caption ? ' ' + msg.caption : ''); break;
+    case 'document': t = '[Файл]' + (msg.caption ? ' ' + msg.caption : ''); break;
+    case 'sticker': t = '[Стикер]'; break;
+    case 'location': t = '[Геолокация]'; break;
+    case 'reaction': t = 'Реакция ' + msg.body; break;
+    default: t = msg.body || '[Сообщение]';
+  }
+  return ((direction === 'out' ? 'Вы: ' : '') + String(t || '').replace(/\s+/g, ' ')).slice(0, 120);
+}
+
+// Finds the number by Cloud API id; a number added by hand (phone only) gets its id on the first webhook;
+// an unknown number is created (not current), so a freshly connected reserve number works at once.
+async function ensureWaNumber(env, cache, phoneNumberId, displayPhone, connection) {
+  const key = phoneNumberId + '|' + displayPhone;
+  if (cache.has(key)) return cache.get(key);
+  let row = null;
+  if (phoneNumberId) row = await env.DB.prepare('SELECT * FROM wa_numbers WHERE phone_number_id = ?').bind(phoneNumberId).first();
+  if (!row && displayPhone) {
+    row = await env.DB.prepare('SELECT * FROM wa_numbers WHERE phone = ?').bind(displayPhone).first();
+    if (row && phoneNumberId && !row.phone_number_id) {
+      await env.DB.prepare('UPDATE wa_numbers SET phone_number_id = ?, updated_at = ? WHERE id = ?').bind(phoneNumberId, nowIso(), row.id).run();
+      row.phone_number_id = phoneNumberId;
+    }
+  }
+  if (!row && (phoneNumberId || displayPhone)) {
+    const ts = nowIso();
+    await env.DB.prepare(
+      "INSERT INTO wa_numbers (phone, label, phone_number_id, status, connection, is_current, note, created_at, updated_at) VALUES (?, '', ?, 'active', ?, 0, 'Добавлен автоматически', ?, ?) ON CONFLICT DO NOTHING"
+    ).bind(displayPhone || phoneNumberId.replace(/\D/g, '') || phoneNumberId, phoneNumberId || null, connection, ts, ts).run();
+    row = phoneNumberId ? await env.DB.prepare('SELECT * FROM wa_numbers WHERE phone_number_id = ?').bind(phoneNumberId).first() : null;
+    if (!row && displayPhone) row = await env.DB.prepare('SELECT * FROM wa_numbers WHERE phone = ?').bind(displayPhone).first();
+  }
+  if (row) {
+    // Every inbound event proves the number is connected; remember how (once per request).
+    await env.DB.prepare("UPDATE wa_numbers SET last_seen_at = ?, connection = CASE WHEN connection = '' THEN ? ELSE connection END WHERE id = ?")
+      .bind(nowIso(), connection, row.id).run();
+  }
+  cache.set(key, row || null);
+  return row || null;
+}
+
+async function processWaEvent(env, ctx, ev) {
+  if (ev.kind === 'status') {
+    if (!MSG_STATUSES.includes(ev.status) || !ev.id) return;
+    await env.DB.prepare(
+      "UPDATE messages SET status = ?1 WHERE ext_msg_id = ?2 AND (?1 = 'failed' OR " +
+      "CASE status WHEN 'received' THEN 0 WHEN 'sent' THEN 1 WHEN 'delivered' THEN 2 WHEN 'read' THEN 3 ELSE 0 END < " +
+      "CASE ?1 WHEN 'sent' THEN 1 WHEN 'delivered' THEN 2 WHEN 'read' THEN 3 ELSE 0 END)"
+    ).bind(ev.status, ev.id).run();
+    return;
+  }
+  const msg = ev.msg;
+  if (!ev.waId || !msg) return;
+  if (msg.id && await env.DB.prepare('SELECT id FROM messages WHERE ext_msg_id = ?').bind(msg.id).first()) return; // webhook retry
+  const number = await ensureWaNumber(env, ctx.numbers, ev.phoneNumberId, ev.displayPhone, ctx.connection);
+  const live = ev.kind === 'message';
+  const ts = msg.ts;
+
+  let contact = await env.DB.prepare("SELECT * FROM contacts WHERE channel = 'whatsapp' AND ext_id = ?").bind(ev.waId).first();
+  if (!contact) {
+    // The source is decided once, on the first message: live inbound -> detect; history sync -> old; the owner wrote first -> organic.
+    let src = { traffic: 'organic', platform: '', code: '', product: '' };
+    if (ev.kind === 'history') src.traffic = 'old';
+    else if (live) src = detectSource({ text: msg.body || msg.caption, referral: msg.referral, targets: ctx.targets });
+    await env.DB.prepare(
+      "INSERT INTO contacts (channel, ext_id, phone, name, traffic, platform, target_code, product_name, number_id, first_message_at, created_at, updated_at) " +
+      "VALUES ('whatsapp', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(channel, ext_id) DO NOTHING"
+    ).bind(ev.waId, ev.waId, ev.profileName || '', src.traffic, src.platform, src.code, src.product, number ? number.id : null, ts, nowIso(), nowIso()).run();
+    contact = await env.DB.prepare("SELECT * FROM contacts WHERE channel = 'whatsapp' AND ext_id = ?").bind(ev.waId).first();
+  }
+  if (!contact) return;
+
+  const out = ev.direction === 'out';
+  const ins = await env.DB.prepare(
+    'INSERT INTO messages (contact_id, direction, number_id, ext_msg_id, type, body, media_id, media_url, media_mime, caption, status, from_app, ts, created_at) ' +
+    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(ext_msg_id) DO NOTHING'
+  ).bind(contact.id, ev.direction, number ? number.id : null, msg.id || null, msg.type, msg.body || '', msg.mediaId || '', msg.mediaUrl || '', msg.mime || '',
+    msg.caption || '', out ? 'sent' : 'received', out ? 1 : 0, ts, nowIso()).run();
+  if (!ins.meta.changes) return;
+
+  const preview = previewOf(msg, ev.direction);
+  await env.DB.prepare(
+    'UPDATE contacts SET ' +
+    "name = CASE WHEN name = '' THEN ?1 ELSE name END, " +
+    "first_message_at = CASE WHEN first_message_at = '' OR ?2 < first_message_at THEN ?2 ELSE first_message_at END, " +
+    'last_message_at = CASE WHEN ?2 >= last_message_at THEN ?2 ELSE last_message_at END, ' +
+    'last_preview = CASE WHEN ?2 >= last_message_at THEN ?3 ELSE last_preview END, ' +
+    "last_inbound_at = CASE WHEN ?4 = 'in' AND ?2 > last_inbound_at THEN ?2 ELSE last_inbound_at END, " +
+    'unread = unread + ?5, ' +
+    'number_id = CASE WHEN ?6 = 1 AND ?7 IS NOT NULL THEN ?7 ELSE COALESCE(number_id, ?7) END, ' +
+    'updated_at = ?8 WHERE id = ?9'
+  ).bind(ev.profileName || '', ts, preview, ev.direction, live ? 1 : 0, live ? 1 : 0, number ? number.id : null, nowIso(), contact.id).run();
+}
+
+async function whatsappHook(req, env, url) {
+  if (req.method === 'GET') {
+    const mode = url.searchParams.get('hub.mode'), tok = url.searchParams.get('hub.verify_token'), ch = url.searchParams.get('hub.challenge');
+    if (mode === 'subscribe' && ch != null && tok && env.WA_VERIFY_TOKEN && await safeEqual(tok, env.WA_VERIFY_TOKEN)) {
+      return new Response(ch, { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+    }
+    fail(403, 'Нет доступа');
+  }
+  if (req.method !== 'POST') fail(405, 'Метод не поддерживается');
+  if (!env.WA_APP_SECRET) fail(503, 'WhatsApp ещё не подключён');
+  const raw = await req.arrayBuffer();
+  if (raw.byteLength > MAX_HOOK_BODY) fail(413, 'Слишком большой запрос');
+  const sig = (req.headers.get('X-Hub-Signature-256') || '').trim().toLowerCase();
+  const expected = 'sha256=' + await hmacHex(env.WA_APP_SECRET, raw);
+  if (!sig || !(await safeEqual(sig, expected))) fail(401, 'Нет доступа');
+  let data;
+  try { data = JSON.parse(new TextDecoder().decode(raw)); } catch (e) { fail(400, 'Некорректный запрос'); }
+  await ingestEvents(env, parseWebhook(data), 'cloud');
+  return json({ ok: true });
+}
+
+// The one ingest path for every connector (Cloud API webhook, QR connector via /api/hooks/inbox).
+// A non-2xx answer makes the sender retry; inserts are idempotent (ext_msg_id), so a retry is safe.
+async function ingestEvents(env, events, connection) {
+  if (!events.length) return 0;
+  const { results: targets } = await env.DB.prepare('SELECT * FROM target_texts WHERE active = 1').all();
+  const ctx = { targets: targets || [], numbers: new Map(), connection };
+  let failed = 0;
+  for (const ev of events) {
+    try { await processWaEvent(env, ctx, ev); }
+    catch (e) { failed++; console.error('whatsapp event failed:', e && e.message ? String(e.message).slice(0, 150) : 'unknown'); }
+  }
+  if (failed) fail(500, 'Не удалось сохранить часть сообщений');
+  return events.length;
+}
+
+// POST /api/hooks/inbox (X-Api-Key): normalized events from a linked-device connector.
+async function inboxHook(env, b) {
+  const n = await ingestEvents(env, normalizeInboxEvents(b), 'qr');
+  return json({ ok: true, accepted: n });
+}
+
+/* ----- row mappers ----- */
+function numberOut(r, admin) {
+  return {
+    id: r.id, phone: r.phone, label: r.label, phoneNumberId: admin ? (r.phone_number_id || '') : '', status: r.status,
+    connection: r.connection || '', lastSeenAt: r.last_seen_at || '',
+    isCurrent: !!r.is_current, note: r.note, createdAt: r.created_at
+  };
+}
+function targetOut(r) {
+  return {
+    id: r.id, productName: r.product_name, code: r.code, text: r.text, active: !!r.active, clicks: r.clicks, note: r.note,
+    contacts: r.contacts == null ? 0 : r.contacts
+  };
+}
+function chatOut(r) {
+  return {
+    id: r.id, channel: r.channel, name: r.name, phone: r.phone, traffic: r.traffic, platform: r.platform, targetCode: r.target_code,
+    productName: r.product_name, numberId: r.number_id, numberLabel: r.number_label || r.number_phone || '', numberStatus: r.number_status || '',
+    lastAt: r.last_message_at, lastInboundAt: r.last_inbound_at, preview: r.last_preview, unread: r.unread,
+    orderId: r.order_id == null ? null : r.order_id, orderNum: r.order_num == null ? null : r.order_num, manual: !!r.source_manual
+  };
+}
+function messageOut(r) {
+  return {
+    id: r.id, direction: r.direction, type: r.type, body: r.body, caption: r.caption, hasMedia: !!(r.media_id || r.media_url), mime: r.media_mime,
+    status: r.status, fromApp: !!r.from_app, ts: r.ts
+  };
+}
+
+const CHAT_SELECT =
+  'SELECT c.*, n.label AS number_label, n.phone AS number_phone, n.status AS number_status, o.num AS order_num ' +
+  'FROM contacts c LEFT JOIN wa_numbers n ON n.id = c.number_id LEFT JOIN orders o ON o.id = c.order_id ';
+
+async function uniqueOr409(promise, message) {
+  try { return await promise; }
+  catch (e) {
+    if (e instanceof HttpError) throw e;
+    if (/UNIQUE|constraint/i.test(String(e && e.message))) fail(409, message);
+    throw e;
+  }
+}
+const cleanPhone = (v) => {
+  let d = String(v == null ? '' : v).replace(/\D/g, '');
+  if (d.length === 11 && d[0] === '8') d = '7' + d.slice(1);   // 8 701 ... -> 7 701 ...
+  if (d.length < 8 || d.length > 15) fail(400, 'Номер укажите в международном формате, например 77011234567');
+  return d;
+};
+
+async function loadChat(env, idStr) {
+  const id = parseInt(idStr, 10);
+  const c = id > 0 ? await env.DB.prepare(CHAT_SELECT + 'WHERE c.id = ?').bind(id).first() : null;
+  if (!c) fail(404, 'Чат не найден');
+  return c;
+}
+
+// How a message leaves through this number: Cloud API (phone_number_id + WA_TOKEN), else the QR connector (CONNECTOR_URL), else none.
+function sendRoute(env, num) {
+  if (num.phone_number_id && env.WA_TOKEN) return 'cloud';
+  if (env.CONNECTOR_URL) return 'connector';
+  return null;
+}
+// Returns the provider message id ('' if unknown). Throws HttpError with a Russian message on failure.
+async function sendVia(env, route, num, payload) {
+  let resp, data = null;
+  try {
+    if (route === 'cloud') {
+      resp = await fetch(`${WA_GRAPH}/${encodeURIComponent(num.phone_number_id)}/messages`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${env.WA_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to: payload.to, type: 'text', text: { preview_url: false, body: payload.text } })
+      });
+    } else {
+      resp = await fetch(`${String(env.CONNECTOR_URL).replace(/\/+$/, '')}/send`, {
+        method: 'POST',
+        headers: { 'X-Api-Key': env.CONNECTOR_KEY || '', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numberPhone: num.phone, to: payload.to, type: payload.type, text: payload.text })
+      });
+    }
+    data = await resp.json().catch(() => null);
+  } catch (e) { fail(502, 'Нет связи с WhatsApp. Попробуйте ещё раз.'); }
+  if (!resp.ok) {
+    const code = data && data.error && typeof data.error === 'object' ? data.error.code : 0;
+    if (code === 131047) fail(409, 'Прошло больше 24 часов с последнего сообщения клиента: WhatsApp не даёт отправить обычное сообщение.', { code: 'window' });
+    const em = data && data.error ? (typeof data.error === 'string' ? data.error : data.error.message) : '';
+    fail(502, 'WhatsApp не принял сообщение.' + (em ? ' ' + String(em).slice(0, 200) : ''));
+  }
+  if (route === 'cloud') return data && data.messages && data.messages[0] ? String(data.messages[0].id || '') : '';
+  return data && (data.id || data.messageId) ? String(data.id || data.messageId) : '';
+}
+
+async function sendChatMessage(env, user, idStr, b) {
+  const c = await loadChat(env, idStr);
+  if (c.channel !== 'whatsapp') fail(400, 'Ответ в этом канале пока не поддерживается');
+  const text = str(b.text, 4096, 'Сообщение');
+  if (!text) fail(400, 'Введите сообщение');
+  const num = c.number_id ? await env.DB.prepare('SELECT * FROM wa_numbers WHERE id = ?').bind(c.number_id).first() : null;
+  if (!num) fail(409, 'Не известно, на какой номер писал клиент. Ответьте из приложения WhatsApp на телефоне.');
+  if (num.status === 'blocked') {
+    fail(409, `Номер ${num.label || num.phone} заблокирован — с него ответить нельзя. Ответьте клиенту из приложения WhatsApp или с запасного номера.`, { code: 'blocked' });
+  }
+  if (num.status === 'off') fail(409, `Номер ${num.label || num.phone} выключен в настройках — с него ответить нельзя.`, { code: 'off' });
+  const route = sendRoute(env, num);
+  if (!route) fail(503, 'Номер не подключён');
+  const last = Date.parse(c.last_inbound_at || '');
+  if (route === 'cloud' && b.force !== true && (!last || Date.now() - last > WA_WINDOW_MS)) {
+    fail(409, 'Прошло больше 24 часов с последнего сообщения клиента: WhatsApp не даёт отправить обычное сообщение. Напишите клиенту из приложения на телефоне или отправьте шаблон.', { code: 'window' });
+  }
+  const extId = await sendVia(env, route, num, { to: c.ext_id, type: 'text', text });
+  const ts = nowIso();
+  const ins = await env.DB.prepare(
+    "INSERT INTO messages (contact_id, direction, number_id, ext_msg_id, type, body, status, from_app, ts, created_at) VALUES (?, 'out', ?, ?, 'text', ?, 'sent', 0, ?, ?) " +
+    'ON CONFLICT(ext_msg_id) DO NOTHING'
+  ).bind(c.id, num.id, extId || null, text, ts, ts).run();
+  await env.DB.batch([
+    env.DB.prepare('UPDATE contacts SET last_message_at = ?, last_preview = ?, updated_at = ? WHERE id = ?')
+      .bind(ts, previewOf({ type: 'text', body: text }, 'out'), ts, c.id),
+    auditStmt(env, user.email, 'chat-send', null, null, `chat#${c.id}`)
+  ]);
+  const row = await env.DB.prepare('SELECT * FROM messages WHERE id = ?').bind(ins.meta.last_row_id).first();
+  return json({ ok: true, message: row ? messageOut(row) : null });
+}
+
+async function setChatSource(env, user, idStr, b) {
+  const c = await loadChat(env, idStr);
+  const traffic = str(b.traffic, 20, 'Источник');
+  if (!TRAFFIC.includes(traffic)) fail(400, 'Источник: таргет, органика или старый клиент');
+  let code = '', product = '';
+  if (traffic === 'target') {
+    code = str(b.code, 20, 'Код');
+    if (code) {
+      const tg = await env.DB.prepare('SELECT code, product_name FROM target_texts WHERE code = ?').bind(code).first();
+      if (!tg) fail(400, 'Такого кода нет в списке «Таргет — товары и тексты»');
+      code = tg.code; product = tg.product_name;
+    }
+  }
+  const stmts = [
+    env.DB.prepare('UPDATE contacts SET traffic = ?, target_code = ?, product_name = ?, source_manual = 1, updated_at = ? WHERE id = ?')
+      .bind(traffic, code, product, nowIso(), c.id),
+    auditStmt(env, user.email, 'chat-source', null, null, `chat#${c.id} ${traffic}${code ? ' ' + code : ''}`)
+  ];
+  if (c.order_id) {
+    stmts.push(env.DB.prepare('UPDATE orders SET traffic = ?, target_code = ?, updated_at = ? WHERE id = ?')
+      .bind(traffic === 'old' ? '' : traffic, code, nowIso(), c.order_id));
+  }
+  await env.DB.batch(stmts);
+  return json({ ok: true });
+}
+
+async function orderFromChat(env, user, idStr) {
+  const c = await loadChat(env, idStr);
+  if (c.order_id) {
+    const ex = await env.DB.prepare('SELECT id, num FROM orders WHERE id = ?').bind(c.order_id).first();
+    if (ex) return json({ ok: true, existing: true, id: String(ex.id), num: ex.num });
+  }
+  const { results } = await env.DB.prepare(
+    "SELECT body, caption FROM messages WHERE contact_id = ? AND direction = 'in' ORDER BY ts DESC, id DESC LIMIT 10"
+  ).bind(c.id).all();
+  const lastText = ((results || []).map((m) => m.body || m.caption).find(Boolean) || '').slice(0, 1000);
+  const b = {
+    name: c.name, phone: c.phone ? '+' + c.phone : '', source: 'WhatsApp', comment: lastText,
+    traffic: c.traffic === 'old' ? '' : c.traffic, targetCode: c.target_code
+  };
+  if (c.product_name) {
+    const { results: prods } = await env.DB.prepare('SELECT id, name FROM products WHERE active = 1').all();
+    const want = c.product_name.trim().toLowerCase();
+    const p = (prods || []).find((x) => String(x.name).trim().toLowerCase() === want);
+    if (p) b.productId = p.id; else b.productName = c.product_name;
+  }
+  const row = await createOrder(env, user, b);
+  await env.DB.prepare('UPDATE contacts SET order_id = ?, updated_at = ? WHERE id = ?').bind(row.id, nowIso(), c.id).run();
+  return json({ ok: true, id: String(row.id), num: row.num }, 201);
+}
+
+// Streams a message attachment from the Cloud API. The whole file is buffered (WhatsApp limits it to 16 MB) so that
+// Range requests, which Safari needs for audio and video, can be answered.
+async function mediaProxy(req, env, idStr) {
+  const id = parseInt(idStr, 10);
+  const m = id > 0 ? await env.DB.prepare('SELECT media_id, media_url, media_mime FROM messages WHERE id = ?').bind(id).first() : null;
+  if (!m || (!m.media_id && !m.media_url)) fail(404, 'Файл не найден');
+  let meta, buf;
+  if (m.media_url) {
+    // Connector-hosted file: only hosts listed in CONNECTOR_MEDIA_HOSTS (comma separated) may be fetched.
+    let host = '';
+    try { host = new URL(m.media_url).host.toLowerCase(); } catch (e) { host = ''; }
+    const allowed = String(env.CONNECTOR_MEDIA_HOSTS || '').split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
+    if (!host || !allowed.includes(host)) fail(400, 'Адрес вложения не разрешён (CONNECTOR_MEDIA_HOSTS)');
+    try {
+      const r = await fetch(m.media_url, { headers: env.CONNECTOR_KEY ? { 'X-Api-Key': env.CONNECTOR_KEY } : {} });
+      if (!r.ok) fail(502, 'Файл недоступен');
+      buf = await r.arrayBuffer();
+      meta = { mime_type: r.headers.get('Content-Type') || '' };
+    } catch (e) { if (e instanceof HttpError) throw e; fail(502, 'Нет связи с коннектором'); }
+  } else {
+    if (!env.WA_TOKEN) fail(503, 'WhatsApp ещё не подключён');
+    try {
+      const r1 = await fetch(`${WA_GRAPH}/${encodeURIComponent(m.media_id)}`, { headers: { Authorization: `Bearer ${env.WA_TOKEN}` } });
+      if (!r1.ok) fail(502, 'Файл недоступен (WhatsApp хранит вложения ограниченное время)');
+      meta = await r1.json();
+    } catch (e) { if (e instanceof HttpError) throw e; fail(502, 'Нет связи с WhatsApp'); }
+    if (!meta || typeof meta.url !== 'string' || !/^https:\/\//i.test(meta.url)) fail(502, 'Файл недоступен');
+    try {
+      const r2 = await fetch(meta.url, { headers: { Authorization: `Bearer ${env.WA_TOKEN}` } });
+      if (!r2.ok) fail(502, 'Файл недоступен');
+      buf = await r2.arrayBuffer();
+    } catch (e) { if (e instanceof HttpError) throw e; fail(502, 'Нет связи с WhatsApp'); }
+  }
+  let ct = String(meta.mime_type || m.media_mime || '').split(';')[0].trim().toLowerCase();
+  const safe = MEDIA_TYPES.test(ct);
+  if (!safe) ct = 'application/octet-stream';
+  const headers = { 'Content-Type': ct, 'Accept-Ranges': 'bytes' };
+  if (!safe) headers['Content-Disposition'] = 'attachment';
+  const size = buf.byteLength;
+  const rm = (req.headers.get('Range') || '').match(/^bytes=(\d*)-(\d*)$/);
+  if (rm && (rm[1] || rm[2])) {
+    let start = rm[1] ? parseInt(rm[1], 10) : Math.max(0, size - parseInt(rm[2], 10));
+    let end = rm[1] && rm[2] ? Math.min(parseInt(rm[2], 10), size - 1) : size - 1;
+    if (start >= size || start > end) return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${size}` } });
+    headers['Content-Range'] = `bytes ${start}-${end}/${size}`;
+    headers['Content-Length'] = String(end - start + 1);
+    return new Response(buf.slice(start, end + 1), { status: 206, headers });
+  }
+  headers['Content-Length'] = String(size);
+  return new Response(buf, { status: 200, headers });
+}
+
+async function listChats(env, url) {
+  if (url.searchParams.get('count')) {
+    const r = await env.DB.prepare('SELECT COALESCE(SUM(unread), 0) AS n FROM contacts').first();
+    return json({ unreadTotal: r ? r.n : 0 });
+  }
+  const filter = url.searchParams.get('filter') || '';
+  const q = (url.searchParams.get('q') || '').trim().toLowerCase().slice(0, 100);
+  const where = [];
+  if (filter === 'unread') where.push('c.unread > 0');
+  else if (filter === 'target') where.push("c.traffic = 'target'");
+  else if (filter === 'organic') where.push("c.traffic = 'organic'");
+  const { results } = await env.DB.prepare(
+    CHAT_SELECT + (where.length ? 'WHERE ' + where.join(' AND ') + ' ' : '') + 'ORDER BY c.last_message_at DESC, c.id DESC LIMIT ' + (q ? 2000 : 300)
+  ).all();
+  let rows = results || [];
+  if (q) {
+    // SQLite LIKE is not case-insensitive for Cyrillic, so the search runs here.
+    const qd = q.replace(/\D/g, '');
+    rows = rows.filter((r) => {
+      const hay = [r.name, r.last_preview, r.product_name, r.target_code, r.number_label].join(' ').toLowerCase();
+      return hay.includes(q) || (qd.length >= 3 && String(r.phone).includes(qd));
+    }).slice(0, 300);
+  }
+  const tot = await env.DB.prepare('SELECT COALESCE(SUM(unread), 0) AS n FROM contacts').first();
+  return json({ chats: rows.map(chatOut), unreadTotal: tot ? tot.n : 0 });
+}
+
+async function openChat(env, idStr) {
+  const c = await loadChat(env, idStr);
+  const { results } = await env.DB.prepare('SELECT * FROM messages WHERE contact_id = ? ORDER BY ts DESC, id DESC LIMIT 500').bind(c.id).all();
+  if (c.unread) await env.DB.prepare('UPDATE contacts SET unread = 0 WHERE id = ?').bind(c.id).run();
+  c.unread = 0;
+  return json({ chat: chatOut(c), messages: (results || []).reverse().map(messageOut) });
+}
+
+/* ----- numbers and targets ----- */
+async function numbersApi(req, env, user, p, m) {
+  const admin = user.role === 'admin';
+  let mt;
+  if (p === '/api/wa-numbers') {
+    if (m === 'GET') {
+      const { results } = await env.DB.prepare('SELECT * FROM wa_numbers ORDER BY id').all();
+      return json({ numbers: (results || []).map((r) => numberOut(r, admin)) });
+    }
+    if (m === 'POST') {
+      requireAdmin(user);
+      const b = await readJson(req);
+      const phone = cleanPhone(b.phone);
+      const label = str(b.label, 60, 'Подпись');
+      const status = b.status === undefined ? 'active' : str(b.status, 10, 'Статус');
+      if (!NUMBER_STATUSES.includes(status)) fail(400, 'Неизвестный статус номера');
+      const pnid = str(b.phoneNumberId, 40, 'Phone Number ID');
+      const ts = nowIso();
+      // The very first number becomes the current one, so that the links work right away.
+      const any = await env.DB.prepare('SELECT COUNT(*) AS n FROM wa_numbers WHERE is_current = 1').first();
+      const cur = !any.n && status === 'active' ? 1 : 0;
+      const r = await uniqueOr409(env.DB.prepare(
+        'INSERT INTO wa_numbers (phone, label, phone_number_id, status, is_current, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      ).bind(phone, label, pnid || null, status, cur, str(b.note, 300, 'Заметка'), ts, ts).run(), 'Такой номер или Phone Number ID уже есть');
+      await auditStmt(env, user.email, 'wa-number-add', null, null, `number#${r.meta.last_row_id}`).run();
+      return json({ ok: true, id: r.meta.last_row_id }, 201);
+    }
+  }
+  if ((mt = p.match(/^\/api\/wa-numbers\/(\d+)$/))) {
+    const id = parseInt(mt[1], 10);
+    if (m === 'PATCH') {
+      requireAdmin(user);
+      const cur = await env.DB.prepare('SELECT * FROM wa_numbers WHERE id = ?').bind(id).first();
+      if (!cur) fail(404, 'Номер не найден');
+      const b = await readJson(req);
+      const set = {};
+      if ('phone' in b) set.phone = cleanPhone(b.phone);
+      if ('label' in b) set.label = str(b.label, 60, 'Подпись');
+      if ('note' in b) set.note = str(b.note, 300, 'Заметка');
+      if ('phoneNumberId' in b) set.phone_number_id = str(b.phoneNumberId, 40, 'Phone Number ID') || null;
+      if ('status' in b) {
+        set.status = str(b.status, 10, 'Статус');
+        if (!NUMBER_STATUSES.includes(set.status)) fail(400, 'Неизвестный статус номера');
+      }
+      const names = Object.keys(set);
+      if (!names.length) return json({ ok: true });
+      set.updated_at = nowIso();
+      const keys = Object.keys(set);
+      await uniqueOr409(env.DB.batch([
+        env.DB.prepare(`UPDATE wa_numbers SET ${keys.map((k) => k + ' = ?').join(', ')} WHERE id = ?`).bind(...keys.map((k) => set[k]), id),
+        auditStmt(env, user.email, 'wa-number-edit', null, null, `number#${id} ${names.join(',')}`)
+      ]), 'Такой номер или Phone Number ID уже есть');
+      // Tell the page when the number that all links point to stopped being usable.
+      return json({ ok: true, linksBroken: !!(cur.is_current && set.status && set.status !== 'active') });
+    }
+    if (m === 'DELETE') {
+      requireAdmin(user);
+      const cur = await env.DB.prepare('SELECT * FROM wa_numbers WHERE id = ?').bind(id).first();
+      if (!cur) fail(404, 'Номер не найден');
+      if (cur.is_current) fail(409, 'Сначала выберите другой номер для ссылок');
+      const used = await env.DB.prepare('SELECT (SELECT COUNT(*) FROM contacts WHERE number_id = ?1) + (SELECT COUNT(*) FROM messages WHERE number_id = ?1) AS n').bind(id).first();
+      if (used.n) fail(409, 'По этому номеру есть переписка — удалить нельзя. Отметьте номер «выключен».');
+      await env.DB.batch([
+        env.DB.prepare('DELETE FROM wa_numbers WHERE id = ?').bind(id),
+        auditStmt(env, user.email, 'wa-number-del', null, null, `number#${id}`)
+      ]);
+      return json({ ok: true });
+    }
+  }
+  if ((mt = p.match(/^\/api\/wa-numbers\/(\d+)\/current$/)) && m === 'POST') {
+    requireAdmin(user);
+    const id = parseInt(mt[1], 10);
+    const n = await env.DB.prepare('SELECT * FROM wa_numbers WHERE id = ?').bind(id).first();
+    if (!n) fail(404, 'Номер не найден');
+    if (n.status !== 'active') fail(409, 'Ссылки нельзя направить на заблокированный или выключенный номер');
+    const ts = nowIso();
+    await env.DB.batch([
+      env.DB.prepare('UPDATE wa_numbers SET is_current = 0, updated_at = ? WHERE is_current = 1 AND id != ?').bind(ts, id),
+      env.DB.prepare('UPDATE wa_numbers SET is_current = 1, updated_at = ? WHERE id = ?').bind(ts, id),
+      auditStmt(env, user.email, 'wa-current', null, null, `number#${id}`)
+    ]);
+    return json({ ok: true });
+  }
+  return null;
+}
+
+const TARGET_SELECT =
+  'SELECT t.*, (SELECT COUNT(*) FROM contacts c WHERE t.code = c.target_code) AS contacts FROM target_texts t ';
+
+function cleanTargetCode(v) {
+  const code = str(v, 12, 'Код');
+  if (!/^[A-Za-z0-9_-]{1,12}$/.test(code)) fail(400, 'Код: до 12 латинских букв и цифр, например A3');
+  return code;
+}
+
+async function targetsApi(req, env, user, p, m) {
+  let mt;
+  if (p === '/api/targets') {
+    if (m === 'GET') {
+      const { results } = await env.DB.prepare(TARGET_SELECT + 'ORDER BY t.id').all();
+      return json({ targets: (results || []).map(targetOut) });
+    }
+    if (m === 'POST') {
+      requireAdmin(user);
+      const b = await readJson(req);
+      const code = cleanTargetCode(b.code);
+      const text = str(b.text, 1000, 'Текст сообщения');
+      if (!text) fail(400, 'Введите текст сообщения');
+      const ts = nowIso();
+      const r = await uniqueOr409(env.DB.prepare(
+        'INSERT INTO target_texts (product_name, code, text, active, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).bind(str(b.productName, 200, 'Товар'), code, text, b.active === false ? 0 : 1, str(b.note, 300, 'Заметка'), ts, ts).run(), 'Такой код уже есть');
+      await auditStmt(env, user.email, 'target-add', null, null, `target#${r.meta.last_row_id} ${code}`).run();
+      return json({ ok: true, id: r.meta.last_row_id }, 201);
+    }
+  }
+  if ((mt = p.match(/^\/api\/targets\/(\d+)$/))) {
+    const id = parseInt(mt[1], 10);
+    if (m === 'PATCH') {
+      requireAdmin(user);
+      const b = await readJson(req);
+      const set = {};
+      if ('productName' in b) set.product_name = str(b.productName, 200, 'Товар');
+      if ('code' in b) set.code = cleanTargetCode(b.code);
+      if ('text' in b) { set.text = str(b.text, 1000, 'Текст сообщения'); if (!set.text) fail(400, 'Введите текст сообщения'); }
+      if ('active' in b) set.active = b.active ? 1 : 0;
+      if ('note' in b) set.note = str(b.note, 300, 'Заметка');
+      const names = Object.keys(set);
+      if (!names.length) return json({ ok: true });
+      set.updated_at = nowIso();
+      const keys = Object.keys(set);
+      const res = await uniqueOr409(env.DB.batch([
+        env.DB.prepare(`UPDATE target_texts SET ${keys.map((k) => k + ' = ?').join(', ')} WHERE id = ?`).bind(...keys.map((k) => set[k]), id),
+        auditStmt(env, user.email, 'target-edit', null, null, `target#${id} ${names.join(',')}`)
+      ]), 'Такой код уже есть');
+      if (!res[0].meta.changes) fail(404, 'Текст не найден');
+      return json({ ok: true });
+    }
+    if (m === 'DELETE') {
+      requireAdmin(user);
+      const res = await env.DB.batch([
+        env.DB.prepare('DELETE FROM target_texts WHERE id = ?').bind(id),
+        auditStmt(env, user.email, 'target-del', null, null, `target#${id}`)
+      ]);
+      if (!res[0].meta.changes) fail(404, 'Текст не найден');
+      return json({ ok: true });
+    }
+  }
+  return null;
+}
+
+// Session-auth part of the inbox API; returns null when the path is not an inbox path.
+async function inboxApi(req, env, url, user) {
+  const p = url.pathname, m = req.method;
+  let mt;
+  if (p === '/api/chats' && m === 'GET') return listChats(env, url);
+  if ((mt = p.match(/^\/api\/chats\/(\d+)$/)) && m === 'GET') return openChat(env, mt[1]);
+  if ((mt = p.match(/^\/api\/chats\/(\d+)\/send$/)) && m === 'POST') return sendChatMessage(env, user, mt[1], await readJson(req));
+  if ((mt = p.match(/^\/api\/chats\/(\d+)\/source$/)) && m === 'POST') return setChatSource(env, user, mt[1], await readJson(req));
+  if ((mt = p.match(/^\/api\/chats\/(\d+)\/order$/)) && m === 'POST') return orderFromChat(env, user, mt[1]);
+  if ((mt = p.match(/^\/api\/media\/(\d+)$/)) && m === 'GET') return mediaProxy(req, env, mt[1]);
+  if (p === '/api/wa-numbers' || p.startsWith('/api/wa-numbers/')) return numbersApi(req, env, user, p, m);
+  if (p === '/api/targets' || p.startsWith('/api/targets/')) return targetsApi(req, env, user, p, m);
+  return null;
+}
+
+/* ----- public links: /wa and /wa/<code> ----- */
+function unavailablePage() {
+  const html = '<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<meta name="robots" content="noindex"><title>Номер временно недоступен</title><link rel="stylesheet" href="/app.css"></head>' +
+    '<body><main class="wrap"><div class="card"><div class="h1">Номер временно недоступен</div>' +
+    '<p>Мы уже работаем над этим. Пожалуйста, попробуйте написать нам чуть позже.</p></div></main></body></html>';
+  return new Response(html, { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Retry-After': '300' } });
+}
+async function waLink(env, code, count) {
+  const cur = await env.DB.prepare('SELECT phone FROM wa_numbers WHERE is_current = 1').first();
+  if (!cur) return unavailablePage();
+  let target = null;
+  if (code) {
+    target = await env.DB.prepare('SELECT id, text FROM target_texts WHERE code = ? AND active = 1').bind(code).first();
+    if (target && count) await env.DB.prepare('UPDATE target_texts SET clicks = clicks + 1 WHERE id = ?').bind(target.id).run();
+  }
+  const to = `https://wa.me/${cur.phone}` + (target && target.text ? `?text=${encodeURIComponent(target.text)}` : '');
+  return new Response(null, { status: 302, headers: { Location: to } });
+}
+
 /* ---------- punctual autopublishing ----------
    GitHub starts its own scheduled runs 10-40 min late, so a Cloudflare cron (wrangler.toml [triggers]) checks every
    5 minutes whether an approved slot is due and still waiting, and if so starts the publish workflow right away.
@@ -1030,6 +1654,12 @@ export default {
       }
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') return secure(new Response('Method Not Allowed', { status: 405 }));
+    // Public click-to-WhatsApp links for ads and landing pages: they follow the number marked as current.
+    const wl = url.pathname.match(/^\/wa(?:\/([A-Za-z0-9_-]{1,12}))?\/?$/);
+    if (wl) {
+      try { return secure(await waLink(env, wl[1] || '', req.method === 'GET'), { api: true }); }
+      catch (e) { console.error('wa link error'); return secure(unavailablePage(), { api: true }); }
+    }
     return secure(await env.ASSETS.fetch(req));
   }
 };
