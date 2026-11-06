@@ -1461,6 +1461,29 @@ async function ensureWaNumber(env, cache, phoneNumberId, displayPhone, connectio
   return row || null;
 }
 
+// A WhatsApp message the connector could not decrypt is stored with this text (connector/src/map.js NOTE_UNDECRYPTED), so the
+// client's chat appears at once; when WhatsApp delivers the same message again decrypted, fillUndecrypted puts the real content in.
+const UNDECRYPTED_NOTE = 'Сообщение не расшифровалось — откройте этот чат на телефоне';
+async function fillUndecrypted(env, ctx, had, msg, ev) {
+  await env.DB.prepare('UPDATE messages SET type = ?, body = ?, caption = ?, media_id = ?, media_url = ?, media_mime = ?, media_ref = ? WHERE id = ?')
+    .bind(msg.type, msg.body || '', msg.caption || '', msg.mediaId || '', msg.mediaUrl || '', msg.mime || '', msg.mediaRef || '', had.id).run();
+  const c = await env.DB.prepare('SELECT * FROM contacts WHERE id = ?').bind(had.contact_id).first();
+  if (!c) return;
+  const sets = [], binds = [];
+  const last = await env.DB.prepare('SELECT id FROM messages WHERE contact_id = ? ORDER BY ts DESC, id DESC LIMIT 1').bind(c.id).first();
+  if (last && last.id === had.id) { sets.push('last_preview = ?'); binds.push(previewOf(msg, 'in')); }
+  // the source was decided from the placeholder: decide it again from the real first message
+  const first = await env.DB.prepare("SELECT id FROM messages WHERE contact_id = ? AND direction = 'in' ORDER BY ts, id LIMIT 1").bind(c.id).first();
+  if (first && first.id === had.id && !c.source_manual && c.traffic === 'organic' && ev.kind === 'message') {
+    const src = detectSource({ text: msg.body || msg.caption, referral: msg.referral, targets: ctx.targets });
+    sets.push('traffic = ?', 'platform = ?', 'target_code = ?', "product_name = CASE WHEN ? != '' THEN ? ELSE product_name END");
+    binds.push(src.traffic, src.platform || '', src.code || '', src.product || '', src.product || '');
+  }
+  if (!sets.length) return;
+  sets.push('updated_at = ?'); binds.push(nowIso());
+  await env.DB.prepare(`UPDATE contacts SET ${sets.join(', ')} WHERE id = ?`).bind(...binds, c.id).run();
+}
+
 async function processWaEvent(env, ctx, ev) {
   if (ev.kind === 'status') {
     if (!MSG_STATUSES.includes(ev.status) || !ev.id) return;
@@ -1473,7 +1496,14 @@ async function processWaEvent(env, ctx, ev) {
   }
   const msg = ev.msg;
   if (!ev.waId || !msg) return;
-  if (msg.id && await env.DB.prepare('SELECT id FROM messages WHERE ext_msg_id = ?').bind(msg.id).first()) return; // webhook retry
+  if (msg.undecrypted) { msg.type = 'other'; msg.body = UNDECRYPTED_NOTE; msg.caption = ''; msg.mediaRef = ''; msg.referral = null; }
+  if (msg.id) {
+    const had = await env.DB.prepare('SELECT id, contact_id, body, type FROM messages WHERE ext_msg_id = ?').bind(msg.id).first();
+    if (had) {   // webhook retry, or the real content of a message that first arrived undecryptable
+      if (!msg.undecrypted && had.type === 'other' && had.body === UNDECRYPTED_NOTE) await fillUndecrypted(env, ctx, had, msg, ev);
+      return;
+    }
+  }
   const number = await ensureWaNumber(env, ctx.numbers, ev.phoneNumberId, ev.displayPhone, ctx.connection);
   const live = ev.kind === 'message';
   const ts = msg.ts;
@@ -1492,7 +1522,8 @@ async function processWaEvent(env, ctx, ev) {
     // The source is decided once, on the first message: live inbound -> detect; history sync -> old; the owner wrote first -> organic.
     let src = { traffic: 'organic', platform: '', code: '', product: '' };
     if (ev.kind === 'history') src.traffic = 'old';
-    else if (live) src = detectSource({ text: msg.body || msg.caption, referral: msg.referral, targets: ctx.targets });
+    else if (live && !msg.undecrypted) src = detectSource({ text: msg.body || msg.caption, referral: msg.referral, targets: ctx.targets });
+    // undecryptable first message: organic for now, decided again when its real text arrives (fillUndecrypted)
     await env.DB.prepare(
       "INSERT INTO contacts (channel, ext_id, phone, id_kind, name, traffic, platform, target_code, product_name, number_id, first_message_at, created_at, updated_at) " +
       "VALUES ('whatsapp', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(channel, ext_id) DO NOTHING"
@@ -1683,12 +1714,13 @@ async function ingestHistory(env, ctx, events) {
   // Messages of this batch that already belong to another contact: the same chat under another id.
   const allIds = [...chats.values()].flatMap((c) => [...c.ids]);
   const owner = new Map();
+  const placeholders = new Set();   // ids stored as «не расшифровалось»: this batch brings their real content
   for (let i = 0; i < allIds.length; i += 90) {
     const part = allIds.slice(i, i + 90);
     const { results } = await env.DB.prepare(
-      `SELECT m.ext_msg_id AS mid, c.ext_id AS ext, c.id_kind AS kind FROM messages m JOIN contacts c ON c.id = m.contact_id WHERE m.ext_msg_id IN (${part.map(() => '?').join(',')})`
-    ).bind(...part).all();
-    for (const r of results || []) owner.set(r.mid, { ext: r.ext, kind: r.kind });
+      `SELECT m.ext_msg_id AS mid, c.ext_id AS ext, c.id_kind AS kind, (m.type = 'other' AND m.body = ?) AS ph FROM messages m JOIN contacts c ON c.id = m.contact_id WHERE m.ext_msg_id IN (${part.map(() => '?').join(',')})`
+    ).bind(UNDECRYPTED_NOTE, ...part).all();
+    for (const r of results || []) { owner.set(r.mid, { ext: r.ext, kind: r.kind }); if (r.ph) placeholders.add(r.mid); }
   }
   const moved = [];
   for (const [waId, c] of [...chats]) {
@@ -1756,6 +1788,9 @@ async function ingestHistory(env, ctx, events) {
         "SELECT id, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15 FROM contacts WHERE channel = 'whatsapp' AND ext_id = ?1 ON CONFLICT(ext_msg_id) DO NOTHING"
       ).bind(waId, ev.direction, c.number ? c.number.id : null, m.id || null, m.type, m.body || '', m.mediaId || '', m.mediaUrl || '', m.mime || '',
         m.caption || '', out ? 'sent' : 'received', out ? 1 : 0, m.ts, ts0, m.mediaRef || ''));
+      if (m.id && placeholders.has(m.id)) stmts.push(env.DB.prepare(
+        "UPDATE messages SET type = ?1, body = ?2, caption = ?3 WHERE ext_msg_id = ?4 AND type = 'other' AND body = ?5"
+      ).bind(m.type, m.body || '', m.caption || '', m.id, UNDECRYPTED_NOTE));
     }
     // Summary of the chat from this batch (only moves forward / backward, so order and repeats do not matter).
     const latest = c.msgs.reduce((a, e) => (e.msg.ts >= a.msg.ts ? e : a), c.msgs[0]);
@@ -1783,6 +1818,39 @@ async function ingestHistory(env, ctx, events) {
   for (const [waId, nm] of names) {
     if (!chats.has(waId)) stmts.push(env.DB.prepare("UPDATE contacts SET name = ?1, updated_at = ?2 WHERE channel = 'whatsapp' AND ext_id = ?3 AND name = ''").bind(nm, ts0, waId));
   }
+  for (let i = 0; i < stmts.length; i += 90) await env.DB.batch(stmts.slice(i, i + 90));
+  await classifyFreshHistory(env, ctx, [...chats.keys()], ts0);
+}
+
+// A chat that first reaches the CRM through history (the connector was offline, or a new QR pairing brought back chats it had
+// missed) but whose FIRST message is recent is a new client, not an old one: its source is detected from that first message and
+// it is shown unread when the client wrote last. Only rows created by this very batch (created_at = ts0) are touched.
+const FRESH_HISTORY_MS = 72 * 3600 * 1000;
+async function classifyFreshHistory(env, ctx, waIds, ts0) {
+  const ids = [...new Set(waIds.filter(Boolean))];
+  if (!ids.length) return;
+  const since = new Date(Date.parse(ts0) - FRESH_HISTORY_MS).toISOString();
+  const rows = [];
+  for (let i = 0; i < ids.length; i += 90) {
+    const part = ids.slice(i, i + 90);
+    const { results } = await env.DB.prepare(
+      "SELECT c.id, " +
+      "(SELECT m.body FROM messages m WHERE m.contact_id = c.id AND m.direction = 'in' ORDER BY m.ts, m.id LIMIT 1) AS first_in, " +
+      "(SELECT m.direction FROM messages m WHERE m.contact_id = c.id ORDER BY m.ts DESC, m.id DESC LIMIT 1) AS last_dir " +
+      `FROM contacts c WHERE c.channel = 'whatsapp' AND c.created_at = ? AND c.traffic = 'old' AND c.source_manual = 0 AND c.first_message_at >= ? AND c.ext_id IN (${part.map(() => '?').join(',')})`
+    ).bind(ts0, since, ...part).all();
+    for (const r of results || []) if (r.first_in != null) rows.push(r);
+  }
+  if (!rows.length) return;
+  let targets = ctx.targets;
+  if (!targets || !targets.length) { const t = await env.DB.prepare('SELECT * FROM target_texts WHERE active = 1').all(); targets = t.results || []; }
+  const stmts = rows.map((r) => {
+    const src = detectSource({ text: r.first_in === UNDECRYPTED_NOTE ? '' : r.first_in || '', referral: null, targets });
+    return env.DB.prepare(
+      "UPDATE contacts SET traffic = ?, platform = ?, target_code = ?, product_name = CASE WHEN ? != '' THEN ? ELSE product_name END, " +
+      "unread = CASE WHEN ? = 'in' AND unread = 0 THEN 1 ELSE unread END, updated_at = ? WHERE id = ? AND traffic = 'old' AND source_manual = 0"
+    ).bind(src.traffic, src.platform || '', src.code || '', src.product || '', src.product || '', r.last_dir || '', nowIso(), r.id);
+  });
   for (let i = 0; i < stmts.length; i += 90) await env.DB.batch(stmts.slice(i, i + 90));
 }
 

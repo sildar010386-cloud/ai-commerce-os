@@ -10,6 +10,10 @@ export const MAX_MEDIA_BYTES = 1.5 * 1024 * 1024;
 export const NOTE_BIG = 'файл больше 1,5 МБ — откройте на телефоне';
 export const NOTE_VIDEO = 'видео — откройте на телефоне';
 export const NOTE_HISTORY = 'вложение из истории — откройте на телефоне';
+// A message WhatsApp delivered but this computer could not decrypt (Baileys gives a CIPHERTEXT stub without content). The chat
+// still goes to the CRM, so a new client is never lost; the CRM replaces this text when the real message arrives (same id).
+export const NOTE_UNDECRYPTED = 'Сообщение не расшифровалось — откройте этот чат на телефоне';
+const STUB_CIPHERTEXT = 1;   // proto.WebMessageInfo.StubType.CIPHERTEXT
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const str = (v) => (v == null ? '' : String(v));
@@ -135,7 +139,8 @@ export function describeContent(content) {
 //   kind 'auto': fromMe -> 'echo', otherwise 'message'.
 export function mapMessage(m, ctx) {
   try {
-    if (!isObj(m) || !isObj(m.key) || !m.message) return null;
+    if (!isObj(m) || !isObj(m.key)) return null;
+    if (!m.message) return mapUndecrypted(m, ctx);
     const chat = chatIdOf(m.key);
     if (!chat) return null;
     const d = describeContent(m.message);
@@ -161,6 +166,32 @@ export function mapMessage(m, ctx) {
   } catch (e) {
     return null;
   }
+}
+
+// Is this a message WhatsApp delivered that could not be decrypted here? -> the reason text, else ''.
+export function undecryptedReason(m) {
+  if (!isObj(m) || m.message || toNum(m.messageStubType) !== STUB_CIPHERTEXT) return '';
+  const p = Array.isArray(m.messageStubParameters) ? m.messageStubParameters : [];
+  return str(p[0] || 'unknown').slice(0, 80);
+}
+
+// A CIPHERTEXT stub of an incoming 1:1 message -> a placeholder 'message' event. Stubs come only from real deliveries (live or the
+// offline queue), never from a history sync, so even an 'append' stub is a client writing to us; older than 14 days = ignored.
+export const UNDECRYPTED_MAX_AGE_S = 14 * 86400;
+function mapUndecrypted(m, ctx) {
+  if (!undecryptedReason(m) || m.key.fromMe === true) return null;
+  const chat = chatIdOf(m.key);
+  if (!chat || (ctx.ownPhone && chat.waId === digits(ctx.ownPhone)) || (ctx.ownLid && chat.lidUser === str(ctx.ownLid))) return null;   // our own phone
+  const nowS = Math.floor((ctx.now || Date.now()) / 1000);
+  const ts = toNum(m.messageTimestamp) || nowS;
+  if (ts < nowS - UNDECRYPTED_MAX_AGE_S) return null;
+  const event = {
+    kind: 'message', numberPhone: str(ctx.ownPhone), waId: chat.waId, profileName: str(m.pushName).slice(0, 200), direction: 'in',
+    msg: { id: str(m.key.id), ts, type: 'other', body: NOTE_UNDECRYPTED, mime: '', caption: '', referral: null, mediaRef: '', undecrypted: true }
+  };
+  if (chat.lidUser) event.lid = chat.lidUser;
+  event.chatJid = chatJidOf(chat);
+  return { event, media: null, chat, undecrypted: true };
 }
 
 // proto.WebMessageInfo.Status: 0 ERROR, 1 PENDING, 2 SERVER_ACK, 3 DELIVERY_ACK, 4 READ, 5 PLAYED

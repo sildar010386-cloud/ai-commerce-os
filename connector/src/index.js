@@ -6,7 +6,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 import QRCode from 'qrcode';
-import makeWASocket, { useMultiFileAuthState, fetchLatestBaileysVersion, downloadMediaMessage, downloadHistory, Browsers } from '@whiskeysockets/baileys';
+import makeWASocket, { fetchLatestBaileysVersion, downloadMediaMessage, downloadHistory, Browsers, BufferJSON, initAuthCreds, proto } from '@whiskeysockets/baileys';
+import { useDurableAuthState } from './authstate.js';
 import { createCrm } from './crm.js';
 import { createEventQueue } from './queue.js';
 import { createBridge } from './bridge.js';
@@ -54,8 +55,10 @@ const queue = createEventQueue({ file: cfg.queueFile, send: (events) => crm.even
 const FULL_SYNC = process.env.SYNC_FULL_HISTORY === '1';
 const voiceHint = { current: null };
 let waVersion;
+let auth = null;    // the session store of the current socket (flushed before a planned stop)
 async function makeSocket() {
-  const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
+  auth = await useDurableAuthState(AUTH_DIR, { BufferJSON, initAuthCreds, proto });
+  const { state, saveCreds } = auth;
   if (!waVersion) {
     try { waVersion = (await fetchLatestBaileysVersion()).version; } catch (e) { waVersion = undefined; }
   }
@@ -103,6 +106,19 @@ const bridge = createBridge({
 });
 
 bridge.start();
-for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => { bridge.stop(); setTimeout(() => process.exit(0), 300); });
+// A planned stop (update, Остановить.cmd, the supervisor restarting us) lets the session files finish writing first: a key file
+// cut in half makes that chat's messages undecryptable. The supervisor asks over IPC (on Windows a signal is a hard kill).
+let stopping = false;
+async function shutdown(why) {
+  if (stopping) return;
+  stopping = true;
+  appLog.info(`stopping (${why})`);
+  try { bridge.stop(); } catch (e) { /* ignore */ }
+  try { if (auth) await auth.flush(3000); } catch (e) { /* ignore */ }
+  setTimeout(() => process.exit(0), 200);
+}
+for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => shutdown(sig));
+process.on('message', (m) => { if (m && m.cmd === 'stop') shutdown('asked by the supervisor'); });
+process.on('disconnect', () => shutdown('the supervisor is gone'));
 process.on('unhandledRejection', (e) => appLog.error('unhandledRejection: ' + short(e && e.message, 200)));
 process.on('uncaughtException', (e) => { appLog.error('uncaughtException: ' + short(e && e.message, 200)); setTimeout(() => process.exit(1), 300); });

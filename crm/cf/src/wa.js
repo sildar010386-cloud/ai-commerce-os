@@ -192,7 +192,8 @@ export function normalizeInboxEvents(body) {
         msg: {
           id: s(m.id).slice(0, 200), ts: isoFromTs(m.ts), type, body: s(m.body).slice(0, 4096), mediaId: s(m.mediaId).slice(0, 300),
           mediaUrl: /^https?:\/\//i.test(url) ? url.slice(0, 2000) : '', mediaRef: /^[A-Za-z0-9_-]{1,64}$/.test(s(m.mediaRef)) ? s(m.mediaRef) : '', mime: s(m.mime).slice(0, 100), caption: s(m.caption).slice(0, 1024),
-          voice: type === 'voice', referral: isObj(m.referral) ? m.referral : null
+          voice: type === 'voice', referral: isObj(m.referral) ? m.referral : null,
+          undecrypted: e.kind === 'message' && m.undecrypted === true
         }
       }));
     }

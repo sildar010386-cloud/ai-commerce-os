@@ -20,7 +20,12 @@ export function createEventQueue({ file, send, log = console, batch = 5, history
   } catch (e) { log.warn && log.warn('queue load failed: ' + e.message); }
 
   const persist = () => {
-    try { fs.writeFileSync(file, lines.length ? lines.join('\n') + '\n' : ''); } catch (e) { log.warn && log.warn('queue write failed: ' + e.message); }
+    // tmp + rename: a process killed during the write keeps the previous complete file (a half-written queue loses messages)
+    const data = lines.length ? lines.join('\n') + '\n' : '';
+    try { fs.writeFileSync(file + '.tmp', data); fs.renameSync(file + '.tmp', file); }
+    catch (e) {
+      try { fs.writeFileSync(file, data); } catch (e2) { log.warn && log.warn('queue write failed: ' + e2.message); }
+    }
   };
   const append = (events) => {
     for (const e of events) lines.push(JSON.stringify(e));

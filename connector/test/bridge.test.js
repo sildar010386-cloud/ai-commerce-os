@@ -614,3 +614,66 @@ test('right after pairing (no online.json) appended messages stay history; relin
   assert.ok(!fs.existsSync(path.join(dir, 'online.json')));
   t.bridge.stop();
 });
+
+test('a message that could not be decrypted still reaches the CRM as a placeholder (new client is never lost); own phone and old stubs are not', async () => {
+  const lines = [];
+  const t = setup({ log: { info: (m) => lines.push(m), warn() {}, error() {} } });
+  await open(t);
+  t.sockets[0].user.lid = '122149071269903:5@lid';
+  const nowS = Math.floor(Date.now() / 1000);
+  t.sockets[0].ev.emit('messages.upsert', { type: 'notify', messages: [
+    { key: { remoteJid: '77015550010@s.whatsapp.net', fromMe: false, id: 'BAD1' }, messageStubType: 1, messageStubParameters: ['Key used already or never filled'], messageTimestamp: nowS - 60, pushName: 'Гульнар' },
+    { key: { remoteJid: '26000000000001@lid', fromMe: false, id: 'BAD2' }, messageStubType: 1, messageStubParameters: ['No matching sessions found for message'], messageTimestamp: nowS - 30 },
+    { key: { remoteJid: '122149071269903@lid', fromMe: false, id: 'OWN' }, messageStubType: 1, messageStubParameters: ['No matching sessions found for message'], messageTimestamp: nowS },
+    { key: { remoteJid: '77011112233@s.whatsapp.net', fromMe: false, id: 'OWN2' }, messageStubType: 1, messageStubParameters: ['x'], messageTimestamp: nowS },
+    { key: { remoteJid: '77015550011@s.whatsapp.net', fromMe: true, id: 'MINE' }, messageStubType: 1, messageStubParameters: ['x'], messageTimestamp: nowS },
+    { key: { remoteJid: '77015550012@s.whatsapp.net', fromMe: false, id: 'ANCIENT' }, messageStubType: 1, messageStubParameters: ['x'], messageTimestamp: nowS - 20 * 86400 },
+    { key: { remoteJid: '77015550013@s.whatsapp.net', fromMe: false, id: 'OK1' }, message: { conversation: 'Здравствуйте' }, messageTimestamp: nowS }
+  ] });
+  for (let i = 0; i < 8; i++) await tick();
+  const ids = t.calls.events.map((e) => e.msg && e.msg.id);
+  assert.deepEqual(ids.sort(), ['BAD1', 'BAD2', 'OK1']);
+  const bad = t.calls.events.find((e) => e.msg.id === 'BAD1');
+  assert.equal(bad.kind, 'message');
+  assert.equal(bad.direction, 'in');
+  assert.equal(bad.waId, '77015550010');
+  assert.equal(bad.profileName, 'Гульнар');
+  assert.equal(bad.msg.undecrypted, true);
+  assert.match(bad.msg.body, /не расшифровалось/);
+  assert.equal(t.calls.events.find((e) => e.msg.id === 'BAD2').lid, '26000000000001');
+  // the log names every incoming message (last 4 digits only) and every failure
+  assert.ok(lines.some((l) => l.includes('***0010 NOT DECRYPTED (Key used already or never filled)')));
+  assert.ok(lines.some((l) => l === 'in: ***0013 text'));
+  assert.ok(!lines.some((l) => l.includes('77015550013')));
+  t.bridge.stop();
+});
+
+test('an offline stub (append) is a placeholder even right after pairing; live messages are queued one by one, before slow media', async () => {
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  const t = setup({ downloadMedia: async () => { await gate; return Buffer.alloc(10, 1); } });
+  await open(t);
+  const nowS = Math.floor(Date.now() / 1000);
+  t.sockets[0].ev.emit('messages.upsert', { type: 'append', messages: [
+    { key: { remoteJid: '77015550020@s.whatsapp.net', fromMe: false, id: 'STUB' }, messageStubType: 1, messageStubParameters: ['Bad MAC'], messageTimestamp: nowS - 3600 }
+  ] });
+  t.sockets[0].ev.emit('messages.upsert', { type: 'notify', messages: [
+    { key: { remoteJid: '77015550021@s.whatsapp.net', fromMe: false, id: 'TXT' }, message: { conversation: 'Сколько стоит?' }, messageTimestamp: nowS }
+  ] });
+  for (let i = 0; i < 8; i++) await tick();
+  assert.deepEqual(t.calls.events.map((e) => e.msg.id).sort(), ['STUB', 'TXT']);
+  assert.equal(t.calls.events.find((e) => e.msg.id === 'STUB').kind, 'message');
+  t.sockets[0].ev.emit('messages.upsert', { type: 'notify', messages: [
+    { key: { remoteJid: '77015550022@s.whatsapp.net', fromMe: false, id: 'PHOTO' }, message: { imageMessage: { mimetype: 'image/jpeg', fileLength: 10 } }, messageTimestamp: nowS },
+  ] });
+  t.sockets[0].ev.emit('messages.upsert', { type: 'notify', messages: [
+    { key: { remoteJid: '77015550023@s.whatsapp.net', fromMe: false, id: 'TXT2' }, message: { conversation: 'Есть доставка?' }, messageTimestamp: nowS }
+  ] });
+  for (let i = 0; i < 8; i++) await tick();
+  assert.ok(t.calls.events.some((e) => e.msg.id === 'TXT2'));   // not stuck behind the photo download
+  assert.ok(!t.calls.events.some((e) => e.msg.id === 'PHOTO'));
+  release();
+  for (let i = 0; i < 8; i++) await tick();
+  assert.equal(t.calls.events.find((e) => e.msg.id === 'PHOTO').msg.mediaRef, 'm1');
+  t.bridge.stop();
+});

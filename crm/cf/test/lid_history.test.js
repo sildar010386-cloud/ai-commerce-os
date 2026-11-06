@@ -168,7 +168,15 @@ test('history of @lid chats through the real connector and CRM: every listed cha
   const solo = lidOnly[0];
   assert.deepEqual((await thread(solo.id)).map((m) => m.body), ['Сколько стоит доставка в Алматы?', '500 тг']);
   assert.equal(solo.preview, 'Вы: 500 тг');
-  assert.ok(list.every((x) => x.traffic === 'old' && x.unread === 0));
+  // a chat whose first message is older than 72 h is an old client; a chat that STARTED within 72 h is a new client the connector
+  // missed (offline / new pairing): its source is detected and it is unread when the client wrote last
+  const firstAt = async (id) => (await db.prepare('SELECT first_message_at AS f FROM contacts WHERE id = ?').bind(id).first()).f;
+  const cut = new Date(Date.now() - 72 * 3600e3).toISOString();
+  for (const x of list) {
+    if ((await firstAt(x.id)) < cut) assert.ok(x.traffic === 'old' && x.unread === 0, 'old chat ' + x.id);
+    else assert.notEqual(x.traffic, 'old', 'recent chat ' + x.id);
+  }
+  assert.equal(byPhone(P1).traffic, 'old');
   // re-import (owner presses «Загрузить старые чаты заново» again): no duplicates
   const before = await db.prepare('SELECT (SELECT COUNT(*) FROM contacts) AS c, (SELECT COUNT(*) FROM messages) AS m').first();
   const c2 = await startConnector({ stateDir: c.dir });

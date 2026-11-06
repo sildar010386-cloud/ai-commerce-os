@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { short, describeUpdate } from './safelog.js';
-import { mapMessage, mapUpdates, mapReceipts, selectHistory, mapChats, readContacts, lidPairOfKey, unwrap, toNum, phoneOfJid, MAX_MEDIA_BYTES, chatIdOf, HISTORY_CAP, HISTORY_DAYS, HISTORY_PER_CHAT } from './map.js';
+import { mapMessage, undecryptedReason, mapUpdates, mapReceipts, selectHistory, mapChats, readContacts, lidPairOfKey, unwrap, toNum, phoneOfJid, MAX_MEDIA_BYTES, chatIdOf, HISTORY_CAP, HISTORY_DAYS, HISTORY_PER_CHAT } from './map.js';
 
 // base64 of 64 bytes (0..100) -> Uint8Array, otherwise null
 export function parseWave(b64) {
@@ -28,9 +28,11 @@ export function createBridge({
   now = Date.now, watchdogMs = 5 * 60000, watchTickMs = 15000, sleepGapMs = 60000, stuckMs = 3 * 60000,
   blobWaitMs = 60000, finalPassMs = 45000
 }) {
-  let gen = 0, sock = null, state = 'connecting', ownPhone = '', ownName = '';
+  let gen = 0, sock = null, state = 'connecting', ownPhone = '', ownName = '', ownLid = '';
   let lastCommandId = '';
   const info = (m) => { log.info && log.info(m); };
+  // A client id in the log: only the last 4 digits (the log may be shown to someone helping; numbers stay private).
+  const maskId = (id) => { const d = String(id || '').replace(/\D/g, ''); return d.length > 4 ? '***' + d.slice(-4) : d || '?'; };
   let reconnectN = 0, relinking = false, stopped = false, historyCount = 0, pollTimer = null, beatTimer = null, watchTimer = null;
   let lastActivity = now(), lastTick = now(), stateSince = now(), wsHooked = false;
   const sentIds = new Map();      // message ids we sent ourselves (their echo must not be reported as "sent from the phone")
@@ -97,6 +99,7 @@ export function createBridge({
   const readOwn = () => {
     const u = sock && sock.user;
     if (u && u.id) { ownPhone = phoneOfJid(u.id); ownName = String(u.name || u.verifiedName || ''); }
+    if (u && u.lid) ownLid = String(u.lid).split('@')[0].split(':')[0];
   };
 
   /* ---------- connection lifecycle ---------- */
@@ -254,7 +257,7 @@ export function createBridge({
     if (!ownPhone) return;
     const min = Math.floor(Date.now() / 1000) - HISTORY_DAYS * 86400;
     let offlineNew = 0;
-    const events = [];
+    const later = [];   // history-like messages: sent together at the end
     // The history-sync notification itself arrives here: Baileys drops the lid -> phone table of that blob, we read it ourselves.
     for (const m0 of u.messages || []) { const hp = harvestHistory(m0); if (hp) hp.catch(() => {}); }
     const pairs = [];
@@ -265,14 +268,19 @@ export function createBridge({
       const live = isLiveUpsert(u.type, m0);
       if (live && u.type === 'append') offlineNew++;
       const m = withPhone(m0);
-      const mapped = mapMessage(m, { ownPhone, kind: live ? 'auto' : 'history', allowAppend: live });
+      const mapped = mapMessage(m, { ownPhone, ownLid, kind: live ? 'auto' : 'history', allowAppend: live });
+      const why = undecryptedReason(m0);
+      if (why && m0.key && !m0.key.fromMe) info(`in: ${mapped ? maskId(mapped.event.waId) : '(not a client chat)'} NOT DECRYPTED (${why}), ${u.type}${mapped ? ': placeholder sent' : ''}`);
       if (!mapped) continue;
       if (mapped.chat.lid) rememberLid(mapped.chat.waId);
-      if (!live && mapped.event.msg.ts < min) continue;
-      events.push(live ? await withMedia(mapped, m) : mapped.event);
+      if (mapped.undecrypted) { await emit([mapped.event]); continue; }
+      if (!live) { if (mapped.event.msg.ts >= min) later.push(mapped.event); continue; }
+      // A live message is queued (written to disk) right away, one by one: nothing waits for the media of another message.
+      if (mapped.event.kind === 'message') info(`in: ${maskId(mapped.event.waId)} ${mapped.event.msg.type}${u.type === 'append' ? ' (offline)' : ''}`);
+      await emit([await withMedia(mapped, m)]);
     }
     if (offlineNew) info(`upsert: ${offlineNew} message(s) received while offline, handled as new`);
-    await emit(events);
+    await emit(later);
   }
 
   // A @lid chat whose phone number we know is stored under the phone (so it is the same client as in the phone's chat list).

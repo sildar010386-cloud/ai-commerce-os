@@ -80,13 +80,21 @@ export async function run(env = process.env) {
     let buf = '';
     stream.on('data', (d) => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { log.line(buf.slice(0, i).replace(/\r$/, ''), tag); buf = buf.slice(i + 1); } });
   };
+  // Asks the connector to stop by itself first (it finishes writing the WhatsApp session files: a file cut in half makes a chat
+  // undecryptable); only a connector that does not exit within 8 s is killed with its whole tree.
   const stopChild = () => new Promise((resolve) => {
     if (!child) return resolve();
     const c = child;
-    const t = setTimeout(() => { killTree(c.pid); try { c.kill('SIGKILL'); } catch (e) { /* gone */ } }, 5000);
-    c.once('exit', () => { clearTimeout(t); resolve(); });
-    try { c.kill(); } catch (e) { clearTimeout(t); resolve(); }
-    if (process.platform === 'win32') killTree(c.pid);       // the whole tree, at once
+    let done = false;
+    const finish = () => { if (!done) { done = true; clearTimeout(t); resolve(); } };
+    const t = setTimeout(() => { killTree(c.pid); try { c.kill('SIGKILL'); } catch (e) { /* gone */ } setTimeout(finish, 3000); }, 8000);
+    c.once('exit', finish);
+    let asked = false;
+    try { if (c.connected && typeof c.send === 'function') { c.send({ cmd: 'stop' }); asked = true; } } catch (e) { asked = false; }
+    if (!asked) {
+      try { c.kill(); } catch (e) { /* gone */ }
+      if (process.platform === 'win32') killTree(c.pid);     // no IPC channel: the old way
+    }
   });
   // Whatever way this supervisor ends, its child must not outlive it.
   process.on('exit', () => { if (child && child.pid) killTree(child.pid); });
@@ -115,7 +123,7 @@ export async function run(env = process.env) {
     const started = Date.now();
     log.line('starting the connector');
     const exitCode = await new Promise((resolve) => {
-      child = spawn(process.execPath, [entry], { cwd: cfg.appDir, env: childEnv(), stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+      child = spawn(process.execPath, [entry], { cwd: cfg.appDir, env: childEnv(), stdio: ['ignore', 'pipe', 'pipe', 'ipc'], windowsHide: true });
       pipe(child.stdout, 'out'); pipe(child.stderr, 'err');
       child.on('error', (e) => { log.line('cannot start: ' + e.message); resolve(null); });
       child.on('exit', (code, sig) => { log.line(`connector exited (code ${code}, signal ${sig})`); child = null; resolve(code); });
