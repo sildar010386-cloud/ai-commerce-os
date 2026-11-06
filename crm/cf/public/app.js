@@ -313,7 +313,8 @@ function renderSummary() {
   var paid = list.filter(function (o) { return PAID[o.status]; });
   var cash = paid.reduce(function (s, o) { return s + num(o.total != null ? o.total : o.sum); }, 0);
   var eco = adEco(S.period);
-  var kpis = [['Обращения', list.length], ['Заказы', nonCancel.length], ['Оплатили', paid.length], ['Касса (выручка)', fmt(cash)],
+  var inq = S.data.inq && S.data.inq.period === S.period ? S.data.inq.d : null;
+  var kpis = [['Обращения', inq ? inq.total : '…'], ['Заказы', nonCancel.length], ['Оплатили', paid.length], ['Касса (выручка)', fmt(cash)],
     ['Расход на рекламу', eco ? fmt(eco.adSpend) : '…'], ['Цена лида', eco ? (eco.cpl == null ? '—' : fmt(eco.cpl)) : '…']];
   var src = {};
   SOURCES.forEach(function (s) { src[s] = 0; });
@@ -349,10 +350,24 @@ function renderSummary() {
   var exCount = S.data.orders.filter(function (o) { return o.example; }).length;
   return errNotice('orders') + '<div class="h1">Статистика и касса</div>' + periodChips() +
     '<div class="kpis">' + kpis.map(function (k, i) { return '<div class="card kpi kc' + (i + 1) + '"><div class="k">' + k[0] + '</div><div class="v">' + k[1] + '</div></div>'; }).join('') + '</div>' +
+    inqCardHTML(inq) +
     '<div class="two"><div class="card"><div class="fw6 mb12">Откуда пришли заказы</div>' + srcHtml + '</div>' +
     '<div class="card"><div class="fw6 mb6">С каких постов заказы</div>' + topHtml + '<small class="db mt8">Топ-5 постов по числу оплаченных заказов.</small></div></div>' +
     '<div class="two">' + promoCard + upCard + '</div>' +
-    '<small>Период считается по дате создания заказа, часовой пояс Алматы.' + (exCount && !COUNT_EXAMPLES ? ' Примеры (' + exCount + ') в расчёт не входят.' : '') + '</small>';
+    '<small>Заказы считаются по дате создания, обращения — по последнему сообщению клиента; часовой пояс Алматы.' + (exCount && !COUNT_EXAMPLES ? ' Примеры (' + exCount + ') в расчёт не входят.' : '') + '</small>';
+}
+
+// «Обращения»: who wrote to WhatsApp in the period — new clients by source, and clients who had written before.
+function inqCardHTML(q) {
+  if (!q) return '<div class="card">' + (S.errors.inq ? '<div class="muted">Обращения не загрузились: ' + esc(S.errors.inq) + '</div>' : loadingHTML()) + '</div>';
+  var rows = [['Таргет', q.target, 'c1', 'новые клиенты с рекламы'], ['Органика', q.organic, 'c2', 'новые клиенты без рекламы'],
+    ['Повторные', q.returning + q.old, 'c4', 'писали раньше и написали снова']];
+  var max = Math.max(1, q.target, q.organic, q.returning + q.old);
+  return '<div class="card"><div class="fw6 mb12">Обращения из WhatsApp <small>написали за период: ' + q.total + '</small></div>' +
+    rows.map(function (r) {
+      return '<div class="mb12"><div class="bar-line"><span>' + r[0] + ' <small class="muted">' + r[3] + '</small></span><b>' + r[1] + '</b></div>' +
+        '<div class="bar"><i class="bg-' + r[2] + '" data-w="' + Math.round(r[1] / max * 100) + '"></i></div></div>';
+    }).join('') + '</div>';
 }
 
 function calcProfit(period) {
@@ -1827,7 +1842,18 @@ async function load(key) {
   scheduleRender();
 }
 function allKeys() { return S.admin ? ['orders', 'products', 'content', 'settings', 'finance', 'users', 'bot', 'numbers', 'targets', 'server', 'campaigns'] : ['orders', 'products', 'content', 'settings']; }
-async function loadAll() { await Promise.all(allKeys().map(load)); loadAdP(); }
+async function loadAll() { await Promise.all(allKeys().map(load)); loadAdP(); loadInq(); }
+/* «Обращения» of the selected period: WhatsApp clients who wrote (new: target / organic; returning). */
+async function loadInq() {
+  var per = S.period, r = periodRange(periodDays(per));
+  try {
+    var d = await api('GET', '/api/inquiries?from=' + r.from + '&to=' + r.to);
+    if (S.period !== per) return;
+    S.data.inq = { period: per, d: d };
+    delete S.errors.inq;
+  } catch (e) { if (e.status === 401) return; S.errors.inq = e.message; }
+  scheduleRender();
+}
 /* Ad spend and target leads of the selected period (profit and stats pages) and of the «Реклама» page range. */
 function dayKey(dn) { return new Date(dn * 864e5).toISOString().slice(0, 10); }
 function periodRange(days) { var t = todayP(); return { from: dayKey(t.dn - days + 1), to: t.key }; }
@@ -1870,6 +1896,7 @@ async function poll() {
   if (!S.auth || document.visibilityState !== 'visible' || S.card) return;
   await Promise.all(pollKeys().map(load));
   if (S.admin && (S.tab === 'profit' || S.tab === 'summary')) loadAdP();
+  if (S.tab === 'summary') loadInq();
   if (S.admin && S.tab === 'ads') loadAdSpend();
   if (S.tab !== 'chats') chatsCount();
 }
@@ -1939,7 +1966,7 @@ var ACTIONS = {
   'drawer-close': function () { S.drawer = false; renderDrawer(); },
   'logout': function () { doLogout(); },
   'filter': function (t) { var f = t.dataset.f; S.filter = (f === 'remind' && S.filter === 'remind') ? 'all' : f; doRender(true); },
-  'period': function (t) { S.period = t.dataset.p; doRender(true); loadAdP(); },
+  'period': function (t) { S.period = t.dataset.p; doRender(true); loadAdP(); loadInq(); },
   'content-day': function (t) { S.contentDay = t.dataset.d; doRender(true); },
   'publish': function (t) { doPublish(t.dataset.date, t.dataset.time); },
   'open-order': function (t) { openCard(t.dataset.id); },

@@ -2533,10 +2533,30 @@ async function targetsApi(req, env, user, p, m) {
 }
 
 // Session-auth part of the inbox API; returns null when the path is not an inbox path.
+// GET /api/inquiries?from&to — «Обращения» of the statistics page: the WhatsApp clients who wrote to us in the Almaty days
+// [from, to]. New ones (their chat started in the period) are split by source the way the chat list shows it (target /
+// organic / old); «returning» clients wrote before the period and wrote again in it. The period always ends today, so the
+// last inbound message alone tells whether a client wrote in it.
+async function inquiries(env, url) {
+  const { from, to } = dayRange(url, 1);
+  const r = await env.DB.prepare(
+    "SELECT COUNT(*) AS total, " +
+    "COALESCE(SUM(CASE WHEN isnew = 1 AND traffic = 'target' THEN 1 ELSE 0 END), 0) AS target, " +
+    "COALESCE(SUM(CASE WHEN isnew = 1 AND traffic = 'organic' THEN 1 ELSE 0 END), 0) AS organic, " +
+    "COALESCE(SUM(CASE WHEN isnew = 1 AND traffic = 'old' THEN 1 ELSE 0 END), 0) AS old, " +
+    "COALESCE(SUM(CASE WHEN isnew = 0 THEN 1 ELSE 0 END), 0) AS again " +
+    "FROM (SELECT traffic, CASE WHEN first_message_at != '' AND date(first_message_at, '+5 hours') >= ?1 THEN 1 ELSE 0 END AS isnew " +
+    "FROM contacts WHERE channel = 'whatsapp' AND last_inbound_at != '' AND date(last_inbound_at, '+5 hours') >= ?1 AND date(last_inbound_at, '+5 hours') <= ?2)"
+  ).bind(from, to).first();
+  const n = (k) => Number(r && r[k]) || 0;
+  return json({ from, to, total: n('total'), target: n('target'), organic: n('organic'), old: n('old'), returning: n('again') });
+}
+
 async function inboxApi(req, env, url, user) {
   const p = url.pathname, m = req.method;
   let mt;
   if (p === '/api/chats' && m === 'GET') return listChats(env, url);
+  if (p === '/api/inquiries' && m === 'GET') return inquiries(env, url);
   if ((mt = p.match(/^\/api\/chats\/(\d+)$/)) && m === 'GET') return openChat(env, mt[1]);
   if ((mt = p.match(/^\/api\/chats\/(\d+)\/older$/)) && m === 'POST') return olderMessages(env, mt[1]);
   if ((mt = p.match(/^\/api\/chats\/(\d+)\/send$/)) && m === 'POST') return sendChatMessage(env, user, mt[1], await readJson(req));

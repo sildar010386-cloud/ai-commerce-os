@@ -117,3 +117,26 @@ test('history brings the real content of a placeholder; a chat that STARTED with
   assert.equal((await contactOf('77015550030')).unread, 0);
   assert.equal((await contactOf('77015550031')).traffic, 'old');
 });
+
+test('«Обращения»: who wrote in the period — new clients by source, returning clients; not those who only got our message', { skip }, async () => {
+  const nowS = Math.floor(Date.now() / 1000);
+  const T = (waId, id, ago, o) => ev(Object.assign({ waId, msg: { id, ts: nowS - ago, type: 'text', body: 'привет ' + id } }, o));
+  await db.prepare('DELETE FROM messages').run();
+  await db.prepare('DELETE FROM contacts').run();
+  await conn('POST', '/api/connector/events', { events: [
+    T('77020000001', 'Q1', 60, { msg: { id: 'Q1', ts: nowS - 60, type: 'text', body: 'Здравствуйте, хочу заказать отпариватель' } }),   // target, today
+    T('77020000002', 'Q2', 120),                                                                                                        // organic, today
+    T('77020000003', 'Q3', 10 * 86400),                                                                                                 // wrote 10 days ago...
+    T('77020000003', 'Q4', 30),                                                                                                         // ...and again today: returning
+    T('77020000004', 'Q5', 5 * 86400),                                                                                                  // organic, 5 days ago only
+    ev({ kind: 'echo', waId: '77020000005', msg: { id: 'Q6', ts: nowS - 40, type: 'text', body: 'наше сообщение' } })                // only we wrote
+  ] });
+  const day = (o) => new Date(Date.now() + 5 * 3600e3 - o * 86400e3).toISOString().slice(0, 10);
+  let r = await j(await admin('GET', '/api/inquiries?from=' + day(0) + '&to=' + day(0)));
+  assert.deepEqual([r.total, r.target, r.organic, r.returning, r.old], [3, 1, 1, 1, 0]);
+  r = await j(await admin('GET', '/api/inquiries?from=' + day(6) + '&to=' + day(0)));
+  assert.deepEqual([r.total, r.target, r.organic, r.returning], [4, 1, 2, 1]);
+  r = await j(await admin('GET', '/api/inquiries?from=' + day(29) + '&to=' + day(0)));
+  assert.deepEqual([r.total, r.target, r.organic, r.returning], [4, 1, 3, 0]);
+  assert.equal((await admin('GET', '/api/inquiries?from=bad')).status, 400);
+});
