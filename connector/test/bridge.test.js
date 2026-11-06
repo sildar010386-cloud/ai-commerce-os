@@ -677,3 +677,28 @@ test('an offline stub (append) is a placeholder even right after pairing; live m
   assert.equal(t.calls.events.find((e) => e.msg.id === 'PHOTO').msg.mediaRef, 'm1');
   t.bridge.stop();
 });
+
+test('queue: a live message goes to the CRM before thousands of waiting history events; the drained backlog is logged', async () => {
+  const dir = tmp();
+  const sent = [];
+  let gate = null;
+  const lines = [];
+  const q = createEventQueue({ file: path.join(dir, 'q.jsonl'), log: { info: (m) => lines.push(m), warn() {} }, send: async (evs) => { sent.push(evs.map((e) => e.kind + ':' + (e.msg ? e.msg.id : ''))); if (gate) await gate; } });
+  const hist = [];
+  for (let i = 0; i < 300; i++) hist.push({ kind: 'history', waId: '7701' + i, msg: { id: 'H' + i } });
+  let open1;
+  gate = new Promise((r) => { open1 = r; });
+  const p1 = q.push(hist);                       // the first history request is in flight
+  await tick();
+  const p2 = q.push([{ kind: 'message', waId: '77015550099', msg: { id: 'LIVE' } }]);
+  gate = null; open1();
+  await p1; await p2; await q.flush();
+  assert.deepEqual(sent[0].length, 15);          // the request already in flight
+  assert.deepEqual(sent[1], ['message:LIVE']);   // then the live message, not 285 history events later
+  assert.equal(sent.flat().length, 301);
+  assert.equal(q.size(), 0);
+  assert.ok(lines.some((l) => l === 'queue: all events delivered to the CRM (backlog was 301)'));
+  // the file holds what is left, in order, after a restart
+  const q2 = createEventQueue({ file: path.join(dir, 'q.jsonl'), send: async () => {}, log: { warn() {} } });
+  assert.equal(q2.size(), 0);
+});

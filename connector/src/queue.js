@@ -12,11 +12,15 @@ const permanent = (err) => { const s = err && err.status; return s >= 400 && s <
 
 export function createEventQueue({ file, send, log = console, batch = 5, historyBatch = 15, aliasBatch = 6, maxLines = 50000 }) {
   let lines = [];
+  let classes = [];   // classOf for every line (parsed once)
   let flushing = false;
   let lastErr = '', lastLogAt = 0, lastLogMsg = '';   // last CRM rejection (status + start of the answer), reported to the CRM in the state posts
+  let peak = 0;       // the largest backlog since the queue was last empty (logged when it drains)
+  const parse = (l) => { try { return JSON.parse(l); } catch (e) { return null; } };
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     if (fs.existsSync(file)) lines = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean);
+    classes = lines.map((l) => classOf(parse(l)));
   } catch (e) { log.warn && log.warn('queue load failed: ' + e.message); }
 
   const persist = () => {
@@ -28,27 +32,40 @@ export function createEventQueue({ file, send, log = console, batch = 5, history
     }
   };
   const append = (events) => {
-    for (const e of events) lines.push(JSON.stringify(e));
-    if (lines.length > maxLines) lines = lines.slice(lines.length - maxLines);
+    for (const e of events) { lines.push(JSON.stringify(e)); classes.push(classOf(e)); }
+    if (lines.length > maxLines) { lines = lines.slice(lines.length - maxLines); classes = classes.slice(classes.length - maxLines); }
+    if (lines.length > peak) peak = lines.length;
     persist();
   };
-  const parse = (l) => { try { return JSON.parse(l); } catch (e) { return null; } };
 
-  // Takes lines from the head while they are of the same class (bulk or live), at most the class limit.
+  // The next request. Live events (a client writing now) go first, even when thousands of history events are waiting
+  // (a new QR pairing queues ~15000 of them, several minutes of requests): a new client must reach the CRM at once.
+  // Otherwise lines from the head while they are of the same class, at most the class limit.
   function nextChunk() {
-    const cls = classOf(parse(lines[0]));
+    if (classes[0] !== 'live') {
+      const idx = [];
+      for (let i = 0; i < classes.length && idx.length < batch; i++) if (classes[i] === 'live') idx.push(i);
+      if (idx.length) return { idx, events: idx.map((i) => parse(lines[i])).filter(Boolean) };
+    }
+    const cls = classes[0];
     const limit = cls === 'alias' ? aliasBatch : cls === 'bulk' ? historyBatch : batch;
     let n = 1;
-    while (n < lines.length && n < limit && classOf(parse(lines[n])) === cls) n++;
-    return { n, events: lines.slice(0, n).map(parse).filter(Boolean) };
+    while (n < lines.length && n < limit && classes[n] === cls) n++;
+    const idx = Array.from({ length: n }, (_, i) => i);
+    return { idx, events: lines.slice(0, n).map(parse).filter(Boolean) };
   }
+  const drop = (idx) => {
+    const gone = new Set(idx);
+    lines = lines.filter((_, i) => !gone.has(i));
+    classes = classes.filter((_, i) => !gone.has(i));
+  };
 
   async function flush() {
     if (flushing) return;
     flushing = true;
     try {
       while (lines.length) {
-        const { n, events } = nextChunk();
+        const { idx, events } = nextChunk();
         try { if (events.length) await send(events); lastErr = ''; }
         catch (e) {
           // every rejection is logged with the status and the start of the CRM's answer (it says why), and kept for the CRM's diagnostics
@@ -64,9 +81,11 @@ export function createEventQueue({ file, send, log = console, batch = 5, history
           }
           if (!permanent(e)) throw e;
         }
-        lines = lines.slice(n);
+        drop(idx);
         persist();
       }
+      if (peak >= 200) log.info && log.info(`queue: all events delivered to the CRM (backlog was ${peak})`);
+      peak = 0;
     } catch (e) {
       // CRM unreachable: keep everything, try again on the next flush.
     } finally { flushing = false; }
