@@ -304,3 +304,28 @@ test('sending: a lid-only contact is addressed as lid in the outbox item, a phon
   c.bridge.pollOnce; // (CRM stub in startConnector has no items: use sendItem path through outbox below)
   void n;
 });
+
+test('one-time repair: chats stored as "old" whose first message is after the last pairing get their source back and an unread mark', { skip }, async () => {
+  const now = new Date().toISOString();
+  await db.prepare("INSERT INTO target_texts (product_name, code, text, active, created_at, updated_at) VALUES ('День-Ночь', 'DN1', 'Здравствуйте! Хочу заказать День-Ночь (DN1)', 1, ?, ?)").bind(now, now).run();
+  const mk = async (ext, first, body, lastOut) => {
+    await db.prepare("INSERT INTO contacts (channel, ext_id, phone, name, traffic, first_message_at, last_message_at, unread, created_at, updated_at) VALUES ('whatsapp', ?, ?, 'Т', 'old', ?, ?, 0, ?, ?)").bind(ext, ext, first, first, now, now).run();
+    const c = await db.prepare("SELECT id FROM contacts WHERE ext_id = ?").bind(ext).first();
+    await db.prepare("INSERT INTO messages (contact_id, direction, ext_msg_id, type, body, status, from_app, ts, created_at) VALUES (?, 'in', ?, 'text', ?, 'received', 0, ?, ?)").bind(c.id, 'R-' + ext, body, first, now).run();
+    if (lastOut) await db.prepare("INSERT INTO messages (contact_id, direction, ext_msg_id, type, body, status, from_app, ts, created_at) VALUES (?, 'out', ?, 'text', 'ответ', 'sent', 1, ?, ?)").bind(c.id, 'RO-' + ext, '2026-11-06T04:00:00.000Z', now).run();
+    return c.id;
+  };
+  const night = await mk('77015550101', '2026-11-05T20:00:00.000Z', 'Здравствуйте! Хочу заказать День-Ночь (DN1)', false);
+  const nightOrg = await mk('77015550102', '2026-11-05T21:00:00.000Z', 'Сколько стоит?', true);
+  const history = await mk('77015550103', '2026-10-20T10:00:00.000Z', 'Хочу заказать День-Ночь (DN1)', false);
+  await db.prepare("DELETE FROM settings WHERE key = 'repair_offline_old_v1'").run();
+  await chatsList();
+  const row = (id) => db.prepare('SELECT traffic, target_code, product_name, unread FROM contacts WHERE id = ?').bind(id).first();
+  assert.deepEqual(await row(night), { traffic: 'target', target_code: 'DN1', product_name: 'День-Ночь', unread: 1 });
+  assert.deepEqual(await row(nightOrg), { traffic: 'organic', target_code: '', product_name: '', unread: 0 }); // we answered last
+  assert.equal((await row(history)).traffic, 'old');                                                       // real history stays
+  // runs once: a later "old" row is not touched again
+  await db.prepare("UPDATE contacts SET traffic = 'old' WHERE id = ?").bind(night).run();
+  await chatsList();
+  assert.equal((await row(night)).traffic, 'old');
+});

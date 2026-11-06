@@ -575,3 +575,42 @@ test('lid: contacts.upsert with phoneNumber / jid fields and chats.phoneNumberSh
   assert.deepEqual(al, [['41111111111111', '77073330001'], ['42222222222222', '77073330002']]);
   assert.ok(t.calls.events.some((e) => e.kind === 'contact' && e.waId === '77073330001' && e.profileName === 'Алия'));
 });
+
+test('offline messages (upsert type append, newer than the last moment we were online) are NEW messages, not history', async () => {
+  const T0 = Date.UTC(2026, 10, 5, 17, 0, 0);               // laptop switched off at 22:00 Almaty
+  let clock = T0 + 12 * 3600e3;                             // switched on at 10:00 next morning
+  const dir = tmp();
+  fs.writeFileSync(path.join(dir, 'online.json'), JSON.stringify({ at: T0 }));
+  const t = setup({ stateDir: dir, now: () => clock });
+  await open(t);
+  const k = (o) => Object.assign({ remoteJid: '77019998877@s.whatsapp.net', fromMe: false }, o);
+  t.sockets[0].ev.emit('messages.upsert', { type: 'append', messages: [
+    { key: k({ id: 'NIGHT1', remoteJid: '77015550001@s.whatsapp.net' }), message: { conversation: 'Здравствуйте! Хочу заказать (A1)' }, messageTimestamp: Math.floor((T0 + 3 * 3600e3) / 1000), pushName: 'Айжан' },
+    { key: k({ id: 'NIGHT2', remoteJid: '77015550002@s.whatsapp.net' }), message: { audioMessage: { ptt: true, mimetype: 'audio/ogg; codecs=opus', fileLength: 1000 } }, messageTimestamp: Math.floor((T0 + 5 * 3600e3) / 1000) },
+    { key: k({ id: 'OLD1' }), message: { conversation: 'вчерашнее' }, messageTimestamp: Math.floor((T0 - 2 * 3600e3) / 1000) }
+  ] });
+  for (let i = 0; i < 6; i++) await tick();
+  const by = Object.fromEntries(t.calls.events.map((e) => [e.msg.id, e]));
+  assert.equal(by.NIGHT1.kind, 'message');                  // live: the CRM detects the source and counts it unread
+  assert.equal(by.NIGHT2.kind, 'message');
+  assert.equal(by.NIGHT2.msg.mediaRef, 'm1');               // the voice note is downloaded like a live one
+  assert.equal(by.OLD1.kind, 'history');                    // older than the offline period: history as before
+  // while open, the heartbeat moment moves forward; it is written to online.json
+  assert.ok(JSON.parse(fs.readFileSync(path.join(dir, 'online.json'), 'utf8')).at >= clock);
+  t.bridge.stop();
+});
+
+test('right after pairing (no online.json) appended messages stay history; relink forgets the online moment', async () => {
+  const dir = tmp();
+  const t = setup({ stateDir: dir, now: () => Date.UTC(2026, 10, 6, 5, 0, 0) });
+  await open(t);
+  t.sockets[0].ev.emit('messages.upsert', { type: 'append', messages: [
+    { key: { remoteJid: '77015550003@s.whatsapp.net', fromMe: false, id: 'P1' }, message: { conversation: 'старое из привязки' }, messageTimestamp: Math.floor(Date.UTC(2026, 10, 6, 4, 0, 0) / 1000) }
+  ] });
+  for (let i = 0; i < 6; i++) await tick();
+  assert.equal(t.calls.events.find((e) => e.msg.id === 'P1').kind, 'history');
+  assert.ok(fs.existsSync(path.join(dir, 'online.json')));  // written on open
+  await t.bridge.relink();
+  assert.ok(!fs.existsSync(path.join(dir, 'online.json')));
+  t.bridge.stop();
+});

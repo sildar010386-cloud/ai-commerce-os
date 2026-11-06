@@ -2137,7 +2137,39 @@ async function mediaProxy(req, env, idStr) {
   return new Response(buf, { status: 200, headers });
 }
 
+// One-time repair (2026-11-06): until connector fc453ee+fix, messages that reached the phone while the laptop was off were
+// delivered on reconnect as "append" and stored as history: new clients of those nights got traffic 'old', no source and no
+// unread mark. The last pairing (history import) finished on 2026-11-04 ~16:05 UTC, so a chat marked 'old' whose FIRST message is
+// later than that cannot come from history: re-detect its source on its first inbound message and mark it unread if the client
+// wrote last. Runs once (settings flag), all updates in one batch.
+const OFFLINE_REPAIR_FLAG = 'repair_offline_old_v1';
+const OFFLINE_REPAIR_SINCE = '2026-11-04T17:00:00.000Z';
+async function repairOfflineOld(env) {
+  try {
+    const done = await env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind(OFFLINE_REPAIR_FLAG).first();
+    if (done) return;
+    const { results } = await env.DB.prepare(
+      "SELECT c.id, " +
+      "(SELECT m.body FROM messages m WHERE m.contact_id = c.id AND m.direction = 'in' ORDER BY m.ts LIMIT 1) AS first_in, " +
+      "(SELECT m.direction FROM messages m WHERE m.contact_id = c.id ORDER BY m.ts DESC, m.id DESC LIMIT 1) AS last_dir " +
+      "FROM contacts c WHERE c.channel = 'whatsapp' AND c.traffic = 'old' AND c.source_manual = 0 AND c.first_message_at >= ? LIMIT 2000"
+    ).bind(OFFLINE_REPAIR_SINCE).all();
+    const rows = (results || []).filter((r) => r.first_in != null);
+    const { results: targets } = rows.length ? await env.DB.prepare('SELECT * FROM target_texts WHERE active = 1').all() : { results: [] };
+    const stmts = rows.map((r) => {
+      const src = detectSource({ text: r.first_in || '', referral: null, targets: targets || [] });
+      return env.DB.prepare(
+        "UPDATE contacts SET traffic = ?, platform = ?, target_code = ?, product_name = CASE WHEN ? != '' THEN ? ELSE product_name END, " +
+        "unread = CASE WHEN ? = 'in' AND unread = 0 THEN 1 ELSE unread END, updated_at = ? WHERE id = ? AND traffic = 'old' AND source_manual = 0"
+      ).bind(src.traffic, src.platform || '', src.code || '', src.product || '', src.product || '', r.last_dir || '', nowIso(), r.id);
+    });
+    stmts.push(env.DB.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(OFFLINE_REPAIR_FLAG, nowIso() + ' ' + rows.length));
+    for (let i = 0; i < stmts.length; i += 100) await env.DB.batch(stmts.slice(i, i + 100));
+  } catch (e) { console.error('offline repair failed'); }
+}
+
 async function listChats(env, url) {
+  await repairOfflineOld(env);
   if (url.searchParams.get('count')) {
     const r = await env.DB.prepare('SELECT COALESCE(SUM(unread), 0) AS n FROM contacts').first();
     return json({ unreadTotal: r ? r.n : 0 });

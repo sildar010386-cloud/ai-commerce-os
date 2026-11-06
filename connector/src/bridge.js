@@ -50,6 +50,27 @@ export function createBridge({
       for (const [k, v] of Object.entries(o && typeof o === 'object' ? o : {})) if (/^\d{5,20}$/.test(k) && /^\d{7,15}$/.test(String(v))) lidPn.set(k, String(v));
     }
   } catch (e) { /* ignore */ }
+  // Messages that reach the phone while this connector is offline (laptop off / asleep) are delivered on reconnect as
+  // messages.upsert type 'append' (Baileys: node.attrs.offline). They are NEW messages, not history: anything newer than the
+  // last moment we were online is handled as live (source detection, unread). The moment is kept in online.json.
+  const onlineFile = stateDir ? path.join(stateDir, 'online.json') : '';
+  let lastOnline = 0, liveSince = 0;
+  try { if (onlineFile && fs.existsSync(onlineFile)) lastOnline = Number(JSON.parse(fs.readFileSync(onlineFile, 'utf8')).at) || 0; } catch (e) { lastOnline = 0; }
+  const markOnline = () => {
+    lastOnline = now();
+    try { if (onlineFile) fs.writeFileSync(onlineFile, JSON.stringify({ at: lastOnline })); } catch (e) { /* ignore */ }
+  };
+  const forgetOnline = () => {
+    lastOnline = 0; liveSince = 0;
+    try { if (onlineFile && fs.existsSync(onlineFile)) fs.unlinkSync(onlineFile); } catch (e) { /* ignore */ }
+  };
+  const OFFLINE_MARGIN_MS = 15 * 60000;
+  const isLiveUpsert = (type, m) => {
+    if (type === 'notify') return true;
+    if (type !== 'append' || !liveSince) return false;
+    const ts = toNum(m && m.messageTimestamp) * 1000;
+    return ts > 0 && ts >= liveSince - OFFLINE_MARGIN_MS;
+  };
   const saveMap = () => {
     try {
       if (!mapFile) return;
@@ -150,6 +171,9 @@ export function createBridge({
       readOwn();
       info(`conn: open as +${ownPhone || '?'}`);
       state = 'open'; reconnectN = 0; historyCount = 0;
+      liveSince = lastOnline;          // 0 right after pairing: what WhatsApp then sends is history
+      if (liveSince) info(`conn: messages since ${new Date(liveSince).toISOString()} (offline period) count as new`);
+      markOnline();
       await postState();
       queue.flush();
     }
@@ -178,6 +202,7 @@ export function createBridge({
     state = reason; ownPhone = ''; ownName = '';
     await postState();
     try { await wipeAuth(); } catch (e) { log.error && log.error('wipe auth failed: ' + e.message); }
+    forgetOnline();
     return scheduleReconnect(my, 1000);
   }
 
@@ -191,6 +216,7 @@ export function createBridge({
     try { if (sock && sock.logout) { await Promise.race([sock.logout(), sleep(8000)]); info('relink: logout done'); } }
     catch (e) { info('relink: logout failed (' + short(e && e.message, 100) + '), continuing'); /* the phone may already be gone */ }
     try { sock && sock.end && sock.end(undefined); } catch (e) { /* ignore */ }
+    forgetOnline();
     try { await wipeAuth(); info('relink: auth wiped'); } catch (e) { log.error && log.error('relink: wipe auth failed: ' + short(e && e.message, 150)); }
     state = 'logged_out'; ownPhone = ''; ownName = ''; reconnectN = 0;
     await postState();
@@ -226,8 +252,8 @@ export function createBridge({
   async function onUpsert(u) {
     readOwn();
     if (!ownPhone) return;
-    const live = u.type === 'notify';
     const min = Math.floor(Date.now() / 1000) - HISTORY_DAYS * 86400;
+    let offlineNew = 0;
     const events = [];
     // The history-sync notification itself arrives here: Baileys drops the lid -> phone table of that blob, we read it ourselves.
     for (const m0 of u.messages || []) { const hp = harvestHistory(m0); if (hp) hp.catch(() => {}); }
@@ -236,13 +262,16 @@ export function createBridge({
     if (pairs.length) await announce(learnPairs(pairs));
     for (const m0 of u.messages || []) {
       if (m0 && m0.key && m0.key.fromMe && sentIds.has(m0.key.id)) continue;
+      const live = isLiveUpsert(u.type, m0);
+      if (live && u.type === 'append') offlineNew++;
       const m = withPhone(m0);
-      const mapped = mapMessage(m, { ownPhone, kind: live ? 'auto' : 'history' });
+      const mapped = mapMessage(m, { ownPhone, kind: live ? 'auto' : 'history', allowAppend: live });
       if (!mapped) continue;
       if (mapped.chat.lid) rememberLid(mapped.chat.waId);
       if (!live && mapped.event.msg.ts < min) continue;
       events.push(live ? await withMedia(mapped, m) : mapped.event);
     }
+    if (offlineNew) info(`upsert: ${offlineNew} message(s) received while offline, handled as new`);
     await emit(events);
   }
 
@@ -519,7 +548,7 @@ export function createBridge({
     postState();                       // tells the CRM at once which process is alive (its instance id)
     const loop = async () => { await pollOnce().catch(() => {}); if (!stopped) pollTimer = setTimeout(loop, 3000); };
     pollTimer = setTimeout(loop, 3000);
-    beatTimer = setInterval(() => { postState(); queue.flush(); }, 60000);
+    beatTimer = setInterval(() => { if (state === 'open') markOnline(); postState(); queue.flush(); }, 60000);
     lastTick = now(); lastActivity = now();
     watchTimer = setInterval(() => { Promise.resolve(watchdogTick()).catch((e) => log.error && log.error('watchdog failed: ' + (e && e.message))); }, watchTickMs);
   }
