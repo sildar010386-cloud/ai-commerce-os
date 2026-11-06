@@ -1,6 +1,6 @@
 # T-177 · продажа · шаблон залетевшего поста-отзыва, товар заменён на отпариватель
 
-Статус: черновик на одобрение (пакет 01–07.11).
+Статус: **опубликовано 2026-11-06 18:50 Алматы** (одобрено владельцем): https://www.threads.com/@bikas.home/post/DfZwZyuEflW.
 Правка 02.11: перефразировано на 20–30 % по решению владельца.
 Источник: @the_afel https://www.threads.com/@the_afel/post/DepHnPEG5R- · лайки 1 293 · ответы 80 · simmer pot · оригинал (EN): «Officially Fall in NC, and I’m OBSESSED with my simmer pot ☺️. Drop a few of your fav simmer pot recipes 🍂🍁»
 Правки к оригиналу: Перевод на русский, NC → Казахстан, simmer pot → отпариватель, «рецепты» → «что отпариваете».
