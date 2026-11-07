@@ -24,6 +24,7 @@ const REQ_KEEP_MS = 15 * 60000;           // an on-demand request nobody answere
 
 export function createBridge({
   crm, queue, makeSocket, wipeAuth, renderQr, downloadMedia, downloadHistory, prepareVoice, version, stateDir, voiceHint = { current: null },
+  encodeMessage = (m) => m, decodeMessage = (m) => m,
   log = console, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), random = Math.random,
   now = Date.now, watchdogMs = 5 * 60000, watchTickMs = 15000, sleepGapMs = 60000, stuckMs = 3 * 60000,
   blobWaitMs = 60000, finalPassMs = 45000
@@ -40,6 +41,38 @@ export function createBridge({
   let reconnectN = 0, relinking = false, stopped = false, historyCount = 0, pollTimer = null, beatTimer = null, watchTimer = null;
   let lastActivity = now(), lastTick = now(), stateSince = now(), wsHooked = false;
   const sentIds = new Map();      // message ids we sent ourselves (their echo must not be reported as "sent from the phone")
+  // The content of the messages we sent, kept for WhatsApp's retry requests: a device of the client (or our own phone)
+  // that cannot decrypt a message asks for it again, and Baileys resends it only if getMessage returns it. Without this
+  // the client saw «Ожидание сообщения» forever and the phone one grey tick (07.11). Kept in sent.json: 500 messages, 7 days.
+  const sentFile = stateDir ? path.join(stateDir, 'sent.json') : '';
+  const SENT_KEEP = 500, SENT_DAYS_MS = 7 * 86400000;
+  const sentStore = new Map();   // message id -> {at, m: encoded message}
+  try {
+    if (sentFile && fs.existsSync(sentFile)) {
+      for (const [id, v] of Object.entries(JSON.parse(fs.readFileSync(sentFile, 'utf8')) || {})) if (v && v.m && now() - v.at < SENT_DAYS_MS) sentStore.set(id, v);
+    }
+  } catch (e) { /* ignore */ }
+  const saveSent = () => {
+    try {
+      if (!sentFile) return;
+      fs.writeFileSync(sentFile + '.tmp', JSON.stringify(Object.fromEntries(sentStore)));
+      fs.renameSync(sentFile + '.tmp', sentFile);
+    } catch (e) { /* ignore */ }
+  };
+  const rememberSent = (id, message) => {
+    try {
+      sentStore.delete(id);
+      sentStore.set(id, { at: now(), m: encodeMessage(message) });
+      while (sentStore.size > SENT_KEEP) sentStore.delete(sentStore.keys().next().value);
+      saveSent();
+    } catch (e) { log.warn && log.warn('sent store failed: ' + short(e && e.message, 100)); }
+  };
+  // Baileys' getMessage(key): our own message for a retry, else undefined.
+  const getSentMessage = (key) => {
+    const v = key && key.id ? sentStore.get(String(key.id)) : null;
+    if (!v) return undefined;
+    try { info(`retry: resending our message to ${maskId(String(key.remoteJid || '').split('@')[0])}`); return decodeMessage(v.m); } catch (e) { return undefined; }
+  };
   const doneOutbox = new Map();   // outbox id -> extMsgId, protects against double sending when an ack got lost
   const lids = new Set();
   const pendingBlobs = new Set();  // history-sync blobs being downloaded by harvestHistory: messaging-history.set waits for them
@@ -501,6 +534,7 @@ export function createBridge({
       try { res = await sock.sendMessage(jidFor(to, item), content); } finally { voiceHint.current = null; }
       const ext = res && res.key && res.key.id ? String(res.key.id) : '';
       if (ext) { sentIds.set(ext, Date.now()); trim(sentIds); }
+      if (ext && res.message) rememberSent(ext, res.message);
       doneOutbox.set(id, ext); trim(doneOutbox);
       ack = { id, ok: true, extMsgId: ext };
     } catch (e) {
@@ -611,5 +645,5 @@ export function createBridge({
     if (ask) Promise.resolve().then(() => sock.requestPlaceholderResend(Object.assign({}, key))).catch(() => {});
   }
 
-  return { start, stop, onDecryptError, connect, pollOnce, relink, heartbeat: postState, watchdogTick, forceReconnect, getState: () => ({ state, ownPhone, ownName }), _lids: lids, _sentIds: sentIds, chatIdOf };
+  return { start, stop, onDecryptError, getSentMessage, connect, pollOnce, relink, heartbeat: postState, watchdogTick, forceReconnect, getState: () => ({ state, ownPhone, ownName }), _lids: lids, _sentIds: sentIds, chatIdOf };
 }

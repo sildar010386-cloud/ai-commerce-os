@@ -7,7 +7,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { loadConfig } from './config.js';
-import { checkAndUpdate, regenerateHelpers } from './update.js';
+import { checkAndUpdate, regenerateHelpers, ensureDesktopShortcut } from './update.js';
 import { reapOrphans, killTree } from './procs.js';
 import { EXIT_ANOTHER_RUNNING } from './instance.js';
 
@@ -70,6 +70,7 @@ export async function run(env = process.env) {
   // A connector left over from an earlier supervisor (Windows keeps a child alive when its parent is killed) would use the same
   // WhatsApp session: kill every other node process of this install before starting ours.
   regenerateHelpers(cfg.home, { log: (m) => log.line(m, 'update') });   // the code is new, the helper scripts in the folder may be old
+  ensureDesktopShortcut(cfg.home, { log: (m) => log.line(m, 'update') });
   const reap = () => reapOrphans({ home: cfg.home, selfPid: process.pid, log: (m) => log.line(m) });
   try { const k = reap(); if (k.length) log.line(`killed ${k.length} leftover process(es) at start`); } catch (e) { log.line('cleanup failed: ' + e.message); }
 

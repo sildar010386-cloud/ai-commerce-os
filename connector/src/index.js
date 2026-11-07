@@ -55,6 +55,7 @@ const queue = createEventQueue({ file: cfg.queueFile, send: (events) => crm.even
 
 const FULL_SYNC = process.env.SYNC_FULL_HISTORY === '1';
 const voiceHint = { current: null };
+const bridgeRef = { current: null };
 let waVersion;
 let auth = null;    // the session store of the current socket (flushed before a planned stop)
 async function makeSocket() {
@@ -86,7 +87,7 @@ async function makeSocket() {
       return msg;
     },
     generateHighQualityLinkPreview: false,
-    getMessage: async () => undefined
+    getMessage: async (key) => (bridgeRef.current ? bridgeRef.current.getSentMessage(key) : undefined)   // retries: see bridge.js sentStore
   });
   sock.ev.on('creds.update', saveCreds);
   return sock;
@@ -99,6 +100,8 @@ async function wipeAuth() {
 
 const bridge = createBridge({
   crm, queue, makeSocket, wipeAuth, voiceHint, version: VERSION, stateDir: STATE_DIR, log: appLog,
+  encodeMessage: (m) => Buffer.from(proto.Message.encode(proto.Message.fromObject(m)).finish()).toString('base64'),
+  decodeMessage: (b) => proto.Message.decode(Buffer.from(b, 'base64')),
   renderQr: (qr) => QRCode.toDataURL(qr, { width: 360, margin: 2, errorCorrectionLevel: 'M' }),
   downloadHistory: (n, opts) => downloadHistory(n, opts),
   downloadMedia: (m, sock) => downloadMediaMessage(m, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage }),
@@ -106,6 +109,7 @@ const bridge = createBridge({
   watchdogMs: cfg.watchdogMinutes * 60000
 });
 
+bridgeRef.current = bridge;
 onBaileysError.fn = (o, m) => bridge.onDecryptError(o, m);
 bridge.start();
 // A planned stop (update, Остановить.cmd, the supervisor restarting us) lets the session files finish writing first: a key file

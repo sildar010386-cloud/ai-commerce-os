@@ -190,6 +190,22 @@ export function regenerateHelpers(home, { log = () => {} } = {}) {
   return written;
 }
 
+// Windows: a «Bikas WhatsApp» shortcut on the desktop that opens the install folder (Запустить / Остановить / connector.log),
+// so the owner never has to remember %LOCALAPPDATA%\BikasWhatsApp. Made once (a marker file); a deleted shortcut stays deleted.
+export function ensureDesktopShortcut(home, { platform = process.platform, run = spawnSync, log = () => {} } = {}) {
+  if (platform !== 'win32' || !home) return false;
+  const marker = path.join(home, 'desktop-shortcut.done');
+  if (exists(marker)) return false;
+  const ps = "$d=[Environment]::GetFolderPath('Desktop'); $l=Join-Path $d 'Bikas WhatsApp.lnk'; " +
+    "if (-not (Test-Path $l)) { $s=(New-Object -ComObject WScript.Shell).CreateShortcut($l); $s.TargetPath=$env:BK_HOME; $s.Save() }";
+  try {
+    const r = run('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], { env: Object.assign({}, process.env, { BK_HOME: home }), windowsHide: true, stdio: 'ignore', timeout: 30000 });
+    if (r && r.status === 0) { fs.writeFileSync(marker, new Date().toISOString()); log('desktop shortcut «Bikas WhatsApp» created'); return true; }
+    log('desktop shortcut not created (powershell exit ' + (r && r.status) + ')');
+  } catch (e) { log('desktop shortcut not created: ' + e.message); }
+  return false;
+}
+
 // -> 'none' (up to date) | 'updated' | 'failed'. A commit that failed is not retried for 24 h.
 export async function checkAndUpdate({ home, stopChild = async () => {}, fetchImpl = fetch, repo = REPO, branch = BRANCH, sleep, log = () => {}, now = Date.now, apply = applyUpdate }) {
   let commit;

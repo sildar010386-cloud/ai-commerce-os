@@ -774,3 +774,35 @@ test('the Baileys logger passes the original error object to the hook and surviv
   assert.deepEqual(seen, [['K1', 'failed to decrypt message']]);
   assert.ok(out[0].includes('Key used already') && !out[0].includes('K1'));   // the key never reaches the log
 });
+
+test('retries: a message we sent is kept and handed to Baileys (getMessage) when the client asks for it again, also after a restart', async () => {
+  const { proto } = await import('@whiskeysockets/baileys');
+  const encodeMessage = (m) => Buffer.from(proto.Message.encode(proto.Message.fromObject(m)).finish()).toString('base64');
+  const decodeMessage = (b) => proto.Message.decode(Buffer.from(b, 'base64'));
+  const dir = tmp();
+  const made = [];
+  const mk = async () => {
+    const s = fakeSock(); made.push(s);
+    s.sendMessage = async (jid, content) => ({
+      key: { id: 'OUT' + (s.n = (s.n || 0) + 1), fromMe: true, remoteJid: jid },
+      message: content.text ? proto.Message.fromObject({ extendedTextMessage: { text: content.text } })
+        : proto.Message.fromObject({ imageMessage: { mimetype: 'image/jpeg', mediaKey: Buffer.from([1, 2, 3]), url: 'https://mmg.whatsapp.net/x' } })
+    });
+    return s;
+  };
+  const lines = [];
+  const t = setup({ stateDir: dir, makeSocket: mk, encodeMessage, decodeMessage, log: { info: (m) => lines.push(m), warn() {}, error() {} } });
+  await t.bridge.connect(); made[0].ev.emit('connection.update', { connection: 'open' }); await tick(); await tick();
+  t.setOutbox({ items: [{ id: 1, to: '77019998877', type: 'text', text: 'Здравствуйте, доставка 1-2 дня' }, { id: 2, to: '77019998877', type: 'image', mediaRef: 'img1' }], command: null });
+  await t.bridge.pollOnce();
+  const m1 = t.bridge.getSentMessage({ remoteJid: '77019998877@s.whatsapp.net', id: 'OUT1', fromMe: true });
+  assert.equal(m1.extendedTextMessage.text, 'Здравствуйте, доставка 1-2 дня');
+  const m2 = t.bridge.getSentMessage({ id: 'OUT2' });
+  assert.deepEqual([...m2.imageMessage.mediaKey], [1, 2, 3]);
+  assert.equal(t.bridge.getSentMessage({ id: 'NOPE' }), undefined);
+  assert.ok(lines.some((l) => l.startsWith('retry: resending our message to ***8877')));
+  t.bridge.stop();
+  // a new process (restart / update) still has them
+  const t2 = setup({ stateDir: dir, encodeMessage, decodeMessage });
+  assert.equal(t2.bridge.getSentMessage({ id: 'OUT1' }).extendedTextMessage.text, 'Здравствуйте, доставка 1-2 дня');
+});

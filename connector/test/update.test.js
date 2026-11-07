@@ -100,3 +100,23 @@ test('checkAndUpdate: up to date -> none; new commit -> updated; failure is reme
   assert.equal(await checkAndUpdate(Object.assign({}, base, { now: () => later, apply: async () => { applied++; } })), 'updated');
   assert.equal(applied, 2);
 });
+
+test('ensureDesktopShortcut: Windows only, once (marker), the folder is passed in the environment, failures are logged', async () => {
+  const { ensureDesktopShortcut } = await import('../src/update.js');
+  const os = await import('node:os');
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'bk-sc-'));
+  const calls = [];
+  const run = (cmd, args, opts) => { calls.push({ cmd, args, home: opts.env.BK_HOME }); return { status: 0 }; };
+  assert.equal(ensureDesktopShortcut(home, { platform: 'linux', run }), false);
+  assert.equal(ensureDesktopShortcut(home, { platform: 'win32', run }), true);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].cmd, 'powershell');
+  assert.equal(calls[0].home, home);
+  assert.ok(calls[0].args.at(-1).includes("'Bikas WhatsApp.lnk'") && calls[0].args.at(-1).includes('$env:BK_HOME'));
+  assert.equal(ensureDesktopShortcut(home, { platform: 'win32', run }), false);   // made once
+  const home2 = fs.mkdtempSync(path.join(os.tmpdir(), 'bk-sc-'));
+  const logs = [];
+  assert.equal(ensureDesktopShortcut(home2, { platform: 'win32', run: () => ({ status: 1 }), log: (m) => logs.push(m) }), false);
+  assert.ok(logs[0].includes('not created'));
+  assert.equal(ensureDesktopShortcut(home2, { platform: 'win32', run: () => ({ status: 0 }) }), true);   // retried next start
+});
