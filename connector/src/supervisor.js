@@ -114,7 +114,8 @@ export async function run(env = process.env) {
     } catch (e) { log.line('update error: ' + e.message, 'update'); }
     finally { updating = false; }
   };
-  setTimeout(doUpdate, 45000);
+  // Not in the first minutes: right after a start the connector receives everything that came while the computer was off.
+  setTimeout(doUpdate, 10 * 60000);
   setInterval(doUpdate, 24 * 3600 * 1000);
 
   let fast = 0;

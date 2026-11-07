@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { short, describeUpdate } from './safelog.js';
-import { mapMessage, undecryptedReason, mapUpdates, mapReceipts, selectHistory, mapChats, readContacts, lidPairOfKey, unwrap, toNum, phoneOfJid, MAX_MEDIA_BYTES, chatIdOf, HISTORY_CAP, HISTORY_DAYS, HISTORY_PER_CHAT } from './map.js';
+import { mapMessage, undecryptedReason, STUB_CIPHERTEXT, mapUpdates, mapReceipts, selectHistory, mapChats, readContacts, lidPairOfKey, unwrap, toNum, phoneOfJid, MAX_MEDIA_BYTES, chatIdOf, HISTORY_CAP, HISTORY_DAYS, HISTORY_PER_CHAT } from './map.js';
 
 // base64 of 64 bytes (0..100) -> Uint8Array, otherwise null
 export function parseWave(b64) {
@@ -31,6 +31,10 @@ export function createBridge({
   let gen = 0, sock = null, state = 'connecting', ownPhone = '', ownName = '', ownLid = '';
   let lastCommandId = '';
   const info = (m) => { log.info && log.info(m); };
+  const pending = new Set();   // event handlers still running
+  // Hands Baileys' buffered events (the first ~20 s after a connect) to the handlers now: a socket that is replaced or
+  // stopped otherwise takes them away with it.
+  const drain = (s) => { try { if (s && s.ev && typeof s.ev.flush === 'function') s.ev.flush(); } catch (e) { /* ignore */ } };
   // A client id in the log: only the last 4 digits (the log may be shown to someone helping; numbers stay private).
   const maskId = (id) => { const d = String(id || '').replace(/\D/g, ''); return d.length > 4 ? '***' + d.slice(-4) : d || '?'; };
   let reconnectN = 0, relinking = false, stopped = false, historyCount = 0, pollTimer = null, beatTimer = null, watchTimer = null;
@@ -105,6 +109,7 @@ export function createBridge({
   /* ---------- connection lifecycle ---------- */
   async function connect() {
     if (stopped) return;
+    drain(sock);
     const my = ++gen;
     let s;
     try { s = await makeSocket(); }
@@ -112,7 +117,11 @@ export function createBridge({
     if (my !== gen) { try { s.end && s.end(undefined); } catch (e) { /* ignore */ } return; }
     sock = s;
     lastActivity = now(); stateSince = now();
-    const guard = (fn) => (arg) => { if (my !== gen) return; Promise.resolve().then(() => fn(arg)).catch((e) => log.error && log.error('handler failed: ' + (e && e.message))); };
+    const guard = (fn) => (arg) => {
+      if (my !== gen) return;
+      const p = Promise.resolve().then(() => fn(arg)).catch((e) => log.error && log.error('handler failed: ' + (e && e.message)));
+      pending.add(p); p.finally(() => pending.delete(p));
+    };
     s.ev.on('connection.update', guard((u) => onConnection(my, u)));
     s.ev.on('messages.upsert', guard(onUpsert));
     s.ev.on('messaging-history.set', guard(onHistory));
@@ -134,6 +143,7 @@ export function createBridge({
   async function forceReconnect(reason) {
     if (stopped || relinking) return;
     log.warn && log.warn('watchdog: reconnecting (' + reason + ')');
+    drain(sock);
     gen++;
     try { sock && sock.end && sock.end(undefined); } catch (e) { /* ignore */ }
     reconnectN = 0; state = 'closed'; stateSince = now();
@@ -211,7 +221,7 @@ export function createBridge({
 
   async function relink(commandId = '') {
     if (relinking) return;
-    relinking = true; gen++;
+    relinking = true; drain(sock); gen++;
     info(`relink: command received${commandId ? ' (' + commandId + ')' : ''}, socket state was ${state}`);
     // Acknowledge first: the CRM keeps the command pending until it hears this (a duplicate process cannot swallow it silently).
     state = 'relinking';
@@ -560,11 +570,46 @@ export function createBridge({
     lastTick = now(); lastActivity = now();
     watchTimer = setInterval(() => { Promise.resolve(watchdogTick()).catch((e) => log.error && log.error('watchdog failed: ' + (e && e.message))); }, watchTickMs);
   }
-  function stop() {
+  // A planned stop hands over everything already received first: Baileys keeps the messages of the first ~20 s after a
+  // connect in a buffer (AwaitingInitialSync), and WhatsApp already counts them as delivered. An update that stopped the
+  // connector in those seconds lost every message of the night (07.11). Resolves when the handlers are done (at most 5 s).
+  async function stop() {
+    if (stopped) return;
+    drain(sock);
     stopped = true; gen++;
     clearTimeout(pollTimer); clearInterval(beatTimer); clearInterval(watchTimer); clearTimeout(finalTimer);
+    await settle(5000);
     try { sock && sock.end && sock.end(undefined); } catch (e) { /* ignore */ }
   }
+  const settle = (ms) => Promise.race([Promise.allSettled([...pending]), new Promise((r) => { const t = setTimeout(r, ms); if (t.unref) t.unref(); })]);
 
-  return { start, stop, connect, pollOnce, relink, heartbeat: postState, watchdogTick, forceReconnect, getState: () => ({ state, ownPhone, ownName }), _lids: lids, _sentIds: sentIds, chatIdOf };
+  // Baileys drops a message it cannot decrypt because the key for it was «used already or never filled» (it answers WhatsApp
+  // with a NACK and emits nothing). That happens to messages that were decrypted once but never reached us (see stop), and
+  // WhatsApp delivers them again on every connect. The client must not be lost: the chat goes to the CRM with a placeholder,
+  // and the phone is asked to resend the message (its answer arrives as a normal message with the same id and replaces it).
+  const missingSeen = new Set();
+  let resendBudget = 0, resendWindow = 0;
+  function onDecryptError(o, msg) {
+    if (msg !== 'failed to decrypt message' || !o || !o.key || !o.err) return;
+    const why = String(o.err.message || o.err || '');
+    if (!/Key used already or never filled/.test(why)) return;   // other failures come to onUpsert as a CIPHERTEXT stub
+    const key = o.key;
+    if (key.fromMe === true || !key.id || missingSeen.has(key.id)) return;
+    missingSeen.add(key.id);
+    if (missingSeen.size > 5000) missingSeen.delete(missingSeen.values().next().value);
+    readOwn();
+    if (!ownPhone) return;
+    const m = withPhone({ key: Object.assign({}, key), messageStubType: STUB_CIPHERTEXT, messageStubParameters: [why], messageTimestamp: Math.floor(now() / 1000) });
+    const mapped = mapMessage(m, { ownPhone, ownLid, kind: 'auto' });
+    if (!mapped) return;
+    const t = now();
+    if (t - resendWindow > 60000) { resendWindow = t; resendBudget = 30; }
+    const ask = resendBudget > 0 && sock && typeof sock.requestPlaceholderResend === 'function';
+    if (ask) resendBudget--;
+    info(`in: ${maskId(mapped.event.waId)} NOT DECRYPTED (${short(why, 60)}), dropped by Baileys: placeholder sent${ask ? ', phone asked to resend' : ''}`);
+    emit([mapped.event]).catch(() => {});
+    if (ask) Promise.resolve().then(() => sock.requestPlaceholderResend(Object.assign({}, key))).catch(() => {});
+  }
+
+  return { start, stop, onDecryptError, connect, pollOnce, relink, heartbeat: postState, watchdogTick, forceReconnect, getState: () => ({ state, ownPhone, ownName }), _lids: lids, _sentIds: sentIds, chatIdOf };
 }

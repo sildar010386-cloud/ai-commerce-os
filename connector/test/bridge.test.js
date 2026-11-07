@@ -622,12 +622,12 @@ test('a message that could not be decrypted still reaches the CRM as a placehold
   t.sockets[0].user.lid = '122149071269903:5@lid';
   const nowS = Math.floor(Date.now() / 1000);
   t.sockets[0].ev.emit('messages.upsert', { type: 'notify', messages: [
-    { key: { remoteJid: '77015550010@s.whatsapp.net', fromMe: false, id: 'BAD1' }, messageStubType: 1, messageStubParameters: ['Key used already or never filled'], messageTimestamp: nowS - 60, pushName: 'Гульнар' },
-    { key: { remoteJid: '26000000000001@lid', fromMe: false, id: 'BAD2' }, messageStubType: 1, messageStubParameters: ['No matching sessions found for message'], messageTimestamp: nowS - 30 },
-    { key: { remoteJid: '122149071269903@lid', fromMe: false, id: 'OWN' }, messageStubType: 1, messageStubParameters: ['No matching sessions found for message'], messageTimestamp: nowS },
-    { key: { remoteJid: '77011112233@s.whatsapp.net', fromMe: false, id: 'OWN2' }, messageStubType: 1, messageStubParameters: ['x'], messageTimestamp: nowS },
-    { key: { remoteJid: '77015550011@s.whatsapp.net', fromMe: true, id: 'MINE' }, messageStubType: 1, messageStubParameters: ['x'], messageTimestamp: nowS },
-    { key: { remoteJid: '77015550012@s.whatsapp.net', fromMe: false, id: 'ANCIENT' }, messageStubType: 1, messageStubParameters: ['x'], messageTimestamp: nowS - 20 * 86400 },
+    { key: { remoteJid: '77015550010@s.whatsapp.net', fromMe: false, id: 'BAD1' }, messageStubType: 2, messageStubParameters: ['Key used already or never filled'], messageTimestamp: nowS - 60, pushName: 'Гульнар' },
+    { key: { remoteJid: '26000000000001@lid', fromMe: false, id: 'BAD2' }, messageStubType: 2, messageStubParameters: ['No matching sessions found for message'], messageTimestamp: nowS - 30 },
+    { key: { remoteJid: '122149071269903@lid', fromMe: false, id: 'OWN' }, messageStubType: 2, messageStubParameters: ['No matching sessions found for message'], messageTimestamp: nowS },
+    { key: { remoteJid: '77011112233@s.whatsapp.net', fromMe: false, id: 'OWN2' }, messageStubType: 2, messageStubParameters: ['x'], messageTimestamp: nowS },
+    { key: { remoteJid: '77015550011@s.whatsapp.net', fromMe: true, id: 'MINE' }, messageStubType: 2, messageStubParameters: ['x'], messageTimestamp: nowS },
+    { key: { remoteJid: '77015550012@s.whatsapp.net', fromMe: false, id: 'ANCIENT' }, messageStubType: 2, messageStubParameters: ['x'], messageTimestamp: nowS - 20 * 86400 },
     { key: { remoteJid: '77015550013@s.whatsapp.net', fromMe: false, id: 'OK1' }, message: { conversation: 'Здравствуйте' }, messageTimestamp: nowS }
   ] });
   for (let i = 0; i < 8; i++) await tick();
@@ -655,7 +655,7 @@ test('an offline stub (append) is a placeholder even right after pairing; live m
   await open(t);
   const nowS = Math.floor(Date.now() / 1000);
   t.sockets[0].ev.emit('messages.upsert', { type: 'append', messages: [
-    { key: { remoteJid: '77015550020@s.whatsapp.net', fromMe: false, id: 'STUB' }, messageStubType: 1, messageStubParameters: ['Bad MAC'], messageTimestamp: nowS - 3600 }
+    { key: { remoteJid: '77015550020@s.whatsapp.net', fromMe: false, id: 'STUB' }, messageStubType: 2, messageStubParameters: ['Bad MAC'], messageTimestamp: nowS - 3600 }
   ] });
   t.sockets[0].ev.emit('messages.upsert', { type: 'notify', messages: [
     { key: { remoteJid: '77015550021@s.whatsapp.net', fromMe: false, id: 'TXT' }, message: { conversation: 'Сколько стоит?' }, messageTimestamp: nowS }
@@ -701,4 +701,76 @@ test('queue: a live message goes to the CRM before thousands of waiting history 
   // the file holds what is left, in order, after a restart
   const q2 = createEventQueue({ file: path.join(dir, 'q.jsonl'), send: async () => {}, log: { warn() {} } });
   assert.equal(q2.size(), 0);
+});
+
+// A socket whose events can be held back like Baileys' AwaitingInitialSync buffer.
+function bufferingSock() {
+  const s = fakeSock();
+  const real = s.ev;
+  let held = null;
+  const ev = new EventEmitter();
+  ev.on = (name, fn) => { real.on(name, fn); return ev; };
+  ev.emit = (name, arg) => { if (held && name === 'messages.upsert') { held.push([name, arg]); return true; } return real.emit(name, arg); };
+  ev.buffer = () => { held = held || []; };
+  ev.flush = () => { const h = held || []; held = null; for (const [n, a] of h) real.emit(n, a); return h.length > 0; };
+  s.ev = ev;
+  return s;
+}
+
+test('a planned stop in the first seconds after a connect still delivers the buffered (offline) messages to the CRM', async () => {
+  const dir = tmp();
+  fs.writeFileSync(path.join(dir, 'online.json'), JSON.stringify({ at: Date.now() - 8 * 3600e3 }));
+  const sockets = [];
+  const t = setup({ stateDir: dir, makeSocket: async () => { const s = bufferingSock(); sockets.push(s); return s; } });
+  await t.bridge.connect();
+  sockets[0].ev.emit('connection.update', { connection: 'open' });
+  for (let i = 0; i < 4; i++) await tick();
+  sockets[0].ev.buffer();                                  // Baileys: AwaitingInitialSync
+  const nowS = Math.floor(Date.now() / 1000);
+  sockets[0].ev.emit('messages.upsert', { type: 'append', messages: [
+    { key: { remoteJid: '77015550031@s.whatsapp.net', fromMe: false, id: 'NIGHT31' }, message: { conversation: 'Здравствуйте' }, messageTimestamp: nowS - 3 * 3600 }
+  ] });
+  for (let i = 0; i < 4; i++) await tick();
+  assert.ok(!t.calls.events.some((e) => e.msg && e.msg.id === 'NIGHT31'));   // still held by the buffer
+  await t.bridge.stop();                                    // the update stops the connector now
+  const ev = t.calls.events.find((e) => e.msg && e.msg.id === 'NIGHT31');
+  assert.ok(ev, 'the buffered message reached the CRM before the stop');
+  assert.equal(ev.kind, 'message');
+});
+
+test('a message Baileys drops («Key used already») becomes a placeholder and the phone is asked to resend it; its real copy follows', async () => {
+  const lines = [];
+  const t = setup({ log: { info: (m) => lines.push(m), warn() {}, error() {} } });
+  await open(t);
+  const s = t.sockets[0];
+  s.resend = [];
+  s.requestPlaceholderResend = async (key) => { s.resend.push(key.id); };
+  const err = new Error('Key used already or never filled');
+  t.bridge.onDecryptError({ key: { remoteJid: '77015550040@s.whatsapp.net', fromMe: false, id: 'LOST1' }, err }, 'failed to decrypt message');
+  t.bridge.onDecryptError({ key: { remoteJid: '77015550040@s.whatsapp.net', fromMe: false, id: 'LOST1' }, err }, 'failed to decrypt message');   // redelivered again
+  t.bridge.onDecryptError({ key: { remoteJid: '77015550041@s.whatsapp.net', fromMe: true, id: 'MINE1' }, err }, 'failed to decrypt message');
+  t.bridge.onDecryptError({ key: { remoteJid: '77015550042@s.whatsapp.net', fromMe: false, id: 'OTHER1' }, err: new Error('Bad MAC') }, 'failed to decrypt message');
+  t.bridge.onDecryptError({ key: { remoteJid: '77015550043@s.whatsapp.net', id: 'X' } }, 'something else');
+  for (let i = 0; i < 6; i++) await tick();
+  const ph = t.calls.events.filter((e) => e.msg && e.msg.undecrypted);
+  assert.deepEqual(ph.map((e) => e.msg.id), ['LOST1']);
+  assert.equal(ph[0].waId, '77015550040');
+  assert.equal(ph[0].kind, 'message');
+  assert.deepEqual(s.resend, ['LOST1']);
+  assert.ok(lines.some((l) => l.includes('***0040 NOT DECRYPTED') && l.includes('phone asked to resend')));
+  // the phone answers: the same id arrives as a normal message
+  s.ev.emit('messages.upsert', { type: 'notify', messages: [{ key: { remoteJid: '77015550040@s.whatsapp.net', fromMe: false, id: 'LOST1' }, message: { conversation: 'Хочу заказать' }, messageTimestamp: Math.floor(Date.now() / 1000) - 3600 }] });
+  for (let i = 0; i < 6; i++) await tick();
+  const real = t.calls.events.find((e) => e.msg && e.msg.id === 'LOST1' && !e.msg.undecrypted);
+  assert.equal(real.msg.body, 'Хочу заказать');
+  t.bridge.stop();
+});
+
+test('the Baileys logger passes the original error object to the hook and survives a failing hook', async () => {
+  const { makeBaileysLogger } = await import('../src/safelog.js');
+  const out = [], seen = [];
+  const lg = makeBaileysLogger((l) => out.push(l), 'warn', (o, m) => { seen.push([o.key && o.key.id, m]); throw new Error('hook bug'); });
+  lg.child({}).error({ key: { id: 'K1' }, err: new Error('Key used already or never filled') }, 'failed to decrypt message');
+  assert.deepEqual(seen, [['K1', 'failed to decrypt message']]);
+  assert.ok(out[0].includes('Key used already') && !out[0].includes('K1'));   // the key never reaches the log
 });

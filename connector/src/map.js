@@ -13,7 +13,7 @@ export const NOTE_HISTORY = 'вложение из истории — откро
 // A message WhatsApp delivered but this computer could not decrypt (Baileys gives a CIPHERTEXT stub without content). The chat
 // still goes to the CRM, so a new client is never lost; the CRM replaces this text when the real message arrives (same id).
 export const NOTE_UNDECRYPTED = 'Сообщение не расшифровалось — откройте этот чат на телефоне';
-const STUB_CIPHERTEXT = 1;   // proto.WebMessageInfo.StubType.CIPHERTEXT
+export const STUB_CIPHERTEXT = 2;   // proto.WebMessageInfo.StubType.CIPHERTEXT (1 is REVOKE; test/map.test.js checks it against Baileys)
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const str = (v) => (v == null ? '' : String(v));

@@ -29,7 +29,8 @@ if (!/^https?:\/\//.test(CRM_URL) || !TOKEN) {
 
 // Plain one-line messages on stdout: the supervisor prefixes the time and writes them to connector.log.
 const line = (tag) => (m) => console.log(tag + short(m, 400));
-const logger = makeBaileysLogger(line(''), 'warn');            // Baileys: compact warn/error lines, no payloads
+const onBaileysError = { fn: null };                           // set to the bridge below (messages Baileys drops undecrypted)
+const logger = makeBaileysLogger(line(''), 'warn', (o, m) => onBaileysError.fn && onBaileysError.fn(o, m));   // Baileys: compact warn/error lines, no payloads
 const appLog = { info: line(''), warn: line('WARN '), error: line('ERROR ') };
 
 // Only one connector per computer: two processes on one WhatsApp session replace each other. Taken BEFORE the auth folder is touched.
@@ -105,6 +106,7 @@ const bridge = createBridge({
   watchdogMs: cfg.watchdogMinutes * 60000
 });
 
+onBaileysError.fn = (o, m) => bridge.onDecryptError(o, m);
 bridge.start();
 // A planned stop (update, Остановить.cmd, the supervisor restarting us) lets the session files finish writing first: a key file
 // cut in half makes that chat's messages undecryptable. The supervisor asks over IPC (on Windows a signal is a hard kill).
@@ -113,7 +115,7 @@ async function shutdown(why) {
   if (stopping) return;
   stopping = true;
   appLog.info(`stopping (${why})`);
-  try { bridge.stop(); } catch (e) { /* ignore */ }
+  try { await bridge.stop(); } catch (e) { /* ignore */ }
   try { if (auth) await auth.flush(3000); } catch (e) { /* ignore */ }
   setTimeout(() => process.exit(0), 200);
 }

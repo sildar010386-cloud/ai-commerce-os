@@ -41,14 +41,18 @@ export function fmtLog(obj, msg) {
   return short(parts.join(' | '), 300);
 }
 
-// ILogger for Baileys that writes compact lines through `write` (warn and error only).
-export function makeBaileysLogger(write, level = 'warn') {
+// ILogger for Baileys that writes compact lines through `write` (warn and error only). `onError(obj, msg)` sees every error
+// call with its original object (the bridge needs the message key of a message Baileys could not decrypt); it never throws.
+export function makeBaileysLogger(write, level = 'warn', onError = null) {
   const mk = () => ({
     level,
     child: () => mk(),
     trace() {}, debug() {}, info() {},
     warn: (o, m) => write('baileys warn: ' + fmtLog(o, m)),
-    error: (o, m) => write('baileys error: ' + fmtLog(o, m))
+    error: (o, m) => {
+      write('baileys error: ' + fmtLog(o, m));
+      if (onError) { try { onError(o, m); } catch (e) { /* the logger must never break Baileys */ } }
+    }
   });
   return mk();
 }

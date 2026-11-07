@@ -281,3 +281,11 @@ test('lid: normalized events carry the lid of a @lid chat', () => {
   assert.deepEqual([r2.event.waId, r2.event.lid], ['77011234567', '1234567890123']);
   assert.equal(mapMessage({ key: { remoteJid: '77011234567@s.whatsapp.net', id: 'Y' }, message: { conversation: 'hi' }, messageTimestamp: 1 }, { ownPhone: '1', kind: 'auto' }).event.lid, undefined);
 });
+
+test('the CIPHERTEXT stub type is the one Baileys uses (1 is REVOKE: a wrong value silently disabled the placeholder)', async () => {
+  const { proto } = await import('@whiskeysockets/baileys');
+  const { STUB_CIPHERTEXT, undecryptedReason } = await import('../src/map.js');
+  assert.equal(STUB_CIPHERTEXT, proto.WebMessageInfo.StubType.CIPHERTEXT);
+  assert.equal(undecryptedReason({ key: { id: 'X' }, messageStubType: proto.WebMessageInfo.StubType.CIPHERTEXT, messageStubParameters: ['Invalid PreKey ID'] }), 'Invalid PreKey ID');
+  assert.equal(undecryptedReason({ key: { id: 'X' }, messageStubType: proto.WebMessageInfo.StubType.REVOKE }), '');
+});

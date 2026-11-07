@@ -1465,8 +1465,9 @@ async function ensureWaNumber(env, cache, phoneNumberId, displayPhone, connectio
 // client's chat appears at once; when WhatsApp delivers the same message again decrypted, fillUndecrypted puts the real content in.
 const UNDECRYPTED_NOTE = 'Сообщение не расшифровалось — откройте этот чат на телефоне';
 async function fillUndecrypted(env, ctx, had, msg, ev) {
-  await env.DB.prepare('UPDATE messages SET type = ?, body = ?, caption = ?, media_id = ?, media_url = ?, media_mime = ?, media_ref = ? WHERE id = ?')
-    .bind(msg.type, msg.body || '', msg.caption || '', msg.mediaId || '', msg.mediaUrl || '', msg.mime || '', msg.mediaRef || '', had.id).run();
+  // the placeholder of a message Baileys dropped carries the time it was redelivered; the real copy has the real time
+  await env.DB.prepare('UPDATE messages SET type = ?, body = ?, caption = ?, media_id = ?, media_url = ?, media_mime = ?, media_ref = ?, ts = CASE WHEN ? != \'\' THEN ? ELSE ts END WHERE id = ?')
+    .bind(msg.type, msg.body || '', msg.caption || '', msg.mediaId || '', msg.mediaUrl || '', msg.mime || '', msg.mediaRef || '', msg.ts || '', msg.ts || '', had.id).run();
   const c = await env.DB.prepare('SELECT * FROM contacts WHERE id = ?').bind(had.contact_id).first();
   if (!c) return;
   const sets = [], binds = [];
