@@ -1,6 +1,6 @@
 # T-193 · охват · повтор T-148 (перефразировано 20–30 %)
 
-Статус: Одобрено владельцем 02.11 (повтор постов с нулевыми просмотрами 30.10–01.11), публикуется 08–10.11.
+Статус: **опубликовано 2026-11-09 20:10 Алматы** (одобрено владельцем): https://www.threads.com/@bikas.home/post/Dfhn9iLEaWv.
 Источник: @ashtonw638 https://www.threads.com/@ashtonw638/post/DexN59xmTLr · лайки 5950 · ответы 1204 · репосты 13 (англоязычный Threads, перевод; владелец 22.10).
 Оригинал (EN): «I’m trying to prove a point to my husband. Our TODDLER ate half my sub, laid down for a nap, woke up demanding food, and ate 7 Dino nuggets. Moms, What’s about to happen?»
 Примечание к переводу: Перевод максимально буквальный («sub» = сэндвич, «Dino nuggets» = наггетсы-динозаврики), регистр TODDLER → МАЛЫШ сохранён.
