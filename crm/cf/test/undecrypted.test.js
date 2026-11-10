@@ -140,3 +140,51 @@ test('«Обращения»: who wrote in the period — new clients by source,
   assert.deepEqual([r.total, r.target, r.organic, r.returning], [4, 1, 3, 0]);
   assert.equal((await admin('GET', '/api/inquiries?from=bad')).status, 400);
 });
+
+test('«Разослать треки»: the track message goes through the QR-connected number into the client\'s chat (found or created), the order is marked; without QR -> no-connector', { skip }, async () => {
+  const mkOrder = async (name, phone, track) => {
+    const r = await admin('POST', '/api/orders', Object.assign({ name, phone, city: 'Алматы', productName: 'Отпариватель', qty: 1, sum: 12000 }, track ? { status: 'sent', delivery: 'Казпочта', track } : { status: 'paid' }));
+    assert.equal(r.status, 201, await r.clone().text());
+    return r.json();
+  };
+  const idOf = async (track) => (await db.prepare('SELECT id, num FROM orders WHERE track = ?').bind(track).first());
+  // without a QR connection: the page must fall back to the manual way
+  await db.prepare("UPDATE connector SET phone = '' WHERE id = 1").run();
+  await mkOrder('Айгуль', '8 701 555 00 70', 'UU000000070KZ');
+  let o = await idOf('UU000000070KZ');
+  let r = await admin('POST', `/api/orders/${o.id}/send-track`, { text: 'Ваш трек UU000000070KZ' });
+  assert.equal(r.status, 409);
+  assert.equal((await r.json()).code, 'no-connector');
+  // connected by QR
+  await conn('POST', '/api/connector/state', { state: 'open', phone: '77011112233', name: 'Bikas', version: '1.0.0' });
+  r = await admin('POST', `/api/orders/${o.id}/send-track`, { text: 'Ваш трек UU000000070KZ' });
+  assert.equal(r.status, 200, await r.clone().text());
+  const d = await r.json();
+  assert.ok(d.trackSentAt);
+  const c = await db.prepare("SELECT * FROM contacts WHERE ext_id = '77015550070'").first();   // a new chat for the order's phone (8 -> 7)
+  assert.ok(c, 'chat created');
+  assert.equal(c.order_id, o.id);
+  assert.equal(c.traffic, 'old');                       // not counted as a new inquiry
+  const ob = await db.prepare("SELECT * FROM outbox WHERE contact_id = ? AND type = 'text'").bind(c.id).first();
+  assert.equal(ob.text, 'Ваш трек UU000000070KZ');
+  assert.equal(ob.to_ext, '77015550070');
+  assert.equal(ob.status, 'queued');
+  assert.ok((await db.prepare('SELECT track_sent_at FROM orders WHERE id = ?').bind(o.id).first()).track_sent_at);
+  // a client who wrote before under a hidden (@lid) number: the chat is found through the alias, no second chat
+  await conn('POST', '/api/connector/events', { events: [ev({ waId: '26000000000071', lid: '26000000000071', msg: { id: 'LID71', ts: Math.floor(Date.now() / 1000) - 600, type: 'text', body: 'Здравствуйте' } })] });
+  await db.prepare("INSERT INTO wa_alias (lid, phone, created_at) VALUES ('26000000000071', '77015550071', '2026-01-01') ON CONFLICT DO NOTHING").run().catch(async () => {
+    await db.prepare("INSERT INTO wa_alias (lid, phone) VALUES ('26000000000071', '77015550071')").run();
+  });
+  await mkOrder('Динара', '+7 701 555 00 71', 'UU000000071KZ');
+  o = await idOf('UU000000071KZ');
+  r = await admin('POST', `/api/orders/${o.id}/send-track`, { text: 'Ваш трек UU000000071KZ' });
+  assert.equal(r.status, 200, await r.clone().text());
+  const n71 = await db.prepare("SELECT COUNT(*) AS n FROM contacts WHERE ext_id IN ('26000000000071', '77015550071')").first();
+  assert.equal(n71.n, 1, 'one chat for the client');
+  const ob71 = await db.prepare("SELECT o.to_ext FROM outbox o JOIN messages m ON m.id = o.message_id WHERE m.body = 'Ваш трек UU000000071KZ'").first();
+  assert.ok(ob71, 'queued');
+  // an order without a track or without a phone
+  await mkOrder('Без трека', '+77015550072', '');
+  o = await db.prepare("SELECT id FROM orders WHERE name = 'Без трека'").first();
+  assert.equal((await admin('POST', `/api/orders/${o.id}/send-track`, { text: 'x' })).status, 400);
+});

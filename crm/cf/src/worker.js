@@ -653,6 +653,49 @@ async function markTrackSent(env, user, idStr, b) {
   return json({ ok: true, trackSentAt: at });
 }
 
+// POST /api/orders/:id/send-track {text}: the message with the track number goes to the client through the WhatsApp number
+// connected by QR (no copy-paste, no wa.me). The client's chat is found by the order's link, its phone or a lid alias of that
+// phone; a client who never wrote to this number gets a chat. Then the order is marked «трек отправлен».
+// 409 {code: 'no-connector'}: no number is connected by QR - the page falls back to copying the text and opening wa.me.
+async function sendTrackWa(env, user, idStr, b) {
+  const id = parseInt(idStr, 10);
+  const o = id > 0 ? await env.DB.prepare('SELECT id, num, name, phone, track FROM orders WHERE id = ?').bind(id).first() : null;
+  if (!o) fail(404, 'Заказ не найден');
+  if (!o.track) fail(400, 'У заказа нет трек-номера');
+  const text = str(b.text, 4096, 'Сообщение');
+  if (!text) fail(400, 'Пустое сообщение');
+  let d = String(o.phone || '').replace(/\D/g, '');
+  if (d.length === 11 && d[0] === '8') d = '7' + d.slice(1);
+  else if (d.length === 10) d = '7' + d;
+  if (d.length < 10 || d.length > 15) fail(400, `У заказа № ${o.num} нет номера телефона для WhatsApp`);
+  let c = await env.DB.prepare(CHAT_SELECT + "WHERE c.channel = 'whatsapp' AND c.order_id = ? ORDER BY c.last_message_at DESC LIMIT 1").bind(o.id).first();
+  if (!c) c = await env.DB.prepare(CHAT_SELECT + "WHERE c.channel = 'whatsapp' AND (c.ext_id = ?1 OR c.phone = ?1) ORDER BY c.last_message_at DESC LIMIT 1").bind(d).first();
+  if (!c) c = await env.DB.prepare(CHAT_SELECT + "WHERE c.channel = 'whatsapp' AND c.ext_id IN (SELECT lid FROM wa_alias WHERE phone = ?) ORDER BY c.last_message_at DESC LIMIT 1").bind(d).first();
+  const cur = await env.DB.prepare("SELECT * FROM wa_numbers WHERE is_current = 1 AND status = 'active' ORDER BY id LIMIT 1").first();
+  if (!c) {
+    if (!cur) fail(409, 'Не выбран номер WhatsApp для отправки (Настройки → Номера WhatsApp)', { code: 'no-connector' });
+    const ts = nowIso();
+    await env.DB.prepare(
+      "INSERT INTO contacts (channel, ext_id, phone, id_kind, name, traffic, number_id, order_id, first_message_at, created_at, updated_at) " +
+      "VALUES ('whatsapp', ?, ?, 'pn', ?, 'old', ?, ?, '', ?, ?) ON CONFLICT(channel, ext_id) DO NOTHING"
+    ).bind(d, d, String(o.name || '').slice(0, 200), cur.id, o.id, ts, ts).run();
+    c = await env.DB.prepare(CHAT_SELECT + "WHERE c.channel = 'whatsapp' AND c.ext_id = ?").bind(d).first();
+    if (!c) fail(500, 'Не удалось создать чат клиента');
+  }
+  let num = c.number_id ? await env.DB.prepare('SELECT * FROM wa_numbers WHERE id = ?').bind(c.number_id).first() : null;
+  if (!num || num.status !== 'active') num = cur;   // the client wrote to a number that is gone: send from the current one
+  const conn = num ? await boundConnector(env, num) : null;
+  if (!conn) fail(409, 'WhatsApp не подключён к CRM по QR: отправьте трек вручную', { code: 'no-connector' });
+  const sent = await (await queueOutgoing(env, user, c, num, conn, { type: 'text', text })).json();
+  const at = nowIso();
+  await env.DB.batch([
+    env.DB.prepare('UPDATE orders SET track_sent_at = ? WHERE id = ?').bind(at, o.id),
+    env.DB.prepare('UPDATE contacts SET order_id = COALESCE(order_id, ?) WHERE id = ?').bind(o.id, c.id),
+    auditStmt(env, user.email, 'track_sent', o.id, o.num, 'WhatsApp')
+  ]);
+  return json({ ok: true, trackSentAt: at, chatId: String(c.id), warning: sent.warning || '' });
+}
+
 /* ---------- auth ---------- */
 async function login(env, b) {
   const lg = cleanEmail(b.email).slice(0, 254);
@@ -1228,6 +1271,7 @@ async function api(req, env, url) {
     if (m === 'DELETE') { requireAdmin(user); await deleteOrder(env, user, mt[1]); return json({ ok: true }); }
   }
   if ((mt = p.match(/^\/api\/orders\/(\d+)\/track-sent$/)) && m === 'POST') return markTrackSent(env, user, mt[1], await readJson(req));
+  if ((mt = p.match(/^\/api\/orders\/(\d+)\/send-track$/)) && m === 'POST') return sendTrackWa(env, user, mt[1], await readJson(req));
   if (p === '/api/kazpost/preview' && m === 'POST') return kazpostPreview(env, await readJson(req));
   if (p === '/api/kazpost/apply' && m === 'POST') return kazpostApply(env, user, await readJson(req));
   if ((mt = p.match(/^\/api\/orders\/(\d+)\/audit$/)) && m === 'GET') {
@@ -2206,39 +2250,7 @@ async function mediaProxy(req, env, idStr) {
   return new Response(buf, { status: 200, headers });
 }
 
-// One-time repair (2026-11-06): until connector fc453ee+fix, messages that reached the phone while the laptop was off were
-// delivered on reconnect as "append" and stored as history: new clients of those nights got traffic 'old', no source and no
-// unread mark. The last pairing (history import) finished on 2026-11-04 ~16:05 UTC, so a chat marked 'old' whose FIRST message is
-// later than that cannot come from history: re-detect its source on its first inbound message and mark it unread if the client
-// wrote last. Runs once (settings flag), all updates in one batch.
-const OFFLINE_REPAIR_FLAG = 'repair_offline_old_v1';
-const OFFLINE_REPAIR_SINCE = '2026-11-04T17:00:00.000Z';
-async function repairOfflineOld(env) {
-  try {
-    const done = await env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind(OFFLINE_REPAIR_FLAG).first();
-    if (done) return;
-    const { results } = await env.DB.prepare(
-      "SELECT c.id, " +
-      "(SELECT m.body FROM messages m WHERE m.contact_id = c.id AND m.direction = 'in' ORDER BY m.ts LIMIT 1) AS first_in, " +
-      "(SELECT m.direction FROM messages m WHERE m.contact_id = c.id ORDER BY m.ts DESC, m.id DESC LIMIT 1) AS last_dir " +
-      "FROM contacts c WHERE c.channel = 'whatsapp' AND c.traffic = 'old' AND c.source_manual = 0 AND c.first_message_at >= ? LIMIT 2000"
-    ).bind(OFFLINE_REPAIR_SINCE).all();
-    const rows = (results || []).filter((r) => r.first_in != null);
-    const { results: targets } = rows.length ? await env.DB.prepare('SELECT * FROM target_texts WHERE active = 1').all() : { results: [] };
-    const stmts = rows.map((r) => {
-      const src = detectSource({ text: r.first_in || '', referral: null, targets: targets || [] });
-      return env.DB.prepare(
-        "UPDATE contacts SET traffic = ?, platform = ?, target_code = ?, product_name = CASE WHEN ? != '' THEN ? ELSE product_name END, " +
-        "unread = CASE WHEN ? = 'in' AND unread = 0 THEN 1 ELSE unread END, updated_at = ? WHERE id = ? AND traffic = 'old' AND source_manual = 0"
-      ).bind(src.traffic, src.platform || '', src.code || '', src.product || '', src.product || '', r.last_dir || '', nowIso(), r.id);
-    });
-    stmts.push(env.DB.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(OFFLINE_REPAIR_FLAG, nowIso() + ' ' + rows.length));
-    for (let i = 0; i < stmts.length; i += 100) await env.DB.batch(stmts.slice(i, i + 100));
-  } catch (e) { console.error('offline repair failed'); }
-}
-
 async function listChats(env, url) {
-  await repairOfflineOld(env);
   if (url.searchParams.get('count')) {
     const r = await env.DB.prepare('SELECT COALESCE(SUM(unread), 0) AS n FROM contacts').first();
     return json({ unreadTotal: r ? r.n : 0 });

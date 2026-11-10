@@ -1140,6 +1140,12 @@ function kzSentCount() {
   S.kz.result.applied.forEach(function (a) { var o = S.data.orders.filter(function (x) { return x.id === a.orderId; })[0]; if (o && o.trackSentAt) n++; });
   return n;
 }
+function kzSendAllHTML(res) {
+  var left = res.applied.length - kzSentCount(), sd = S.kz.sending;
+  if (sd) return '<div class="row-flex mt8"><button type="button" class="btn pri" disabled>Отправляем… ' + sd.done + ' из ' + sd.total + '</button></div>';
+  if (!left) return '<div class="trk-ok mt8">Всем клиентам из реестра трек отправлен ✓</div>';
+  return '<div class="row-flex mt8"><button type="button" class="btn pri" data-act="send-all-tracks">Разослать все треки (' + left + ')</button></div>';
+}
 function kzPanelHTML() {
   var k = S.kz;
   if (!k) return '';
@@ -1168,7 +1174,8 @@ function kzPanelHTML() {
     res.skipped.map(function (x) { return '<div class="notice">Посылка ' + esc(x.track) + (x.num ? ' (заказ № ' + esc(x.num) + ')' : '') + ' пропущена: ' + esc(x.reason) + '.</div>'; }).join('');
   return '<div class="card kz col12">' + head('Отправлено: <b>' + res.sent + '</b>') + notes +
     (res.applied.length ? '<div class="fw6 mt8">Разослать треки <span class="kz-count">отправлено ' + kzSentCount() + ' из ' + res.applied.length + '</span></div>' +
-      '<small>Кнопка копирует текст и открывает чат WhatsApp клиента: вставьте текст и отправьте.</small><div class="kzlist">' + rows + '</div>' : '') + '</div>';
+      kzSendAllHTML(res) +
+      '<small>Сообщение с трек-номером уходит клиенту с подключённого номера WhatsApp и видно в «Чатах». Текст — Настройки → «Шаблон сообщения с трек-номером».</small><div class="kzlist">' + rows + '</div>' : '') + '</div>';
 }
 async function kzLoadFile(input) {
   var f = input.files && input.files[0];
@@ -1217,17 +1224,58 @@ async function kzApply() {
   }
   doRender(true);
 }
+// Sends the track message through the WhatsApp number connected to the CRM (no copy-paste). Without a QR connection the
+// old way: the text is copied and the client's chat opens in WhatsApp. Resolves true when the message was queued.
+async function sendTrackOne(o) {
+  var d = await api('POST', '/api/orders/' + encodeURIComponent(o.id) + '/send-track', { text: trackMessage(o) });
+  o.trackSentAt = d.trackSentAt || nowISO();
+  return d;
+}
 function sendTrack(id) {
   var o = S.data.orders.filter(function (x) { return x.id === id; })[0];
   if (!o || !o.track) { toast('У заказа нет трек-номера', 'err'); return; }
+  if (S.trackBusy) return;
+  S.trackBusy = true;
+  sendTrackOne(o).then(function (d) {
+    toast(d.warning ? 'Трек поставлен в очередь: ' + d.warning : 'Трек отправлен клиенту в WhatsApp', d.warning ? 'err' : 'ok');
+    var mark = document.getElementById('trk-mark'); if (mark && S.card && S.card.id === id) mark.textContent = 'трек отправлен ✓';
+  }).catch(function (e) {
+    if (e.status === 409 && e.data && e.data.code === 'no-connector') return sendTrackManual(o);
+    toast('Трек не отправлен: ' + e.message, 'err');
+  }).then(function () { S.trackBusy = false; doRender(true); });
+}
+// «Разослать все треки»: every order of the Kazpost result that has no «трек отправлен» yet, one after another.
+async function sendAllTracks() {
+  if (S.trackBusy || !S.kz || !S.kz.result) return;
+  var list = S.kz.result.applied.map(function (a) { return S.data.orders.filter(function (x) { return x.id === a.orderId; })[0]; })
+    .filter(function (o) { return o && o.track && !o.trackSentAt; });
+  if (!list.length) { toast('Всем клиентам из этого реестра трек уже отправлен', 'ok'); return; }
+  S.trackBusy = true; S.kz.sending = { done: 0, total: list.length };
+  doRender(true);
+  var ok = 0, errs = [], warn = '';
+  for (var i = 0; i < list.length; i++) {
+    try { var d = await sendTrackOne(list[i]); ok++; if (d.warning) warn = d.warning; }
+    catch (e) {
+      if (e.status === 409 && e.data && e.data.code === 'no-connector') { errs.push(e.message); break; }
+      errs.push('№ ' + list[i].num + ': ' + e.message);
+    }
+    S.kz.sending.done = i + 1;
+    doRender(true);
+  }
+  S.kz.sending = null; S.trackBusy = false;
+  doRender(true);
+  if (errs.length) toast('Отправлено ' + ok + ' из ' + list.length + '. ' + errs.join('; '), 'err');
+  else toast('Треки отправлены: ' + ok + (warn ? '. ' + warn : ''), warn ? 'err' : 'ok');
+}
+function sendTrackManual(o) {
   var wa = waDigits(o.phone);
   if (!wa) { toast('У заказа нет номера для WhatsApp', 'err'); return; }
-  var text = trackMessage(o);
+  var id = o.id, text = trackMessage(o);
   var copied = copyToClipboard(text); // copy first (while the page has focus), then open the chat: no text in the link
   window.open('https://wa.me/' + wa, '_blank', 'noopener');
-  copied.then(function (ok) {
+  return copied.then(function (ok) {
     if (!ok) { toast('Не удалось скопировать — скопируйте текст вручную', 'err'); window.prompt('Скопируйте текст сообщения', text); return null; }
-    toast('Текст скопирован — вставьте в чат', 'ok');
+    toast('WhatsApp не подключён к CRM: текст скопирован — вставьте в чат', 'ok');
     return api('POST', '/api/orders/' + encodeURIComponent(id) + '/track-sent', { sent: true }).then(function (d) {
       o.trackSentAt = d.trackSentAt || nowISO();
       var mark = document.getElementById('trk-mark'); if (mark && S.card && S.card.id === id) mark.textContent = 'трек отправлен ✓';
@@ -1975,6 +2023,7 @@ var ACTIONS = {
   'kz-close': function () { S.kz = null; doRender(true); },
   'kz-apply': function () { kzApply(); },
   'send-track': function (t) { sendTrack(t.dataset.id); },
+  'send-all-tracks': function () { sendAllTracks(); },
   'close-card': function () { closeCard(); },
   'card-save': function () { saveCard(); },
   'card-del': function () { showDelConfirm(); },
