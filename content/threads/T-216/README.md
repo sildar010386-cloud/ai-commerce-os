@@ -8,8 +8,5 @@
 ## Пост 1 — `1.jpg`
 Кілемнің бұрыш-бұрышын қарап шықтым, бірде-бір үтік ізі жоқ 😂 Өзім үтікпен басып қояйын ба?
 
-## Перевод (для владельца, не публикуется)
-Пост: Осмотрела ковёр по всем уголкам: ни одного следа от утюга 😂 Может, самой прижать утюгом?
-
 ## Картинка
 Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of a clean colorful traditional Kazakh patterned carpet on the floor of a sunny living room, smooth unmarked surface, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people, no appliance

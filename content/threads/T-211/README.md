@@ -8,8 +8,5 @@
 ## Пост 1 — `1.jpg`
 Неге жексенбі демалыс күні саналады, ал біз үй жинап, кір жуып, үтіктеп жүреміз? 😅 Сіздерде де солай ма?
 
-## Перевод (для владельца, не публикуется)
-Пост: Почему воскресенье считается выходным, а мы убираем, стираем и гладим? 😅 У вас тоже так?
-
 ## Картинка
 Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of a sunny balcony with a clothes drying rack full of colorful clean laundry and a cup of tea on a small table, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people

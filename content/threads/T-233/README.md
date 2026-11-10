@@ -8,8 +8,5 @@
 ## Пост 1 — `1.jpg`
 Қыздар, ыдыс жуатын машина алуға тұра ма? 🤔 Қолданып жүргендер, айтыңыздаршы, пайдасы бар ма?
 
-## Перевод (для владельца, не публикуется)
-Пост: Девочки, стоит ли покупать посудомойку? 🤔 Те, кто пользуется, скажите, есть ли польза?
-
 ## Картинка
 Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of a kitchen counter with clean colorful plates, glasses and bowls neatly stacked on a dish rack, sunny window, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people

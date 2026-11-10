@@ -11,9 +11,5 @@
 ## Ответ под постом (публикуется сразу после поста)
 Қызықсаңыз, «ПАР» деп жазыңыз, менеджер хабарласып, бәрін айтып береді 😊 Қазпошта арқылы бүкіл Қазақстан бойынша жеткізу тегін
 
-## Перевод (для владельца, не публикуется)
-Пост: Если завтра той, а платье мятое, попробуйте вот этот отпариватель. Он нагревается за 9 секунд и гладит платье прямо на вешалке. Ваше платье готово?
-Ответ под постом: Если интересно, напишите «ПАР», менеджер свяжется с вами и всё расскажет 😊 Доставка Казпочтой по всему Казахстану бесплатно
-
 ## Картинка
 Файл `1.jpg`: карточка (фон `bg.jpg` FLUX + наш НАСТОЯЩИЙ отпариватель в круглой рамке + плашка, сборка по образцу `content/threads/selling-photos/src/card4.py`, кадр `content/carousels/K-02/src/p2.jpg`). Плашка: 9 секунд. Заголовок карточки: Көйлек ілгіште. Prompt фона (FLUX, EN): Elegant festive satin dress in rich emerald and gold hanging on a hanger on a bright wardrobe door, Kazakh style ornament cushion nearby, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people, no appliance

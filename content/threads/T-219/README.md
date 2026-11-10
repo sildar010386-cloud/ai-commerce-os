@@ -8,8 +8,5 @@
 ## Пост 1 — `1.jpg`
 Қыздар, осылай істеп көріңдерші, кір жуғыш машиналарыңыз рақмет айтады 😄 Жуып болған соң есігін де, ұнтақ салғышты да ашық қалдырыңыз, иіс азаяды. Сіздер солай істейсіздер ме?
 
-## Перевод (для владельца, не публикуется)
-Пост: Девочки, попробуйте так, ваши стиралки скажут спасибо 😄 После стирки оставляйте открытыми и дверцу, и лоток для порошка, запаха станет меньше. Вы так делаете?
-
 ## Картинка
 Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of a bathroom corner with a front-load washing machine whose round door is open, the empty detergent drawer pulled out, a fresh folded towel and a green plant, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people

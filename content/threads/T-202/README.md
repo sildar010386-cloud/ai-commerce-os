@@ -11,9 +11,5 @@
 ## Ответ под постом (публикуется сразу после поста)
 «ПАР» деп жазыңыз, менеджер хабарласып, бәрін айтып береді 🙌 Қазпошта арқылы Қазақстан бойынша жеткізу тегін
 
-## Перевод (для владельца, не публикуется)
-Пост: Мало кто знает, но для глажки не нужны доска, шнур и поиск места. Ручной отпариватель нагревается за 9 секунд и гладит одежду прямо на вешалке. У вас ещё есть доска?
-Ответ под постом: Напишите «ПАР», менеджер свяжется с вами и всё расскажет 🙌 Доставка Казпочтой по Казахстану бесплатно
-
 ## Картинка
 Файл `1.jpg`: карточка (фон `bg.jpg` FLUX + наш НАСТОЯЩИЙ отпариватель в круглой рамке + плашка, сборка по образцу `content/threads/selling-photos/src/card4.py`, кадр `content/carousels/K-02/src/p2.jpg`). Плашка: Без доски. Заголовок карточки: Тақтасыз үтіктеу. Prompt фона (FLUX, EN): Small cozy Kazakh apartment room with a bright window, a clothes rack with colorful dresses and a neat chair, spacious clean floor, coral and mint accents, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people, no appliance

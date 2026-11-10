@@ -8,8 +8,5 @@
 ## Пост 1 — `1.jpg`
 Егер үйдегі 10 жылдық ескі сүлгілерді тастасам, соғыс болады 😅 Сіздерде де сондай сүлгілер бар ма?
 
-## Перевод (для владельца, не публикуется)
-Пост: Если я выброшу старые полотенца, которым 10 лет, дома будет война 😅 У вас тоже есть такие полотенца?
-
 ## Картинка
 Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of a shelf in a linen closet with a stack of worn but colorful old towels and folded sheets, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people

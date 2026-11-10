@@ -8,8 +8,5 @@
 ## Пост 1 — `1.jpg`
 Қыздар, үтіктелмеген киімді киюді норма етейікші 😅 Қосыласыздар ма?
 
-## Перевод (для владельца, не публикуется)
-Пост: Девочки, давайте сделаем ношение неглаженой одежды нормой 😅 Вы с нами?
-
 ## Картинка
 Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of colorful casual clothes, a linen shirt and a knitted sweater, casually folded on a cozy bed with a sunny window, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people

@@ -8,8 +8,5 @@
 ## Пост 1 — `1.jpg`
 Қалай газ плитасының торындағы майды кетіруге болады? 🙏 Қыздар, қандай тәсіл көмектесті?
 
-## Перевод (для владельца, не публикуется)
-Пост: Как убрать жир с решётки газовой плиты? 🙏 Девочки, какой способ вам помог?
-
 ## Картинка
 Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of a cast iron gas stove grate with light grease stains lying on a kitchen counter beside a scrub brush, a sponge and a small bowl of baking soda, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people
