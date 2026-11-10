@@ -13,12 +13,17 @@ import { createEventQueue } from './queue.js';
 import { createBridge } from './bridge.js';
 import { prepareVoice } from './media.js';
 import { loadConfig } from './config.js';
+import { installedVersion } from './update.js';
 import { makeBaileysLogger, short } from './safelog.js';
 import { acquireInstance, EXIT_ANOTHER_RUNNING } from './instance.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(fs.readFileSync(path.join(here, '..', 'package.json'), 'utf8'));
-const VERSION = pkg.version;
+// The version shown in the CRM (Настройки → Подключение WhatsApp): package version + the installed commit, e.g. 1.0.0+7e0d228,
+// so a screenshot tells which update is on the computer.
+const cfg0 = loadConfig(process.env);
+const commit = cfg0.home ? installedVersion(cfg0.home).slice(0, 7) : '';
+const VERSION = pkg.version + (commit ? '+' + commit : '');
 
 const cfg = loadConfig(process.env);
 const CRM_URL = cfg.crmUrl, TOKEN = cfg.token, STATE_DIR = cfg.stateDir, AUTH_DIR = cfg.authDir;
