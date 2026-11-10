@@ -1,10 +1,15 @@
-# T-219 · охват · рус · свой текст по схеме №15 (REF_ANALYSIS_03, 10.11)
+# T-219 · охват · каз · перефраз залетевшего поста №39 на 20–30 % (REF_ANALYSIS_03, 10.11)
 
 Статус: черновик на одобрение (пакет 11–17.11), публикация 15.11 09:30 Алматы.
-Схема: №15 (шутка-хронометраж / вопрос подписчицам), тема стирки; текст свой.
+Источник: @kitapclub_01 threads.com/@kitapclub_01/post/Dey3UxigKNh · лайки/ответы цифры в сводке не указаны · №39
+Хук оригинала: «Қыздар, осылай істеп көріңдерші, стиралкаларыңыз рақмет айтады» (запах в стиральной машине, по пересказу)
+Примечание: дословный текст оригинала в отчёт не приходил (только хук и пересказ), пост восстановлен по ним и перефразирован.
 
 ## Пост 1 — `1.jpg`
-Почему вещи после стирки иногда пахнут сыростью? Как вы с этим справляетесь? 🤔
+Қыздар, осылай істеп көріңдерші, кір жуғыш машиналарыңыз рақмет айтады 😄 Жуып болған соң есігін де, ұнтақ салғышты да ашық қалдырыңыз, иіс азаяды. Сіздер солай істейсіздер ме?
+
+## Перевод (для владельца, не публикуется)
+Пост: Девочки, попробуйте так, ваши стиралки скажут спасибо 😄 После стирки оставляйте открытыми и дверцу, и лоток для порошка, запаха станет меньше. Вы так делаете?
 
 ## Картинка
-Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of a wicker basket with freshly washed white and pastel laundry next to a sunny window in a cozy apartment, fresh green plant on the sill, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people
+Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of a bathroom corner with a front-load washing machine whose round door is open, the empty detergent drawer pulled out, a fresh folded towel and a green plant, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people

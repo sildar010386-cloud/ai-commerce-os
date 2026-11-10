@@ -1,10 +1,12 @@
-# T-218 · охват · рус · свой текст по плану недели (боль → решение)
+# T-218 · охват · рус · перефраз залетевшего поста №10 на 20–30 % (REF_ANALYSIS_03, 10.11)
 
 Статус: черновик на одобрение (пакет 11–17.11), публикация 14.11 20:10 Алматы.
-Схема: спорное мнение про глажку (Дополнение 2026-11-10); текст свой.
+Источник: @lerqus threads.com/@lerqus/post/De_FifJF1AI · лайки/ответы цифры в сводке не указаны · №10
+Хук оригинала: «Какой товар для уборки вы бы посоветовали каждому?» (по пересказу)
+Примечание: дословный текст оригинала в отчёт не приходил (только хук и пересказ), пост восстановлен по ним и перефразирован.
 
 ## Пост 1 — `1.jpg`
-Как вы относитесь к тем, кто гладит даже носки и полотенца? 😅 Это порядок или перебор?
+Если бы можно было посоветовать каждой хозяйке одну вещь для уборки, что бы вы назвали? 🧽
 
 ## Картинка
-Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of perfectly folded pairs of colorful socks and a neat stack of fluffy towels on a shelf, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people
+Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of a tidy cleaning caddy with colorful sponges, microfiber cloths and a plain spray bottle on a bathroom shelf, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people

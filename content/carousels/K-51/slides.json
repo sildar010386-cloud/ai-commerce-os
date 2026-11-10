@@ -5,57 +5,61 @@
  "slides": [
   {
    "kind": "cover",
-   "title": "Как постирать пуховик, чтобы он не сбился",
-   "text": "Правил немного. Про последнее знают не все →",
-   "prompt": "Puffy winter down jacket on a hanger next to a washing machine in a bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "title": "Как отмыть решётку газовой плиты от жира: 5 способов",
+   "text": "Способы безопасные. Про последний знают не все →",
+   "prompt": "Clean cast iron gas stove grate on a bright kitchen counter next to a scrub brush and a sponge, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people",
    "photo": "src/01.jpg"
   },
   {
-   "title": "1. Ярлык и деликатный режим",
-   "text": "Застегните молнии и липучки, выберите деликатную стирку и температуру по ярлыку.",
-   "prompt": "Close-up of a care label and zipper on a puffy jacket, bright light, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-   "emoji": "🏷️",
+   "title": "1. Замочить в горячей воде",
+   "text": "Остывшую решётку положите на 30 минут в горячую воду с жидкостью для мытья посуды. Жир размягчится.",
+   "prompt": "Stove grate soaking in a deep sink with hot soapy water and foam, plain dish soap bottle without label, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people",
+   "emoji": "🛁",
    "photo": "src/02.jpg"
   },
   {
-   "title": "2. Жидкое средство, без кондиционера",
-   "text": "Порошок хуже вымывается из пуха. Лучше жидкое средство и дополнительное полоскание.",
-   "prompt": "Bottle of liquid laundry detergent and a measuring cap beside a clean washing machine, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-   "emoji": "🧴",
+   "title": "2. Сода и щётка",
+   "text": "Нанесите на пятна кашицу из соды и воды, подождите 20 минут и пройдите щёткой. Не смешивайте с другими средствами.",
+   "prompt": "Small white bowl of baking soda paste with a spoon and a scrub brush on a kitchen counter, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people",
+   "emoji": "🥄",
    "photo": "src/03.jpg"
   },
   {
-   "title": "3. Сушим расправленным, с мячиками",
-   "text": "Разложите пуховик ровно и время от времени встряхивайте. Мячики для сушки помогают разбить комки, если ярлык разрешает.",
-   "prompt": "Two clean tennis balls next to a folded puffy jacket on a drying rack in a bright room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-   "emoji": "🎾",
+   "title": "3. Антижир в пакете на ночь",
+   "text": "Наденьте перчатки, нанесите средство для плит по инструкции, уложите решётку в плотный пакет и оставьте на ночь. Утром смойте.",
+   "prompt": "Stove grate inside a thick transparent bag on a balcony table next to yellow rubber gloves, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people",
+   "emoji": "🛍️",
    "photo": "src/04.jpg"
   },
   {
    "kind": "list",
-   "title": "Шпаргалка: пуховик без комков",
+   "title": "Шпаргалка: решётка без жира",
    "items": [
     {
-     "icon": "🏷️",
-     "text": "Сначала ярлык"
+     "icon": "🛁",
+     "text": "Замочить в горячей воде"
     },
     {
-     "icon": "🧴",
-     "text": "Жидкое средство"
+     "icon": "🥄",
+     "text": "Сода и щётка"
     },
     {
-     "icon": "🔄",
-     "text": "Дополнительное полоскание"
+     "icon": "🛍️",
+     "text": "Антижир в пакете на ночь"
     },
     {
-     "icon": "🎾",
-     "text": "Мячики и встряхивание"
+     "icon": "🧽",
+     "text": "Щётка для въевшегося"
+    },
+    {
+     "icon": "🧼",
+     "text": "Протирать после готовки"
     }
    ]
   },
   {
    "kind": "final",
-   "text": "Сохраняй и отправь той, кто боится стирать пуховик.\nА как вы стираете пуховик? Пишите в комментариях"
+   "text": "Сохраняй и отправь той, у кого решётка плиты давно ждёт уборки.\nА какой способ у вас работает? Пишите в комментариях"
   }
  ]
 }
