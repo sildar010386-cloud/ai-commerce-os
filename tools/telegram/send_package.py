@@ -34,6 +34,9 @@ def send_day(date):
             post = section(readme, "Пост 1")
             reply = section(readme, "Ответ под постом")
             text = f"{head} · Threads\n\n{post}" + (f"\n\nНаш ответ под постом: {reply}" if reply else "")
+            tr = section(readme, "Перевод")
+            if tr:
+                text += f"\n\n🇷🇺 {tr}"
             img = os.path.join(folder, "1.jpg")
             if os.path.exists(img) and len(text) <= 1024:
                 tg("photo", img, text)
