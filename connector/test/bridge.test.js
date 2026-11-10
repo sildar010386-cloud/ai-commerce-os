@@ -806,3 +806,112 @@ test('retries: a message we sent is kept and handed to Baileys (getMessage) when
   const t2 = setup({ stateDir: dir, encodeMessage, decodeMessage });
   assert.equal(t2.bridge.getSentMessage({ id: 'OUT1' }).extendedTextMessage.text, 'Здравствуйте, доставка 1-2 дня');
 });
+
+/* ---------- field report 2026-11-10: Baileys' processing queue hung after a connect, events stayed held ---------- */
+test('watchdog: a hung Baileys processing task (real makeMutex) replaces the socket and names the last connect step', async () => {
+  const { makeMutex } = await import('@whiskeysockets/baileys/lib/Utils/make-mutex.js');
+  const clock = { v: 20_000_000 };
+  const lg = logSink();
+  const t2 = wdSetup(clock, { log: lg, processingStuckMs: 180000, makeSocket: async () => { const x = fakeSock(); x.ws = new EventEmitter(); x.processingMutex = makeMutex(); t2.sockets.push(x); return x; } });
+  t2.sockets = [];
+  await open(t2);
+  const s0 = t2.sockets[0];
+  // the order of tasks is still Baileys' own: one after another
+  const order = [];
+  await Promise.all([
+    s0.processingMutex.mutex(async () => { order.push('a1'); await tick(); order.push('a2'); }),
+    s0.processingMutex.mutex(async () => { order.push('b'); })
+  ]);
+  assert.deepEqual(order, ['a1', 'a2', 'b']);
+  t2.bridge.onBaileysInfo({}, 'Transitioned to Syncing state');
+  t2.bridge.onBaileysInfo({}, 'resyncing regular_high from v0');
+  t2.bridge.onBaileysInfo({}, 'something unrelated');
+  s0.processingMutex.mutex(() => new Promise(() => {}));          // a download that never ends
+  let behind = false;
+  s0.processingMutex.mutex(async () => { behind = true; });       // a client message waiting behind it
+  await tick();
+  for (let i = 0; i < 11; i++) { clock.v += 15000; await t2.bridge.watchdogTick(); }
+  assert.equal(t2.sockets.length, 1, '2 m 45 s: still waiting');
+  assert.equal(behind, false);
+  for (let i = 0; i < 2; i++) { clock.v += 15000; await t2.bridge.watchdogTick(); }
+  await tick();
+  assert.equal(t2.sockets.length, 2, 'more than 3 minutes: new socket');
+  assert.equal(s0.ended, true);
+  const w = lg.lines.find((l) => l.includes('processing stuck'));
+  assert.ok(w && w.startsWith('W ') && w.includes('last step: resyncing regular_high from v0'), w);
+  assert.ok(lg.lines.includes('I baileys: Transitioned to Syncing state'));
+  assert.ok(!lg.lines.some((l) => l.includes('resyncing') && l.startsWith('I baileys:')), 'per-collection steps are kept, not logged');
+  assert.ok(!lg.lines.some((l) => l.includes('unrelated')));
+});
+
+test('watchdog: busy but finishing tasks never trigger it', async () => {
+  const { makeMutex } = await import('@whiskeysockets/baileys/lib/Utils/make-mutex.js');
+  const clock = { v: 30_000_000 };
+  const t = wdSetup(clock, { makeSocket: async () => { const x = fakeSock(); x.ws = new EventEmitter(); x.processingMutex = makeMutex(); t.sockets.push(x); return x; } });
+  t.sockets = [];
+  await open(t);
+  for (let i = 0; i < 40; i++) {
+    await t.sockets[0].processingMutex.mutex(async () => { clock.v += 10000; });
+    clock.v += 5000; t.sockets[0].ws.emit('message', Buffer.alloc(1)); await t.bridge.watchdogTick();
+  }
+  assert.equal(t.sockets.length, 1);
+});
+
+test('events Baileys keeps back are released once its queue is idle for 45 s, never while a task runs', async () => {
+  const { makeMutex } = await import('@whiskeysockets/baileys/lib/Utils/make-mutex.js');
+  const clock = { v: 40_000_000 };
+  const lg = logSink();
+  let buffering = true, flushes = 0;
+  const t = wdSetup(clock, { log: lg, makeSocket: async () => {
+    const x = fakeSock(); x.ws = new EventEmitter(); x.processingMutex = makeMutex();
+    x.ev.isBuffering = () => buffering;
+    x.ev.flush = () => { flushes++; buffering = false; x.ev.emit('messages.upsert', { type: 'notify', messages: [{ key: { remoteJid: '77019998877@s.whatsapp.net', fromMe: false, id: 'HELD' }, message: { conversation: 'ждал' }, messageTimestamp: 1760000000 }] }); };
+    t.sockets.push(x); return x;
+  } });
+  t.sockets = [];
+  await open(t);
+  flushes = 0; buffering = true;
+  const s = t.sockets[0];
+  let release;
+  const task = s.processingMutex.mutex(() => new Promise((r) => { release = r; }));
+  for (let i = 0; i < 6; i++) { clock.v += 15000; s.ws.emit('message', Buffer.alloc(1)); await t.bridge.watchdogTick(); }
+  assert.equal(flushes, 0, 'a running task (the sync) may hold them');
+  release(); await task;
+  for (let i = 0; i < 3; i++) { clock.v += 15000; s.ws.emit('message', Buffer.alloc(1)); await t.bridge.watchdogTick(); }
+  assert.equal(flushes, 0, '30 s idle: Baileys may still release them itself');
+  clock.v += 15000; s.ws.emit('message', Buffer.alloc(1)); await t.bridge.watchdogTick();
+  await tick(); await tick(); await tick();
+  assert.equal(flushes, 1);
+  assert.ok(t.calls.events.some((e) => e.msg && e.msg.id === 'HELD'), 'the held message reached the CRM');
+  assert.ok(lg.lines.some((l) => l.startsWith('I baileys held events back for 45 s')));
+  for (let i = 0; i < 6; i++) { clock.v += 15000; s.ws.emit('message', Buffer.alloc(1)); await t.bridge.watchdogTick(); }
+  assert.equal(flushes, 1, 'nothing held: nothing to do');
+});
+
+test('decrypt failures: one summary line per watchdog tick, split into own devices / clients / other', async () => {
+  const clock = { v: 50_000_000 };
+  const lg = logSink();
+  const t = wdSetup(clock, { log: lg });
+  await open(t);
+  const fail = (key, why = 'Key used already or never filled') => t.bridge.onDecryptError({ key, err: new Error(why) }, 'failed to decrypt message');
+  fail({ remoteJid: '77011112233@s.whatsapp.net', fromMe: true, id: 'O1' });
+  fail({ remoteJid: '77011112233@s.whatsapp.net', fromMe: false, id: 'O2' }, 'Bad MAC');
+  fail({ remoteJid: '77019998877@s.whatsapp.net', fromMe: false, id: 'C1' }, 'Bad MAC');
+  fail({ remoteJid: '1203@g.us', participant: '77019998877@s.whatsapp.net', fromMe: false, id: 'G1' }, 'No session found to decrypt message');
+  t.bridge.onDecryptError({ err: new Error('x') }, 'something else');
+  clock.v += 15000; await t.bridge.watchdogTick();
+  const lines = lg.lines.filter((l) => l.includes('decrypt:'));
+  assert.deepEqual(lines, ['I decrypt: 4 message(s) not decrypted - own phone/devices 2, client chats 1, groups/other 1']);
+  clock.v += 15000; await t.bridge.watchdogTick();
+  assert.equal(lg.lines.filter((l) => l.includes('decrypt:')).length, 1, 'counted once');
+});
+
+test('Baileys logger: info goes to the hook only (never written), a throwing hook never reaches Baileys', async () => {
+  const { makeBaileysLogger } = await import('../src/safelog.js');
+  const out = [], seen = [];
+  const lg = makeBaileysLogger((l) => out.push(l), 'warn', null, (o, m) => { seen.push(m); throw new Error('hook bug'); });
+  lg.info({ x: 1 }, 'Doing app state sync');
+  lg.child({}).info({}, 'App state sync complete');
+  assert.deepEqual(seen, ['Doing app state sync', 'App state sync complete']);
+  assert.deepEqual(out, []);
+});

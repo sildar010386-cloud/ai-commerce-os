@@ -27,6 +27,7 @@ export function createBridge({
   encodeMessage = (m) => m, decodeMessage = (m) => m,
   log = console, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), random = Math.random,
   now = Date.now, watchdogMs = 5 * 60000, watchTickMs = 15000, sleepGapMs = 60000, stuckMs = 3 * 60000,
+  processingStuckMs = 3 * 60000, eventHoldMs = 45000,
   blobWaitMs = 60000, finalPassMs = 45000
 }) {
   let gen = 0, sock = null, state = 'connecting', ownPhone = '', ownName = '', ownLid = '';
@@ -40,6 +41,8 @@ export function createBridge({
   const maskId = (id) => { const d = String(id || '').replace(/\D/g, ''); return d.length > 4 ? '***' + d.slice(-4) : d || '?'; };
   let reconnectN = 0, relinking = false, stopped = false, historyCount = 0, pollTimer = null, beatTimer = null, watchTimer = null;
   let lastActivity = now(), lastTick = now(), stateSince = now(), wsHooked = false;
+  let lastStep = '', heldSince = 0;
+  const decryptFails = { own: 0, client: 0, other: 0 };
   const sentIds = new Map();      // message ids we sent ourselves (their echo must not be reported as "sent from the phone")
   // The content of the messages we sent, kept for WhatsApp's retry requests: a device of the client (or our own phone)
   // that cannot decrypt a message asks for it again, and Baileys resends it only if getMessage returns it. Without this
@@ -149,7 +152,8 @@ export function createBridge({
     catch (e) { log.error && log.error('socket start failed: ' + e.message); return scheduleReconnect(my); }
     if (my !== gen) { try { s.end && s.end(undefined); } catch (e) { /* ignore */ } return; }
     sock = s;
-    lastActivity = now(); stateSince = now();
+    lastActivity = now(); stateSince = now(); lastStep = ''; heldSince = 0;
+    timeProcessing(s);
     const guard = (fn) => (arg) => {
       if (my !== gen) return;
       const p = Promise.resolve().then(() => fn(arg)).catch((e) => log.error && log.error('handler failed: ' + (e && e.message)));
@@ -172,6 +176,35 @@ export function createBridge({
     if (wsHooked) for (const ev of ['message', 'ping', 'pong']) s.ws.on(ev, guard(() => { lastActivity = now(); }));
   }
 
+  // Baileys handles every incoming message, receipt and notification one after another (its processingMutex) and acks each
+  // to WhatsApp only once it is handled. Field report 2026-11-10: one task hung after a connect (the history / app-state sync);
+  // nothing behind it was handled - no client message reached us, our phone's and the clients' retry requests were never
+  // answered (CRM messages stayed «waiting for this message»), and 50 minutes later WhatsApp closed the connection itself
+  // («Stream Errored (ack)»). The frames kept coming, so the silence watchdog saw nothing. We time the running task.
+  function timeProcessing(s) {
+    const pm = s && s.processingMutex;
+    if (!pm || typeof pm.mutex !== 'function' || pm.bikasTimed) return;
+    const orig = pm.mutex.bind(pm);
+    pm.mutex = (code) => orig(async () => {
+      s.bikasBusySince = now();
+      try { return await code(); }
+      finally { s.bikasBusySince = 0; }
+    });
+    pm.bikasTimed = true;
+  }
+
+  // The few Baileys info lines that tell where a connect is: written to the log, and the last one is named when the queue hangs.
+  const STEP_LOG = /AwaitingInitialSync|Transitioned to Syncing|History sync skipped|Doing app state sync|App state sync complete|App state sync key arrived|handled \d+ offline|failed to sync state/;
+  const STEP_KEEP = /resyncing \S+ from|restored state of|synced \S+ to/;
+  function onBaileysInfo(o, m) {
+    const text = typeof m === 'string' ? m : typeof o === 'string' ? o : '';
+    if (!text) return;
+    const logIt = STEP_LOG.test(text);
+    if (!logIt && !STEP_KEEP.test(text)) return;
+    lastStep = short(text, 80);
+    if (logIt) info('baileys: ' + lastStep);
+  }
+
   // The socket is dead but nobody told us (laptop slept, Wi-Fi changed, router dropped the connection): start over.
   async function forceReconnect(reason) {
     if (stopped || relinking) return;
@@ -189,6 +222,18 @@ export function createBridge({
     lastTick = t;
     if (stopped || relinking) return;
     if (gap > sleepGapMs) return forceReconnect('woke up after ' + Math.round(gap / 1000) + ' s');
+    reportDecryptFails();
+    const busy = (sock && sock.bikasBusySince) || 0;
+    if (state === 'open' && busy && t - busy > processingStuckMs) {
+      return forceReconnect(`WhatsApp message processing stuck for ${Math.round((t - busy) / 1000)} s${lastStep ? ', last step: ' + lastStep : ''}`);
+    }
+    // Baileys keeps events back while it syncs and releases them itself; when a step forgets to (seen: messages handled after
+    // the sync stayed held until the next reconnect, 29 minutes later), we release them once its queue is idle.
+    const ev = sock && sock.ev;
+    if (state === 'open' && !busy && ev && typeof ev.isBuffering === 'function' && ev.isBuffering()) {
+      if (!heldSince) heldSince = t;
+      else if (t - heldSince >= eventHoldMs) { info(`baileys held events back for ${Math.round((t - heldSince) / 1000)} s: released`); heldSince = 0; drain(sock); }
+    } else heldSince = 0;
     if (state === 'open' && wsHooked && t - lastActivity > watchdogMs) return forceReconnect('no frames for ' + Math.round((t - lastActivity) / 1000) + ' s');
     if ((state === 'connecting' || state === 'closed') && t - stateSince > stuckMs) return forceReconnect('stuck in ' + state);
   }
@@ -623,9 +668,24 @@ export function createBridge({
   // and the phone is asked to resend the message (its answer arrives as a normal message with the same id and replaces it).
   const missingSeen = new Set();
   let resendBudget = 0, resendWindow = 0;
+  // Who sent the messages that could not be decrypted (the error line itself cannot say: keys never reach the log).
+  function countDecryptFail(key) {
+    readOwn();
+    const chat = chatIdOf(key);
+    const own = key.fromMe === true || (chat && ((ownPhone && chat.waId === ownPhone) || (ownLid && chat.lidUser === ownLid)));
+    decryptFails[own ? 'own' : chat ? 'client' : 'other']++;
+  }
+  function reportDecryptFails() {
+    const n = decryptFails.own + decryptFails.client + decryptFails.other;
+    if (!n) return;
+    info(`decrypt: ${n} message(s) not decrypted - own phone/devices ${decryptFails.own}, client chats ${decryptFails.client}, groups/other ${decryptFails.other}`);
+    decryptFails.own = decryptFails.client = decryptFails.other = 0;
+  }
+
   function onDecryptError(o, msg) {
     if (msg !== 'failed to decrypt message' || !o || !o.key || !o.err) return;
     const why = String(o.err.message || o.err || '');
+    try { countDecryptFail(o.key); } catch (e) { /* diagnostics only */ }
     if (!/Key used already or never filled/.test(why)) return;   // other failures come to onUpsert as a CIPHERTEXT stub
     const key = o.key;
     if (key.fromMe === true || !key.id || missingSeen.has(key.id)) return;
@@ -645,5 +705,5 @@ export function createBridge({
     if (ask) Promise.resolve().then(() => sock.requestPlaceholderResend(Object.assign({}, key))).catch(() => {});
   }
 
-  return { start, stop, onDecryptError, getSentMessage, connect, pollOnce, relink, heartbeat: postState, watchdogTick, forceReconnect, getState: () => ({ state, ownPhone, ownName }), _lids: lids, _sentIds: sentIds, chatIdOf };
+  return { start, stop, onDecryptError, onBaileysInfo, getSentMessage, connect, pollOnce, relink, heartbeat: postState, watchdogTick, forceReconnect, getState: () => ({ state, ownPhone, ownName }), _lids: lids, _sentIds: sentIds, chatIdOf };
 }

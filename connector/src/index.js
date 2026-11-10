@@ -35,7 +35,9 @@ if (!/^https?:\/\//.test(CRM_URL) || !TOKEN) {
 // Plain one-line messages on stdout: the supervisor prefixes the time and writes them to connector.log.
 const line = (tag) => (m) => console.log(tag + short(m, 400));
 const onBaileysError = { fn: null };                           // set to the bridge below (messages Baileys drops undecrypted)
-const logger = makeBaileysLogger(line(''), 'warn', (o, m) => onBaileysError.fn && onBaileysError.fn(o, m));   // Baileys: compact warn/error lines, no payloads
+const onBaileysInfo = { fn: null };                            // set to the bridge below (which step of a connect Baileys is in)
+// Baileys: compact warn/error lines, no payloads. Info goes to the bridge, which logs only the few connect steps it needs.
+const logger = makeBaileysLogger(line(''), 'warn', (o, m) => onBaileysError.fn && onBaileysError.fn(o, m), (o, m) => onBaileysInfo.fn && onBaileysInfo.fn(o, m));
 const appLog = { info: line(''), warn: line('WARN '), error: line('ERROR ') };
 
 // Only one connector per computer: two processes on one WhatsApp session replace each other. Taken BEFORE the auth folder is touched.
@@ -92,6 +94,10 @@ async function makeSocket() {
       return msg;
     },
     generateHighQualityLinkPreview: false,
+    // Field report 2026-11-10: Baileys downloads the history and app-state blobs with axios and no timeout, inside the queue that
+    // handles every incoming message one after another. One download that never ended stopped the whole queue: no client
+    // message reached the CRM for hours. 60 s without a byte = the download fails and the queue goes on.
+    options: { timeout: 60000 },
     getMessage: async (key) => (bridgeRef.current ? bridgeRef.current.getSentMessage(key) : undefined)   // retries: see bridge.js sentStore
   });
   sock.ev.on('creds.update', saveCreds);
@@ -108,14 +114,15 @@ const bridge = createBridge({
   encodeMessage: (m) => Buffer.from(proto.Message.encode(proto.Message.fromObject(m)).finish()).toString('base64'),
   decodeMessage: (b) => proto.Message.decode(Buffer.from(b, 'base64')),
   renderQr: (qr) => QRCode.toDataURL(qr, { width: 360, margin: 2, errorCorrectionLevel: 'M' }),
-  downloadHistory: (n, opts) => downloadHistory(n, opts),
-  downloadMedia: (m, sock) => downloadMediaMessage(m, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage }),
+  downloadHistory: (n, opts) => downloadHistory(n, Object.assign({ timeout: 60000 }, opts)),   // no download may hang forever
+  downloadMedia: (m, sock) => downloadMediaMessage(m, 'buffer', { options: { timeout: 60000 } }, { logger, reuploadRequest: sock.updateMediaMessage }),
   prepareVoice: (buf, mime) => prepareVoice(buf, mime, { log: logger }),
   watchdogMs: cfg.watchdogMinutes * 60000
 });
 
 bridgeRef.current = bridge;
 onBaileysError.fn = (o, m) => bridge.onDecryptError(o, m);
+onBaileysInfo.fn = (o, m) => bridge.onBaileysInfo(o, m);
 bridge.start();
 // A planned stop (update, Остановить.cmd, the supervisor restarting us) lets the session files finish writing first: a key file
 // cut in half makes that chat's messages undecryptable. The supervisor asks over IPC (on Windows a signal is a hard kill).
