@@ -1,0 +1,63 @@
+{
+ "accent": "#FFD166",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Если рубашка мятая за 10 минут до выхода",
+   "text": "Доску доставать некогда. Что делать? →",
+   "prompt": "Crisp wrinkled light blue shirt on a hanger on a wardrobe door in a bright hallway in the morning, coral accents, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Рубашка мятая, а выходить скоро",
+   "text": "Доска в кладовке, утюг холодный, шнур где-то в шкафу. А рубашка уже висит и ждёт.",
+   "prompt": "Bedroom in the morning with a rumpled shirt on a chair and a folded ironing board leaning on a wall, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "😩",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Нагревается за 9 секунд",
+   "text": "Включили, и через 9 секунд можно гладить.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p5.jpg",
+   "photo": "src/03.jpg",
+   "note": "Реальный кадр K-02/src/p5.jpg, скопировать в src/03.jpg"
+  },
+  {
+   "title": "Без доски: прямо на вешалке",
+   "text": "2 в 1: прижали, и гладит как утюг. Рубашка остаётся на вешалке.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "photo": "src/04.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg, скопировать в src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: что умеет отпариватель",
+   "items": [
+    {
+     "icon": "⏱️",
+     "text": "9 секунд: нагрев"
+    },
+    {
+     "icon": "🔁",
+     "text": "2 в 1: гладит и отпаривает"
+    },
+    {
+     "icon": "🚫",
+     "text": "Без гладильной доски"
+    },
+    {
+     "icon": "📦",
+     "text": "Складывается в небольшую коробку"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто гладит в последнюю минуту.\nНапишите «ПАР» в комментариях — менеджер свяжется с вами и всё расскажет\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

@@ -1,0 +1,65 @@
+{
+ "accent": "#FF9F68",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Как навести порядок за 15 минут до гостей",
+   "text": "5 шагов. Про последний знают не все →",
+   "prompt": "Bright welcoming living room with a set tea table, tidy sofa with cushions and a bouquet of flowers, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Всё лишнее в корзину",
+   "text": "Всё, что лежит на виду, быстро в одну корзину. Разберёте после гостей.",
+   "prompt": "Wicker basket with a few folded blankets and magazines next to a tidy sofa, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧺",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Пустая раковина",
+   "text": "Уберите посуду из раковины. Чистая раковина сразу делает кухню аккуратной.",
+   "prompt": "Clean shiny kitchen sink with a bright faucet and a tidy countertop, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🍽️",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Прихожая и пол",
+   "text": "Обувь на место, коврик ровно, быстро пройтись по проходу пылесосом или шваброй.",
+   "prompt": "Tidy entrance hall with shoes in a neat row and a straight colorful rug, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "👟",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: 15 минут до гостей",
+   "items": [
+    {
+     "icon": "🧺",
+     "text": "Корзина: всё лишнее туда"
+    },
+    {
+     "icon": "🍽️",
+     "text": "Раковина: пустая"
+    },
+    {
+     "icon": "👟",
+     "text": "Прихожая: обувь в ряд"
+    },
+    {
+     "icon": "🪞",
+     "text": "Санузел: раковина и зеркало"
+    },
+    {
+     "icon": "🪟",
+     "text": "Окно: открыть на 5 минут"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, к кому вот-вот придут гости.\nА что у вас бросается в глаза первым? Пишите в комментариях"
+  }
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "bg": "bg.jpg",
+ "frame": "content/carousels/K-02/src/p5.jpg",
+ "frame_pos": "40% 50%",
+ "frame_zoom": 125,
+ "plaque": "Нагрев\n9 секунд",
+ "title": "Выходной\nвместо глажки",
+ "box": "Без гладильной доски",
+ "accent": "#FF9F68"
+}

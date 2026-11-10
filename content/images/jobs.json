@@ -1,760 +1,464 @@
 [
  {
-  "prompt": "Bright cheerful photo of a cozy living room with a few colorful kids' toys on the floor next to a neat sofa, sunny morning light, vivid saturated colors, fresh and clean feel, social media style, no text, no people",
-  "out": "content/threads/T-114/1.jpg",
+  "prompt": "Bright photo of a big laundry basket with clean colorful clothes and towels piled up next to a sunny window in a cozy Kazakh apartment, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-199/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Crisp white shirt on a wooden hanger hanging on a bright wardrobe door, coral pink background, vivid and clean, commercial product-card style, no people, no text, no appliance",
-  "out": "content/threads/T-115/bg.jpg",
+  "prompt": "Crisp white shirt on a wooden hanger hanging on a bright wardrobe door in a morning bedroom, soft coral background, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people, no appliance",
+  "out": "content/threads/T-200/bg.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright eye-catching photo of an apartment room in the middle of renovation, fresh pastel paint swatches, a paint roller and open paint cans in vivid colors, sunlit, no text, no people",
-  "out": "content/threads/T-116/1.jpg",
+  "prompt": "Bright photo of colorful casual clothes, a linen shirt and a knitted sweater, casually folded on a cozy bed with a sunny window, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-201/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Open wardrobe packed with many colorful shirts on hangers, vivid saturated colors, bright light, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-117/bg.jpg",
+  "prompt": "Small cozy Kazakh apartment room with a bright window, a clothes rack with colorful dresses and a neat chair, spacious clean floor, coral and mint accents, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people, no appliance",
+  "out": "content/threads/T-202/bg.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright playful photo of colorful balloons and flying confetti against a clear blue sky, joyful party mood, vivid saturated colors, no faces, no text",
-  "out": "content/threads/T-118/1.jpg",
+  "prompt": "Bright flat lay of scene: a parcel box with a red ribbon, a small gift bag and a cup of tea on a bright table, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-203/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright photo of a sparkling clean modern living room full of sunlight, a yellow microfiber cloth and a spray bottle on the coffee table, fresh vivid colors, no people, no text",
-  "out": "content/threads/T-119/1.jpg",
+  "prompt": "Bright photo of three neat zones of a home on one shelf: a laundry basket, a spray bottle with a cloth and a stack of folded shirts, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-204/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Open suitcase with neatly packed colorful clothes on a hotel bed, bright travel mood, vivid colors, no people, no text, no appliance. Absolutely no devices, no appliances, no electronics on the nightstand.",
-  "out": "content/threads/T-120/bg.jpg",
+  "prompt": "Cozy living room with a laundry basket of colorful clothes on a sofa, bright sunny window, coral pink walls, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people, no appliance",
+  "out": "content/threads/T-205/bg.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright juicy photo of several steaming cups of coffee on a sunny kitchen table with scattered coffee beans, warm vivid colors, cozy mood, no people, no text",
-  "out": "content/threads/T-121/1.jpg",
+  "prompt": "Bright photo of a cozy kitchen shelf with useful home items: glass containers, a bamboo organizer, a colorful basket and a plant, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-206/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Row of crisp colorful shirts hanging on a rail in a sunny bright room, vivid colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-122/bg.jpg",
+  "prompt": "Open suitcase with neatly packed colorful clothes on a hotel bed near a bright window, coral and mint tones, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people, no appliance",
+  "out": "content/threads/T-207/bg.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright colorful flat lay of cleaning supplies: spray bottles, sponges, rubber gloves and a small bucket in vivid yellow, blue and pink, clean bright background, no text, no people",
-  "out": "content/threads/T-123/1.jpg",
+  "prompt": "Bright photo of a shelf in a linen closet with a stack of worn but colorful old towels and folded sheets, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-208/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright photo of a cleaning caddy basket with colorful brushes, sponges and microfiber cloths on a sunny kitchen counter, vivid saturated colors, no text, no people",
-  "out": "content/threads/T-124/1.jpg",
+  "prompt": "Bright photo of a clean white cotton shirt folded on a light wooden table next to a laundry basket and a cotton cloth, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-209/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Tiny newborn onesies, cardigans and socks neatly arranged on a soft white blanket, pastel mint and yellow colors, bright, vivid, no people, no text, no appliance. Plain fabric without any labels, prints, letters or text.",
-  "out": "content/threads/T-125/bg.jpg",
+  "prompt": "Elegant festive satin dress in rich emerald and gold hanging on a hanger on a bright wardrobe door, Kazakh style ornament cushion nearby, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people, no appliance",
+  "out": "content/threads/T-210/bg.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright eye-catching flat lay of skincare jars and glass bottles on a pastel pink background with fresh flowers, soft glow, vivid colors, no text, no people",
-  "out": "content/threads/T-126/1.jpg",
+  "prompt": "Bright photo of a sunny balcony with a clothes drying rack full of colorful clean laundry and a cup of tea on a small table, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-211/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Stack of neatly folded colorful clothes on a bed with fresh sunlight, vivid pastel colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-127/bg.jpg",
+  "prompt": "Neat bright wardrobe with colorful shirts and dresses hanging on hangers in a row, soft coral and mint tones, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people, no appliance",
+  "out": "content/threads/T-212/bg.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright colorful photo of cute small things: lip glosses, a pink candle, a small mirror and ribbons on a pastel background, joyful mood, vivid saturated colors, no text, no people",
-  "out": "content/threads/T-128/1.jpg",
+  "prompt": "Bright photo of delivery parcels of different sizes stacked by the front door of an apartment with a welcome mat, colorful and cheerful, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-213/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright photo of a small neat capsule wardrobe with a few colorful t-shirts and jeans on hangers and shelves, sunny, vivid colors, no people, no text",
-  "out": "content/threads/T-129/1.jpg",
+  "prompt": "Bright photo of a cozy living room entrance with a chair covered by a pile of clothes and a tidy sofa behind, sunny light, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-214/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Light bedroom with a neatly made bed and a pile of dresses lying on it, sunny morning light, vivid pastel colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-130/bg.jpg",
+  "prompt": "Bright living room window with long soft curtains in turquoise and cream hanging from a rod, sunny light, coral accents, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people, no appliance",
+  "out": "content/threads/T-215/bg.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright humorous still life: a stack of golden coins next to a laptop and colorful shopping bags on a pink background, vivid saturated colors, no people, no text",
-  "out": "content/threads/T-131/1.jpg",
+  "prompt": "Bright photo of a sparkling clean bathroom with a white tub, shiny chrome faucet, colorful fluffy towels and a green plant, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-216/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Clothes laid out on a bright bed ready for ironing, colorful shirts and a dress, vivid cheerful colors, no people, no text, no appliance. Absolutely no iron, no steamer, no appliance of any kind anywhere.",
-  "out": "content/threads/T-132/bg.jpg",
+  "prompt": "Bright minimal bedroom with a made bed, a light linen shirt and a dress on hangers on a rail, coral and yellow accents, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people, no appliance",
+  "out": "content/threads/T-217/bg.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright romantic photo of two gold wedding rings resting on a bouquet of pink peonies, soft sunlight, vivid colors, no people, no text",
-  "out": "content/threads/T-133/1.jpg",
+  "prompt": "Bright photo of perfectly folded pairs of colorful socks and a neat stack of fluffy towels on a shelf, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-218/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright colorful photo of a washing machine with fresh colorful laundry visible through the door and a basket of folded towels beside it, sunny laundry room, vivid colors, no people, no text",
-  "out": "content/threads/T-134/1.jpg",
+  "prompt": "Neat stacks of folded colorful bed linen and towels on a wooden shelf in a bright bedroom, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-39/src/01.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Warm freshly dried colorful towels in a laundry basket next to a sunny window, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-39/src/02.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Several separate neat stacks of folded clothes in different colors on a bed, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-39/src/03.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Rolled colorful bath towels neatly arranged in a wicker basket in a bright bathroom, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-39/src/04.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Crisp wrinkled light blue shirt on a hanger on a wardrobe door in a bright hallway in the morning, coral accents, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-40/src/01.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Bedroom in the morning with a rumpled shirt on a chair and a folded ironing board leaning on a wall, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-40/src/02.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Bright tidy living room with a vacuum-free clean floor, a basket of folded laundry and a plant on a shelf in warm sunlight, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-41/src/01.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Bright kitchen table with a retro kitchen timer shaped like a tomato and a cup of tea, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-41/src/02.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Bright living room shelves with books and plants and a clean floor below, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-41/src/03.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Tidy hallway with a coat hanging on a hook, shoes in a neat row and a small shelf, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-41/src/04.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Open suitcase with packed clothes on a hotel bed beside a bright window, coral and mint tones, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-42/src/01.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Hotel room with a rumpled colorful dress laid on a bed next to an open suitcase, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-42/src/02.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "White cotton shirt neatly laid on a bright table with a cup of coffee and a pen nearby, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-43/src/01.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Cotton pad and a small bottle on a bright table next to a white fabric, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-43/src/02.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Cup of coffee on a saucer beside a folded light fabric napkin, bright cafe style, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-43/src/03.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Small bowl of white starch powder and a dish soap bottle on a bright kitchen counter, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-43/src/04.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Elegant festive emerald satin dress slightly wrinkled on a hanger on a bright wardrobe door, golden ornament cushion nearby, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-44/src/01.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Bright bedroom with a festive dress on a hanger and a pair of heels on the floor, a folded ironing board by the wall, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-44/src/02.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Bright welcoming living room with a set tea table, tidy sofa with cushions and a bouquet of flowers, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-45/src/01.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Wicker basket with a few folded blankets and magazines next to a tidy sofa, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-45/src/02.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Clean shiny kitchen sink with a bright faucet and a tidy countertop, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-45/src/03.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Tidy entrance hall with shoes in a neat row and a straight colorful rug, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-45/src/04.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Bright living room window with long soft turquoise and cream curtains hanging from a rod, sunny light, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-46/src/01.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Living room with curtains taken down and piled on a sofa, a chair standing by the window, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-46/src/02.jpg",
+  "w": 1024,
+  "h": 960
+ },
+ {
+  "prompt": "Bright photo of a wicker basket with freshly washed white and pastel laundry next to a sunny window in a cozy apartment, fresh green plant on the sill, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-219/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright gift box with a ribbon on a sunny table with confetti, orange and yellow vivid colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-135/bg.jpg",
+  "prompt": "Sunday morning in a bright Kazakh apartment living room, a big basket of colorful clothes on a sofa, sunlight through the window, tea cups on a table, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-220/bg.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright cozy photo of a bowl of popcorn on a sofa with a fluffy blanket and colorful cushions, glowing TV light in the background, vivid colors, no people, no text",
-  "out": "content/threads/T-136/1.jpg",
+  "prompt": "Bright photo of an orange Kaspi-style delivery parcel box opened on a kitchen table with neat household items around it, tea set, fresh flowers, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-221/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Suitcase and travel bag in a bright hallway with sunlight, vivid colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-137/bg.jpg",
+  "prompt": "Tidy bedroom corner with a wardrobe, neatly hung shirts and dresses on hangers, a folded blanket on the bed, warm morning light, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-222/bg.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright photo of a pair of jeans lying flat with a few coins, a lipstick and a paper receipt spilling out of the pocket onto a pastel background, vivid colors, no people, no text. No labels, no tags, no text, no letters anywhere.",
-  "out": "content/threads/T-138/1.jpg",
+  "prompt": "Bright photo of a freshly made bed with crisp colorful bedding and pillows in a sunny bedroom, soft morning light, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-223/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright eye-catching photo of a kitchen stove top with baked-on grease stains and a sponge beside it, sunny kitchen, vivid colors, high contrast, no people, no text",
-  "out": "content/threads/T-139/1.jpg",
+  "prompt": "Bright photo of a school uniform jacket and white shirt hanging on a chair next to a school backpack by the door of a cozy hallway, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-224/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Kraft parcel box with a ribbon at an apartment door, sunny bright light, vivid colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-140/bg.jpg",
+  "prompt": "Morning in a bright apartment hallway, a school uniform on a hanger on a door, school backpack on a bench, sunlight, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-225/bg.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright photo of a slice of cheesecake with strawberry topping and a single lit candle on a pastel plate, festive balloons softly blurred behind, vivid colors, no people, no text",
-  "out": "content/threads/T-141/1.jpg",
+  "prompt": "Bright photo of a clean cozy living room with a fluffy colorful carpet and a sunny window, tidy shelves, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-226/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "White school shirt and navy blazer on a hanger on a bedroom door, bright morning light, vivid colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-142/bg.jpg",
+  "prompt": "Small cozy studio apartment in Almaty with a made bed, a compact wardrobe and a window with city view, tidy and bright, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-227/bg.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright photo of a shiny new red enamel cooking pot with a little steam on a sunny kitchen counter surrounded by fresh vegetables, vivid colors, no people, no text",
-  "out": "content/threads/T-143/1.jpg",
+  "prompt": "Bright photo of a colorful traditional Kazakh patterned carpet on the floor of a cozy living room, sunlight from the window, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-228/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright pastel photo of a nail salon table with colorful nail polish bottles, a pink towel and a foot bath with flower petals, vivid colors, no people, no text",
-  "out": "content/threads/T-144/1.jpg",
+  "prompt": "Bright photo of a puffy winter down jacket hanging on a hanger in a hallway with winter boots and scarf nearby, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-229/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright walk-in wardrobe with colorful dresses and shirts neatly on hangers, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-145/bg.jpg",
+  "prompt": "Office shirts on hangers in a bright wardrobe, morning light, a bag by the door, tidy bedroom in Astana apartment, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-230/bg.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright festive photo of a birthday cake with many lit candles glowing, colorful bokeh lights, vivid colors, no faces, no text",
-  "out": "content/threads/T-146/1.jpg",
+  "prompt": "Bright photo of an organized wardrobe with colorful clothes on hangers and neat folded stacks on shelves, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-231/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Clothing rack full of colorful dresses in a bright boutique-like room, vivid colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-147/bg.jpg",
+  "prompt": "Open travel suitcase with neatly packed colorful clothes on a hotel bed, passport and sunglasses, bright light, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-232/bg.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Bright playful photo of a plate of dinosaur-shaped chicken nuggets and half a sandwich on a colorful kids table, vivid saturated colors, no people, no text",
-  "out": "content/threads/T-148/1.jpg",
+  "prompt": "Bright photo of several colorful parcels and a cardboard box stacked by an apartment door, a phone on a table, cozy hallway, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/threads/T-233/1.jpg",
   "w": 1024,
   "h": 1280
  },
  {
-  "prompt": "Sunny tidy living room with a cozy blanket on the sofa and a fresh flower in a vase, calm and clean mood, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-05/src/01.jpg"
+  "prompt": "Fresh white laundry in a wicker basket by a sunny window with a green plant, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-47/src/01.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Kitchen counter half sparkling clean with a sponge and a lemon, bright airy kitchen, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-05/src/02.jpg"
+  "prompt": "Open front-load washing machine door with a bright empty drum in a clean laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-47/src/02.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Neat hallway with colorful jackets on hooks and shoes in a row, sunny, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-05/src/03.jpg"
+  "prompt": "Washing machine drum stuffed full of colorful clothes in a bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-47/src/03.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Shiny clean kitchen sink with a small flower in a glass, soft morning light, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-05/src/04.jpg"
+  "prompt": "Close-up of a clean rubber door seal of a washing machine and an open detergent drawer, bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-47/src/04.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Crisp white shirt on a wooden hanger hanging on a bright wardrobe door, coral background, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-06/src/01.jpg"
+  "prompt": "Tidy bedroom with shirts and dresses on hangers in a wardrobe and a made bed, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-48/src/01.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Bedroom corner with shirts on hangers on a clothes rail and a neat bed, warm light, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-06/src/03.jpg"
+  "prompt": "Cozy living room corner with a basket of wrinkled clothes beside a sofa, folded ironing board against the wall, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-48/src/02.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Sparkling clean modern living room full of sunlight with a yellow microfiber cloth and a blue spray bottle on the coffee table, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-07/src/01.jpg"
+  "prompt": "Bright hallway with a backpack, keys on a hook and a jacket on a hanger by the front door, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-49/src/01.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Wicker basket collecting scattered items in a bright living room, tidy-up moment, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-07/src/02.jpg"
+  "prompt": "Clothes neatly laid out on a chair in a bright bedroom, white shirt and trousers, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-49/src/02.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "A hand with a yellow microfiber cloth wiping a high white shelf in a bright room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-07/src/03.jpg"
+  "prompt": "Backpack, keys and a wallet placed on a small shelf by the front door, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-49/src/03.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Bright hallway with a shiny clean floor reflecting sunlight, a blue mop and bucket at the side, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-07/src/04.jpg"
+  "prompt": "Warm winter hat, gloves and scarf neatly arranged on a hallway bench, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-49/src/04.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Open suitcase with neatly packed colorful clothes on a hotel bed, travel mood, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-08/src/01.jpg"
+  "prompt": "Small cozy apartment bedroom with a made bed and compact wardrobe, tidy, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-50/src/01.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Bright hotel room with a neat bed and a suitcase next to a window, warm light, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-08/src/03.jpg"
+  "prompt": "Narrow small apartment room with a big folded ironing board leaning against the wall taking up space, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-50/src/02.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Cleaning caddy basket with colorful brushes, sponges and microfiber cloths on a sunny kitchen counter, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-09/src/01.jpg"
+  "prompt": "Puffy winter down jacket on a hanger next to a washing machine in a bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-51/src/01.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Stack of rainbow-colored microfiber cloths on a white counter, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-09/src/02.jpg"
+  "prompt": "Close-up of a care label and zipper on a puffy jacket, bright light, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-51/src/02.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "A narrow brush cleaning white tile grout lines near a chrome tap, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-09/src/03.jpg"
+  "prompt": "Bottle of liquid laundry detergent and a measuring cap beside a clean washing machine, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-51/src/03.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Cleaning caddy with spray bottles and cloths standing in a bright bathroom, vivid, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-09/src/04.jpg"
+  "prompt": "Two clean tennis balls next to a folded puffy jacket on a drying rack in a bright room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-51/src/04.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Tiny newborn onesies, cardigans and socks neatly arranged on a soft white blanket, pastel pink and mint, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-10/src/01.jpg"
+  "prompt": "Office shirts on hangers in a bright wardrobe with a bag by the door in a modern apartment, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-52/src/01.jpg",
+  "w": 1024,
+  "h": 960
  },
  {
-  "prompt": "Tiny newborn hats and mittens arranged flat on a pastel yellow background, bright, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-10/src/02.jpg"
- },
- {
-  "prompt": "Small neat capsule wardrobe with a few colorful t-shirts and jeans on hangers and shelves, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-11/src/01.jpg"
- },
- {
-  "prompt": "Laundry basket with colorful clothes beside a washing machine in a bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-11/src/02.jpg"
- },
- {
-  "prompt": "Jeans and a knit sweater airing on a sunny balcony rail, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-11/src/03.jpg"
- },
- {
-  "prompt": "Seven neatly folded colorful t-shirts stacked on a wooden shelf, bright, minimal, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-11/src/04.jpg"
- },
- {
-  "prompt": "Light bedroom with a neatly made bed and a pile of colorful dresses on it, sunny morning, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-12/src/01.jpg"
- },
- {
-  "prompt": "Bright empty corner of a room with a clean floor and window light, pastel colors, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-12/src/02.jpg"
- },
- {
-  "prompt": "Washing machine with fresh colorful laundry visible through the door in a sunny laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-13/src/01.jpg"
- },
- {
-  "prompt": "Small load of light t-shirts in a washing machine drum, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-13/src/02.jpg"
- },
- {
-  "prompt": "Stack of fluffy white towels and bed linen in a bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-13/src/03.jpg"
- },
- {
-  "prompt": "Delicate silk blouse and lace in a mesh laundry bag, pastel colors, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-13/src/04.jpg"
- },
- {
-  "prompt": "Bright gift box with a ribbon on a sunny table with confetti, pink and yellow, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-14/src/01.jpg"
- },
- {
-  "prompt": "Wardrobe with slightly rumpled shirts and dresses on hangers, bright room, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-14/src/03.jpg"
- },
- {
-  "prompt": "Kitchen stove top with baked-on grease stains and a sponge beside it, sunny kitchen, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-15/src/01.jpg"
- },
- {
-  "prompt": "Three different stove surfaces side by side: white enamel, stainless steel and black glass-ceramic, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-15/src/02.jpg"
- },
- {
-  "prompt": "A sponge and a bowl of baking soda paste on a kitchen counter next to a stove, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-15/src/03.jpg"
- },
- {
-  "prompt": "A glass-ceramic hob being scraped clean with a special scraper at a low angle, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-15/src/04.jpg"
- },
- {
-  "prompt": "Kraft parcel box with a ribbon at an apartment door, sunny bright light, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-16/src/01.jpg"
- },
- {
-  "prompt": "A parcel box on a bright doorstep next to a potted plant, sunny day, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-16/src/04.jpg"
- },
- {
-  "prompt": "Pastel pink spa still life with nail polish bottles, a fluffy towel and a foot bath with flower petals, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-17/src/01.jpg"
- },
- {
-  "prompt": "A foot bath with warm water and pink rose petals on a bathroom floor, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-17/src/02.jpg"
- },
- {
-  "prompt": "Nail file and nail clippers on a pastel towel, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people. Plain tools without any engraving, labels, letters or text.",
-  "out": "content/carousels/K-17/src/03.jpg"
- },
- {
-  "prompt": "Jar of foot cream and a small bottle of cuticle oil on a white towel with a flower, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people. Plain unlabeled jar and bottle, no labels, no letters, no text.",
-  "out": "content/carousels/K-17/src/04.jpg"
- },
- {
-  "prompt": "Bright walk-in wardrobe with colorful dresses and shirts neatly on hangers, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-18/src/01.jpg"
- },
- {
-  "prompt": "Close-up of colorful dresses and shirts on hangers in a bright closet, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-18/src/03.jpg"
- },
- {
-  "prompt": "Neat stack of fluffy colorful terry towels next to a washing machine in a clean bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-19/src/01.jpg"
- },
- {
-  "prompt": "Close-up of a black t-shirt covered with white lint fibers next to a fluffy white terry towel, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-19/src/02.jpg"
- },
- {
-  "prompt": "Close-up of a metal zipper of a jacket caught on the loops of a colorful terry towel, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-19/src/03.jpg"
- },
- {
-  "prompt": "Fluffy white towel with a bottle of fabric softener without label and drops of water on a bright surface, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-19/src/04.jpg"
- },
- {
-  "prompt": "Washing machine detergent drawer overflowing with white foam and powder in a bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-21/src/01.jpg"
- },
- {
-  "prompt": "A stack of dull greyish folded cotton laundry next to a scoop of white washing powder on a table, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-21/src/02.jpg"
- },
- {
-  "prompt": "Close-up of a soft white cotton shirt collar with a few grains of washing powder on a clean table, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-21/src/03.jpg"
- },
- {
-  "prompt": "Detergent drawer pulled out of a washing machine with white powder residue, bright laundry room, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-21/src/04.jpg"
- },
- {
-  "prompt": "Fresh folded white and pastel laundry with a sprig of lavender on a bright wooden table, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-23/src/01.jpg"
- },
- {
-  "prompt": "Open front-loading washing machine drum with fresh colorful laundry inside, bright laundry room, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-23/src/02.jpg"
- },
- {
-  "prompt": "Colorful clothes drying on a rack near an open sunny window with light curtains, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-23/src/03.jpg"
- },
- {
-  "prompt": "Clean washing machine door with a rubber seal and a soft microfiber cloth beside it, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-23/src/04.jpg"
- },
- {
-  "prompt": "Bright photo of a neat stack of fluffy colorful towels next to a washing machine in a clean laundry room, vivid saturated colors, no people, no text",
-  "out": "content/threads/T-149/1.jpg"
- },
- {
-  "prompt": "Cozy living room table with a wrapped gift box with ribbon, fresh flowers and a tea set, warm bright light, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-150/bg.jpg"
- },
- {
-  "prompt": "Bright kitchen photo of a burnt frying pan on a stove next to a white ceramic bowl of baking soda powder and a yellow sponge, no packaging, no labels, vivid saturated colors, no people, no text",
-  "out": "content/threads/T-151/1.jpg"
- },
- {
-  "prompt": "Beautifully wrapped gift box with a satin ribbon on a bright kitchen table next to two tea cups, sunny morning, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-20/src/01.jpg"
- },
- {
-  "prompt": "Tall pile of wrinkled colorful clothes on a bed in a bright bedroom, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-20/src/02.jpg"
- },
- {
-  "prompt": "Bright walk-in wardrobe with neatly arranged colorful clothes on hangers and shelves, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-152/bg.jpg"
- },
- {
-  "prompt": "Bright cozy hotel room with a neatly made white bed, folded towels on it and a small housekeeping cart by the door, vivid colors, no people, no text",
-  "out": "content/threads/T-153/1.jpg"
- },
- {
-  "prompt": "Bright photo of colorful laundry drying on a clothesline on a sunny balcony, vivid saturated colors, no people, no text",
-  "out": "content/threads/T-154/1.jpg"
- },
- {
-  "prompt": "Bright bedroom with a white shirt and a pastel blouse hanging on a wardrobe door, soft morning light, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-155/bg.jpg"
- },
- {
-  "prompt": "Bright photo of a sewing table with a sewing machine, colorful fabric pieces, pins and scissors, vivid saturated colors, no people, no text",
-  "out": "content/threads/T-156/1.jpg"
- },
- {
-  "prompt": "Bright cozy living room with a row of colorful shirts and dresses on hangers on a rail by a sunny window, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-22/src/01.jpg"
- },
- {
-  "prompt": "Folded ironing board leaning in a narrow apartment hallway next to a pile of wrinkled colorful shirts, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-22/src/02.jpg"
- },
- {
-  "prompt": "Cozy bright autumn room with orange pumpkins, yellow leaves in a vase and a knitted plaid on a sofa, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-157/bg.jpg"
- },
- {
-  "prompt": "Bright kitchen counter with lots of grocery bags, vegetables and one small burrito on a plate, vivid saturated colors, no people, no text",
-  "out": "content/threads/T-158/1.jpg"
- },
- {
-  "prompt": "Bright photo of fresh folded colorful clothes next to plain unlabeled glass bottles of blue and pink liquid and a jar of colorful scent beads, no labels, vivid saturated colors, no people, no text",
-  "out": "content/threads/T-159/1.jpg"
- },
- {
-  "prompt": "Bright home laundry corner with folded colorful towels and a wicker basket, sunny window, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-160/bg.jpg"
- },
- {
-  "prompt": "Bright photo of an ironing board standing in a living room with a price tag hanging from it, vivid colors, no people, no text",
-  "out": "content/threads/T-161/1.jpg"
- },
- {
-  "prompt": "Cheerful woven laundry basket with neatly folded colorful clothes on a bright sunny balcony, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-24/src/01.jpg"
- },
- {
-  "prompt": "Overflowing laundry basket full of wrinkled colorful clothes in a bright room, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-24/src/02.jpg"
- },
- {
-  "prompt": "Tidy bright minimalist shelf with small cardboard boxes and wicker baskets, airy room, sunny light, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-162/bg.jpg"
- },
- {
-  "prompt": "Bright photo of a modern oven with its interior light on and a raw piece of meat on a tray inside, cozy kitchen, vivid colors, no people, no text",
-  "out": "content/threads/T-163/1.jpg"
- },
- {
-  "prompt": "Bright photo of a sparkling clean open oven in a bright kitchen with a yellow sponge and rubber gloves on the counter, vivid colors, no people, no text",
-  "out": "content/threads/T-164/1.jpg"
- },
- {
-  "prompt": "Pair of clean white sneakers on a bright light surface next to a bucket of soapy water and a soft brush, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-25/src/01.jpg"
- },
- {
-  "prompt": "Inside of a white sneaker stuffed with crumpled white paper on a bright table, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-25/src/02.jpg"
- },
- {
-  "prompt": "White sneaker held under clear running water in a bright bathroom sink with soap foam, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-25/src/03.jpg"
- },
- {
-  "prompt": "Pair of white sneakers drying on a rack in a bright airy room near a window with soft light, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-25/src/04.jpg"
- },
- {
-  "prompt": "Bright bedroom with a freshly made bed, colorful linens and a stack of folded clothes, sunny window, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-165/bg.jpg"
- },
- {
-  "prompt": "Bright photo of a pair of white sneakers drying on a towel next to a small brush and a bowl of soapy water, vivid colors, no people, no text, no brand logos",
-  "out": "content/threads/T-166/1.jpg"
- },
- {
-  "prompt": "Small bright cozy apartment room with a sofa and a tall wardrobe, tidy and spacious feel, sunny window, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-26/src/01.jpg"
- },
- {
-  "prompt": "Narrow bright hallway cluttered with a laundry basket, boxes and a tall folded ironing board against the wall, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-26/src/02.jpg"
- },
- {
-  "prompt": "School uniform with white shirt and navy vest on a hanger next to a backpack and colorful notebooks, bright morning light, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-167/bg.jpg"
- },
- {
-  "prompt": "Bright photo of a folded colorful umbrella, an old iron and a stack of rumpled bed linen on a bed, playful composition, vivid colors, no people, no text",
-  "out": "content/threads/T-168/1.jpg"
- },
- {
-  "prompt": "Bright photo of a mop bucket with a grey floor cloth hanging on its edge on a tiled floor, vivid colors, no people, no text",
-  "out": "content/threads/T-169/1.jpg"
- },
- {
-  "prompt": "Bright clean kitchen floor with a bucket of water and a mop leaning nearby, glossy tiles, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-27/src/01.jpg"
- },
- {
-  "prompt": "Broom and dustpan with a little pile of dust on a bright tiled floor, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-27/src/02.jpg"
- },
- {
-  "prompt": "Bucket of cloudy dirty water next to a bucket of clear water on a bright floor, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-27/src/03.jpg"
- },
- {
-  "prompt": "Colorful microfiber cloth being wrung out above a bucket, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-27/src/04.jpg"
- },
- {
-  "prompt": "Row of light blue, white and pink men's shirts on hangers on a wardrobe rail, bright airy light, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-170/bg.jpg"
- },
- {
-  "prompt": "Bright photo of a tiny shrunken wool sweater lying next to a normal size wool sweater on a bed, vivid colors, no people, no text",
-  "out": "content/threads/T-171/1.jpg"
- },
- {
-  "prompt": "Row of crisp white and light blue men's shirts on hangers in a bright wardrobe, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-28/src/01.jpg"
- },
- {
-  "prompt": "Stack of wrinkled white and blue men's shirts piled on a chair in a bright bedroom, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-28/src/02.jpg"
- },
- {
-  "prompt": "Men's blue shirt hanging on a bedroom door next to a tie and a cup of coffee, soft morning light, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-172/bg.jpg"
- },
- {
-  "prompt": "Bright minimalist living room with only a sofa, a plant and a small rack with a few clothes, airy and clean, vivid colors, no people, no text",
-  "out": "content/threads/T-173/1.jpg"
- },
- {
-  "prompt": "Close-up bright photo of a light blue t-shirt with a few small greasy grey spots on it lying next to a washing machine, vivid colors, no people, no text",
-  "out": "content/threads/T-174/1.jpg"
- },
- {
-  "prompt": "Folded fresh laundry in a basket next to a front-load washing machine in a bright laundry room, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-29/src/01.jpg"
- },
- {
-  "prompt": "Bottle of liquid laundry detergent without label pouring onto a folded shirt, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-29/src/02.jpg"
- },
- {
-  "prompt": "Open washing machine drum filled to the brim with colorful clothes, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-29/src/03.jpg"
- },
- {
-  "prompt": "Rubber door seal of a washing machine being wiped with a cloth, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-29/src/04.jpg"
- },
- {
-  "prompt": "Neat stacks of colorful folded shirts on open shelves in a bright airy room, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-175/bg.jpg"
- },
- {
-  "prompt": "Bright photo of cleaning supplies, a duster and a bucket standing in a cozy living room next to a tall wardrobe, vivid colors, no people, no text",
-  "out": "content/threads/T-176/1.jpg"
- },
- {
-  "prompt": "Neat shelf with folded colorful shirts and a small plant in a bright wardrobe, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-30/src/01.jpg"
- },
- {
-  "prompt": "Wrinkled light blue shirt hanging on a wardrobe door in a bright bedroom, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-30/src/02.jpg"
- },
- {
-  "prompt": "Cozy autumn scene with knitted sweaters, a scarf and warm coats on hangers, orange pumpkins, warm bright light, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-177/bg.jpg"
- },
- {
-  "prompt": "Bright playful photo of colorful cleaning sprays, sponges and rubber gloves arranged in a neat row on a white table, vivid colors, no people, no text",
-  "out": "content/threads/T-178/1.jpg"
- },
- {
-  "prompt": "Close-up bright photo of an open washing machine detergent drawer with three compartments, clean and white, vivid colors, no people, no text, no brand logos",
-  "out": "content/threads/T-179/1.jpg"
- },
- {
-  "prompt": "Pulled-out detergent drawer of a washing machine with three empty compartments, bright laundry room, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-31/src/01.jpg"
- },
- {
-  "prompt": "Close-up of the first compartment of a washing machine detergent drawer with a scoop of powder, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-31/src/02.jpg"
- },
- {
-  "prompt": "Close-up of the main compartment of a washing machine detergent drawer filled with washing powder, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-31/src/03.jpg"
- },
- {
-  "prompt": "Compartment of a washing machine drawer with a flower symbol and blue fabric softener being poured, close-up, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-31/src/04.jpg"
- },
- {
-  "prompt": "Bright tidy dressing area with colorful clothes on hangers, cheerful minimalist interior, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-180/bg.jpg"
- },
- {
-  "prompt": "Bright clean bathroom with a white toilet, a toilet brush and colorful cleaning bottles on the floor, vivid colors, no people, no text, no brand labels",
-  "out": "content/threads/T-181/1.jpg"
- },
- {
-  "prompt": "Bright minimalist bedroom with a freshly made bed, colorful folded clothes and morning sunlight, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-32/src/01.jpg"
- },
- {
-  "prompt": "Bright bedroom in morning rush: unmade bed with a wrinkled dress and a wrinkled shirt laid on it, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-32/src/02.jpg"
- },
- {
-  "prompt": "Bright sunny kitchen table with a retro alarm clock and a cup of tea, colorful tablecloth, vivid saturated colors, commercial style, no people, no text, no appliance",
-  "out": "content/threads/T-182/bg.jpg"
- },
- {
-  "prompt": "Bright photo of a bucket of water, a floor mop and a glass jar of coarse salt on a wooden floor in a sunny room, vivid colors, no people, no text",
-  "out": "content/threads/T-183/1.jpg"
- },
- {
-  "prompt": "Gas stove top with burners and baked-on grease splatters in a sunny kitchen, a bright yellow sponge and an unlabeled spray bottle beside it, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-33/src/01.jpg"
- },
- {
-  "prompt": "Two stove surfaces side by side: a white enamel hob and a brushed stainless steel hob, a soft sponge on the counter, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-33/src/02.jpg"
- },
- {
-  "prompt": "Stove top covered with a thick white baking soda paste, a retro egg timer and a soft sponge nearby, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-33/src/03.jpg"
- },
- {
-  "prompt": "Sparkling clean glossy black glass-ceramic cooktop reflecting sunlight with a soft yellow sponge beside it in a bright sunny kitchen, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-33/src/04.jpg"
- },
- {
-  "prompt": "Bright sunny entryway with an open kraft cardboard box with colorful tissue paper on a wooden bench next to a doormat, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-34/src/01.jpg"
- },
- {
-  "prompt": "Wrinkled colorful dress and shirt draped over a chair in a bright hallway, a folded ironing board leaning on the wall, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-34/src/02.jpg"
- },
- {
-  "prompt": "Bright bathroom shelf with colorful nail polish bottles without labels, a soft pink towel and a foot file, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-35/src/01.jpg"
- },
- {
-  "prompt": "Warm foot bath basin with water and rose petals on a bright bathroom floor next to a fluffy towel, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-35/src/02.jpg"
- },
- {
-  "prompt": "Close-up of a glass nail file and nail clippers on a pink towel, soft light, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-35/src/03.jpg"
- },
- {
-  "prompt": "Plain white cosmetic jar with a blank smooth white lid and a small amber glass dropper bottle, completely blank surfaces without any labels or lettering, next to a white towel on a soft pink background, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-35/src/04.jpg"
- },
- {
-  "prompt": "Clothes rail with rainbow-colored dresses and shirts on hangers next to a bright window with green plants, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-36/src/01.jpg"
- },
- {
-  "prompt": "Wrinkled festive dress hanging on a wardrobe door in a bright bedroom, a pair of shoes on the floor, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-36/src/02.jpg"
- },
- {
-  "prompt": "Pile of fresh colorful bath towels in a wicker basket by a sunny window with an eucalyptus branch, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-37/src/01.jpg"
- },
- {
-  "prompt": "Black cotton t-shirt with small white lint specks lying next to a folded white terry bath towel on a bed, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-37/src/02.jpg"
- },
- {
-  "prompt": "Macro close-up of a white terry bath towel with small cotton loops and a metal jacket zipper touching it, soft light, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-37/src/03.jpg"
- },
- {
-  "prompt": "Water droplets beading on a smooth towel surface next to a glass of water on a bright table, bright, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-37/src/04.jpg"
- },
- {
-  "prompt": "Cozy kitchen table with a tea set, a plate of baursaks and a wrapped gift box with satin ribbon, warm sunny light, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-38/src/01.jpg"
- },
- {
-  "prompt": "Cozy living room on a weekend morning, a basket overflowing with wrinkled clothes beside a sofa, a folded ironing board by the wall, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
-  "out": "content/carousels/K-38/src/02.jpg"
+  "prompt": "Wrinkled white shirt on a hanger on a bedroom door in morning light, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+  "out": "content/carousels/K-52/src/02.jpg",
+  "w": 1024,
+  "h": 960
  }
 ]

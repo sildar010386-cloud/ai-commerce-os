@@ -1,0 +1,65 @@
+{
+ "accent": "#57CC99",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Как сложить бельё за 10 минут",
+   "text": "5 приёмов. Про последний знают не все →",
+   "prompt": "Neat stacks of folded colorful bed linen and towels on a wooden shelf in a bright bedroom, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Складывайте, пока тёплое",
+   "text": "Бельё из сушилки или с верёвки лучше сложить сразу. Пока оно тёплое, складки не успевают закрепиться.",
+   "prompt": "Warm freshly dried colorful towels in a laundry basket next to a sunny window, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🔥",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Сразу по людям",
+   "text": "Разложите бельё на стопки для каждого члена семьи. Потом каждую стопку отнесёте в шкаф за один заход.",
+   "prompt": "Several separate neat stacks of folded clothes in different colors on a bed, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "👪",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Полотенца: втрое и рулоном",
+   "text": "Сложите полотенце вдоль втрое, потом скатайте рулоном. Так оно ровно лежит на полке, и его легко достать.",
+   "prompt": "Rolled colorful bath towels neatly arranged in a wicker basket in a bright bathroom, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🌀",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: бельё за 10 минут",
+   "items": [
+    {
+     "icon": "🔥",
+     "text": "Сразу: пока тёплое"
+    },
+    {
+     "icon": "👪",
+     "text": "По людям: свои стопки"
+    },
+    {
+     "icon": "🌀",
+     "text": "Полотенца: втрое и рулоном"
+    },
+    {
+     "icon": "🛏️",
+     "text": "Резинка: угол в угол"
+    },
+    {
+     "icon": "🧺",
+     "text": "Комплект: в своей наволочке"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, у кого чистое бельё неделю лежит в корзине.\nА у вас бельё сейчас сложено? Да или нет? Пишите в комментариях"
+  }
+ ]
+}

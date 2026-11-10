@@ -1,0 +1,65 @@
+{
+ "accent": "#FF9F68",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Как тратить на домашние дела меньше времени",
+   "text": "5 приёмов. Про последний знают не все →",
+   "prompt": "Bright tidy living room with a vacuum-free clean floor, a basket of folded laundry and a plant on a shelf in warm sunlight, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Таймер на 15 минут",
+   "text": "Поставьте таймер и делайте одно дело ровно 15 минут. Когда у дела есть конец, начать проще.",
+   "prompt": "Bright kitchen table with a retro kitchen timer shaped like a tomato and a cup of tea, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "⏲️",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Убирайте сверху вниз",
+   "text": "Сначала пыль с полок и шкафов, потом пол. Так пыль не придётся собирать дважды.",
+   "prompt": "Bright living room shelves with books and plants and a clean floor below, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "⬇️",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Правило одной минуты",
+   "text": "Если дело занимает минуту, делайте сразу: повесить куртку, убрать чашку, положить вещь на место.",
+   "prompt": "Tidy hallway with a coat hanging on a hook, shoes in a neat row and a small shelf, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "⚡",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: меньше времени на быт",
+   "items": [
+    {
+     "icon": "⏲️",
+     "text": "Таймер: 15 минут"
+    },
+    {
+     "icon": "⬇️",
+     "text": "Уборка: сверху вниз"
+    },
+    {
+     "icon": "⚡",
+     "text": "Минута: делать сразу"
+    },
+    {
+     "icon": "🌙",
+     "text": "Стирка: запускать на вечер"
+    },
+    {
+     "icon": "📅",
+     "text": "Дело в день: по 15 минут"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто все дела оставляет на выходной.\nА какое домашнее дело вы бы не делали вообще? Пишите в комментариях"
+  }
+ ]
+}

@@ -1,0 +1,65 @@
+{
+ "accent": "#57CC99",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Как вывести 5 самых частых пятен",
+   "text": "Ручка, кофе, жир и ещё два. Про последнее знают не все →",
+   "prompt": "White cotton shirt neatly laid on a bright table with a cup of coffee and a pen nearby, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Шариковая ручка",
+   "text": "Промокните пятно ватным диском со спиртом от краёв к центру, потом постирайте. Сначала проверьте на незаметном месте.",
+   "prompt": "Cotton pad and a small bottle on a bright table next to a white fabric, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🖊️",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Кофе",
+   "text": "Свежее пятно промокните и промойте холодной водой с изнанки, потом постирайте. Чем раньше, тем лучше.",
+   "prompt": "Cup of coffee on a saucer beside a folded light fabric napkin, bright cafe style, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "☕",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Жир",
+   "text": "Засыпьте пятно крахмалом или содой на 20 минут, стряхните, затем средство для посуды и стирка.",
+   "prompt": "Small bowl of white starch powder and a dish soap bottle on a bright kitchen counter, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🍳",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: 5 пятен",
+   "items": [
+    {
+     "icon": "🖊️",
+     "text": "Ручка: спирт"
+    },
+    {
+     "icon": "☕",
+     "text": "Кофе: холодная вода"
+    },
+    {
+     "icon": "🍳",
+     "text": "Жир: крахмал или сода"
+    },
+    {
+     "icon": "💄",
+     "text": "Тональный: мицеллярная вода"
+    },
+    {
+     "icon": "🩸",
+     "text": "Кровь: только холодная вода"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто вечно пачкает белую рубашку.\nА какое пятно у вас самое частое? Пишите в комментариях"
+  }
+ ]
+}

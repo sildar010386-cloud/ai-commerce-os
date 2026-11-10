@@ -1,0 +1,10 @@
+{
+ "bg": "bg.jpg",
+ "frame": "content/carousels/K-02/src/p4.jpg",
+ "frame_pos": "40% 50%",
+ "frame_zoom": 125,
+ "plaque": "В коробке",
+ "title": "Отпариватель\nв поездку",
+ "box": "Ручка поворачивается на 180°",
+ "accent": "#FF9F68"
+}

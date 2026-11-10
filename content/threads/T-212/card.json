@@ -1,0 +1,10 @@
+{
+ "bg": "bg.jpg",
+ "frame": "content/carousels/K-02/src/p3.jpg",
+ "frame_pos": "40% 50%",
+ "frame_zoom": 125,
+ "plaque": "Без доски",
+ "title": "Прямо\nна вешалке",
+ "box": "Греется за 9 секунд",
+ "accent": "#7ED957"
+}

@@ -1,0 +1,63 @@
+{
+ "accent": "#FFD166",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Как освежить шторы, не снимая их",
+   "text": "Снимать не придётся? →",
+   "prompt": "Bright living room window with long soft turquoise and cream curtains hanging from a rod, sunny light, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Снимать шторы ради складок",
+   "text": "Снять, постирать, высушить, повесить обратно. Целый день из-за нескольких складок.",
+   "prompt": "Living room with curtains taken down and piled on a sofa, a chair standing by the window, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "😩",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Нагревается за 9 секунд",
+   "text": "Включили, и через 9 секунд можно работать.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p5.jpg",
+   "photo": "src/03.jpg",
+   "note": "Реальный кадр K-02/src/p5.jpg, скопировать в src/03.jpg"
+  },
+  {
+   "title": "Без доски: вертикально",
+   "text": "Ручной отпариватель гладит вещь на вешалке, так что по висящей шторе тоже можно пройтись, если ткань позволяет.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "photo": "src/04.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg, скопировать в src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: шторы без снятия",
+   "items": [
+    {
+     "icon": "⏱️",
+     "text": "Нагрев: 9 секунд"
+    },
+    {
+     "icon": "↕️",
+     "text": "Положение: вертикально"
+    },
+    {
+     "icon": "🚫",
+     "text": "Доска: не нужна"
+    },
+    {
+     "icon": "🏷️",
+     "text": "Ткань: смотрите ярлык"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто давно хочет освежить шторы.\nНапишите «ПАР» в комментариях — менеджер свяжется с вами и всё расскажет\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

@@ -1,0 +1,63 @@
+{
+ "accent": "#FFD166",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Как погладить вещи в поездке, если нет утюга",
+   "text": "Утюга в номере нет, а платье мятое →",
+   "prompt": "Open suitcase with packed clothes on a hotel bed beside a bright window, coral and mint tones, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "В номере нет утюга",
+   "text": "Приехали, достали платье из чемодана, а оно помялось. До встречи или ужина остаётся мало времени.",
+   "prompt": "Hotel room with a rumpled colorful dress laid on a bed next to an open suitcase, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "😩",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Складывается в небольшую коробку",
+   "text": "Ручной отпариватель компактный, ручка поворачивается на 180°. Его можно взять с собой в поездку.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p4.jpg",
+   "photo": "src/03.jpg",
+   "note": "Реальный кадр K-02/src/p4.jpg, скопировать в src/03.jpg"
+  },
+  {
+   "title": "9 секунд, и можно гладить",
+   "text": "Нагрев за 9 секунд, гладит как утюг и отпаривает. Гладильная доска не нужна.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p5.jpg",
+   "photo": "src/04.jpg",
+   "note": "Реальный кадр K-02/src/p5.jpg, скопировать в src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: отпариватель в поездку",
+   "items": [
+    {
+     "icon": "📦",
+     "text": "Коробка: небольшая"
+    },
+    {
+     "icon": "🔄",
+     "text": "Ручка: поворот на 180°"
+    },
+    {
+     "icon": "⏱️",
+     "text": "Нагрев: 9 секунд"
+    },
+    {
+     "icon": "🚫",
+     "text": "Доска: не нужна"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто скоро в поездку.\nНапишите «ПАР» в комментариях — менеджер свяжется с вами и всё расскажет\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}
