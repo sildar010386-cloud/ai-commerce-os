@@ -69,6 +69,7 @@
   "code": "T-198",
   "title": "Airbnb только что запретил требовать от гостей уборку пер…",
   "type": "охват",
-  "approved": true
+  "approved": true,
+  "fails": 1
  }
 ]
