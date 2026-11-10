@@ -7,4 +7,4 @@
 Почему одни берут вещи для дома на Пиндуо, а другие только на Kaspi? 🛒 Вам привычнее Пиндуо или Kaspi?
 
 ## Картинка
-Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of delivery parcels of different sizes stacked by the front door of an apartment with a welcome mat, colorful and cheerful, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people
+Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of several plain cardboard delivery parcels of different sizes on a light wooden floor in a sunny apartment hallway, plain doormat, colorful and cheerful, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people

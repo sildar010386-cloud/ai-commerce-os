@@ -10,4 +10,4 @@ Kaspi-ден алған ең пайдалы үй заты қандай? Біре
 Пост: Какая самая полезная вещь для дома, которую вы купили на Kaspi? Назовите только одну 👇
 
 ## Картинка
-Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of an orange Kaspi-style delivery parcel box opened on a kitchen table with neat household items around it, tea set, fresh flowers, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people
+Файл `1.jpg`, яркая ИИ-картинка без текста, без людей крупно, без техники. Prompt (FLUX, EN): Bright photo of an opened plain orange cardboard parcel box on a kitchen table with neat household items around it, tea set, fresh flowers, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people
