@@ -1,0 +1,61 @@
+{
+ "accent": "#7209B7",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Как постирать пуховик, чтобы он не сбился",
+   "text": "Правил немного. Про последнее знают не все →",
+   "prompt": "Puffy winter down jacket on a hanger next to a washing machine in a bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Ярлык и деликатный режим",
+   "text": "Застегните молнии и липучки, выберите деликатную стирку и температуру по ярлыку.",
+   "prompt": "Close-up of a care label and zipper on a puffy jacket, bright light, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🏷️",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Жидкое средство, без кондиционера",
+   "text": "Порошок хуже вымывается из пуха. Лучше жидкое средство и дополнительное полоскание.",
+   "prompt": "Bottle of liquid laundry detergent and a measuring cap beside a clean washing machine, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧴",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Сушим расправленным, с мячиками",
+   "text": "Разложите пуховик ровно и время от времени встряхивайте. Мячики для сушки помогают разбить комки, если ярлык разрешает.",
+   "prompt": "Two clean tennis balls next to a folded puffy jacket on a drying rack in a bright room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🎾",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: пуховик без комков",
+   "items": [
+    {
+     "icon": "🏷️",
+     "text": "Сначала ярлык"
+    },
+    {
+     "icon": "🧴",
+     "text": "Жидкое средство"
+    },
+    {
+     "icon": "🔄",
+     "text": "Дополнительное полоскание"
+    },
+    {
+     "icon": "🎾",
+     "text": "Мячики и встряхивание"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто боится стирать пуховик.\nА как вы стираете пуховик? Пишите в комментариях"
+  }
+ ]
+}

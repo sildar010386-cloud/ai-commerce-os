@@ -1,0 +1,61 @@
+{
+ "accent": "#57CC99",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Почему вещи пахнут сыростью после стирки",
+   "text": "Причины простые. Про последнюю знают не все →",
+   "prompt": "Fresh white laundry in a wicker basket by a sunny window with a green plant, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Бельё долго лежит в машинке",
+   "text": "Мокрые вещи в закрытом барабане быстро начинают пахнуть. Достаём сразу после стирки.",
+   "prompt": "Open front-load washing machine door with a bright empty drum in a clean laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "⏰",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Барабан забит под завязку",
+   "text": "Когда вещей слишком много, их плохо полощет и отжимает. Остаётся влага, а с ней запах.",
+   "prompt": "Washing machine drum stuffed full of colorful clothes in a bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧺",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Резинка и лоток остаются сырыми",
+   "text": "В резинке дверцы и в лотке копится влага. Протирайте насухо и оставляйте дверцу открытой.",
+   "prompt": "Close-up of a clean rubber door seal of a washing machine and an open detergent drawer, bright laundry room, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🧽",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: как убрать запах",
+   "items": [
+    {
+     "icon": "🧺",
+     "text": "Вынимать бельё сразу"
+    },
+    {
+     "icon": "🤏",
+     "text": "Не набивать барабан"
+    },
+    {
+     "icon": "🧽",
+     "text": "Протирать резинку насухо"
+    },
+    {
+     "icon": "🌬️",
+     "text": "Оставлять дверцу открытой"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто хочет, чтобы бельё пахло свежестью.\nА как вы справляетесь с запахом? Пишите в комментариях"
+  }
+ ]
+}

@@ -1,0 +1,63 @@
+{
+ "accent": "#FF8FAB",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Как гладить без доски, если в квартире мало места",
+   "text": "Способ есть, и доска для него не нужна →",
+   "prompt": "Small cozy apartment bedroom with a made bed and compact wardrobe, tidy, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Доска занимает пол комнаты",
+   "text": "Достали, разложили, погладили, убрали. А места в квартире и так немного.",
+   "prompt": "Narrow small apartment room with a big folded ironing board leaning against the wall taking up space, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "😩",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Гладим на кровати или на вешалке",
+   "text": "2 в 1: прижали, и гладит как утюг. Повели, и отпаривает. Доска не нужна.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg (прижат к ткани)",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Складывается в небольшую коробку",
+   "text": "Компактный: ручка поворачивается на 180°, можно взять в поездку.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p4.jpg",
+   "note": "Реальный кадр K-02/src/p4.jpg (коробка и отпариватель)",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: что умеет отпариватель",
+   "items": [
+    {
+     "icon": "⏱️",
+     "text": "9 секунд: нагрев"
+    },
+    {
+     "icon": "🔁",
+     "text": "2 в 1: гладит и отпаривает"
+    },
+    {
+     "icon": "🚫",
+     "text": "Без гладильной доски"
+    },
+    {
+     "icon": "📦",
+     "text": "Складывается в небольшую коробку"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто живёт в небольшой квартире.\nНапишите «ПАР» в комментариях, менеджер свяжется с вами и всё расскажет\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

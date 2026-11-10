@@ -1,0 +1,63 @@
+{
+ "accent": "#FFD166",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Почему отпариватель, если дома уже есть утюг",
+   "text": "Отпариватель или утюг: чем отличаются →",
+   "prompt": "Tidy bedroom with shirts and dresses on hangers in a wardrobe and a made bed, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Утюг есть, а гладить всё равно лень",
+   "text": "Достать доску, найти розетку, подождать нагрева. Пока готовишься, уже не хочется.",
+   "prompt": "Cozy living room corner with a basket of wrinkled clothes beside a sofa, folded ironing board against the wall, no appliance, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "😩",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Нагревается за 9 секунд",
+   "text": "Включили, и через 9 секунд можно гладить. Ждать не нужно.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p5.jpg",
+   "note": "Реальный кадр K-02/src/p5.jpg (крупный план с дисплеем)",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Без доски, прямо на вешалке",
+   "text": "2 в 1: прижали, и гладит как утюг. Повели, и отпаривает. Доска не нужна.",
+   "real": true,
+   "frame": "content/carousels/K-02/src/p3.jpg",
+   "note": "Реальный кадр K-02/src/p3.jpg (прижат к ткани)",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: что умеет отпариватель",
+   "items": [
+    {
+     "icon": "⏱️",
+     "text": "9 секунд: нагрев"
+    },
+    {
+     "icon": "🔁",
+     "text": "2 в 1: гладит и отпаривает"
+    },
+    {
+     "icon": "🚫",
+     "text": "Без гладильной доски"
+    },
+    {
+     "icon": "📦",
+     "text": "Складывается в небольшую коробку"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто до сих пор достаёт гладильную доску.\nНапишите «ПАР» в комментариях, менеджер свяжется с вами и всё расскажет\nБесплатная доставка Казпочтой по всему Казахстану"
+  }
+ ]
+}

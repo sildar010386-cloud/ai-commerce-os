@@ -1,0 +1,61 @@
+{
+ "accent": "#4CC9F0",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Как собраться утром за 15 минут",
+   "text": "Всё решается с вечера. Про последний приём знают не все →",
+   "prompt": "Bright hallway with a backpack, keys on a hook and a jacket on a hanger by the front door, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Одежду выложить с вечера",
+   "text": "Форма или рубашка поглажены и висят на дверце шкафа. Утром ничего не нужно искать.",
+   "prompt": "Clothes neatly laid out on a chair in a bright bedroom, white shirt and trousers, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "👕",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Сумка и ключи у двери",
+   "text": "Рюкзак, документы и ключи лежат в одном месте. Утром не бегаем по квартире.",
+   "prompt": "Backpack, keys and a wallet placed on a small shelf by the front door, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "🎒",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Десять минут вечером на всё",
+   "text": "Проверьте погоду, одежду на завтра и сумку. Зимой заранее приготовьте шапку и перчатки.",
+   "prompt": "Warm winter hat, gloves and scarf neatly arranged on a hallway bench, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no people",
+   "emoji": "⏰",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: вечерний чек-лист",
+   "items": [
+    {
+     "icon": "👕",
+     "text": "Одежда готова"
+    },
+    {
+     "icon": "🎒",
+     "text": "Сумка у двери"
+    },
+    {
+     "icon": "🔑",
+     "text": "Ключи на месте"
+    },
+    {
+     "icon": "📱",
+     "text": "Будильник заведён"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь той, кто вечно опаздывает по утрам.\nА что вы готовите с вечера? Пишите в комментариях"
+  }
+ ]
+}
