@@ -460,5 +460,65 @@
   "out": "content/carousels/K-51/src/04.jpg",
   "w": 1024,
   "h": 960
+ },
+ {
+  "prompt": "Pixar-style 3D animated film character: a living snow-white office blouse with a crisp collar, a row of buttons and a small red bow at the collar, hanging on a wooden hanger. The pure white fabric is extremely crumpled and crushed, covered all over with hundreds of deep sharp wrinkles and creases. The character has big round brown cartoon eyes with eyelashes, worried raised eyebrows, rosy cheeks and a wide open panicked mouth, sculpted in 3D as part of the fabric on the chest; its long sleeves are raised up in panic like arms. Bright cosy bedroom with a light wooden wardrobe, warm morning sunlight, vivid saturated colours. The character is centered and fully visible, occupying only the central third of the image, with empty background above and below. No text, no labels, no logos, no people, no human hands.",
+  "out": "content/ai/series_test/ep01/cfB1.jpg",
+  "w": 704,
+  "h": 1216
+ },
+ {
+  "prompt": "Pixar-style 3D animated film character: a living snow-white office blouse with a crisp collar, a row of buttons and a small red bow at the collar, hanging on a wooden hanger. The pure white fabric is extremely crumpled and crushed, covered all over with hundreds of deep sharp wrinkles and creases. The character has big round brown cartoon eyes with eyelashes, worried raised eyebrows, rosy cheeks and a wide open panicked mouth, sculpted in 3D as part of the fabric on the chest; its long sleeves hang down limply. Bright cosy bedroom with a light wooden wardrobe, warm morning sunlight, vivid saturated colours. The character is centered and fully visible, occupying only the central third of the image, with empty background above and below. No text, no labels, no logos, no people, no human hands.",
+  "out": "content/ai/series_test/ep01/cfB2.jpg",
+  "w": 704,
+  "h": 1216
+ },
+ {
+  "prompt": "Pixar-style 3D animated film character: a living snow-white office blouse with a crisp collar, a row of buttons and a small red bow at the collar, hanging on a wooden hanger. The pure white fabric is extremely crumpled and crushed, covered all over with hundreds of deep sharp wrinkles and creases. The character has big round brown cartoon eyes with eyelashes, worried raised eyebrows, rosy cheeks and a wide open panicked mouth, sculpted in 3D as part of the fabric on the chest; its long sleeves are pressed to its cheeks in horror. Bright cosy bedroom with a light wooden wardrobe, warm morning sunlight, vivid saturated colours. The character is centered and fully visible, occupying only the central third of the image, with empty background above and below. No text, no labels, no logos, no people, no human hands.",
+  "out": "content/ai/series_test/ep01/cfB3.jpg",
+  "w": 704,
+  "h": 1216
+ },
+ {
+  "prompt": "Pixar-style 3D animated film character: a living snow-white office blouse with a crisp collar, a row of buttons and a small red bow at the collar, hanging on a wooden hanger. The pure white fabric is extremely crumpled and crushed, covered all over with hundreds of deep sharp wrinkles and creases. The character has big round brown cartoon eyes with eyelashes, worried raised eyebrows, rosy cheeks and a wide open panicked mouth, sculpted in 3D as part of the fabric on the chest; its long sleeves are raised up in panic like arms, the body slightly twisted. Bright cosy bedroom with a light wooden wardrobe, warm morning sunlight, vivid saturated colours. The character is centered and fully visible, occupying only the central third of the image, with empty background above and below. No text, no labels, no logos, no people, no human hands.",
+  "out": "content/ai/series_test/ep01/cfB4.jpg",
+  "w": 704,
+  "h": 1216
+ },
+ {
+  "prompt": "Pixar-style 3D animated film character: a living snow-white office blouse with a crisp collar, a row of buttons and a small red bow at the collar, hanging on a wooden hanger. The glowing pure white fabric is perfectly smooth and freshly pressed, without a single wrinkle, with tiny sparkles around it. The character has big round brown cartoon eyes with eyelashes, happy eyebrows, rosy cheeks and a big joyful open smile, sculpted in 3D as part of the fabric on the chest; its long sleeves are raised up in celebration like arms. Bright cosy bedroom with a light wooden wardrobe, warm morning sunlight, vivid saturated colours. The character is centered and fully visible, occupying only the central third of the image, with empty background above and below. No text, no labels, no logos, no people, no human hands.",
+  "out": "content/ai/series_test/ep01/cfS1.jpg",
+  "w": 704,
+  "h": 1216
+ },
+ {
+  "prompt": "Pixar-style 3D animated film character: a living snow-white office blouse with a crisp collar, a row of buttons and a small red bow at the collar, hanging on a wooden hanger. The glowing pure white fabric is perfectly smooth and freshly pressed, without a single wrinkle, with tiny sparkles around it. The character has big round brown cartoon eyes with eyelashes, happy eyebrows, rosy cheeks and a big joyful open smile, sculpted in 3D as part of the fabric on the chest; its long sleeves hang down neatly. Bright cosy bedroom with a light wooden wardrobe, warm morning sunlight, vivid saturated colours. The character is centered and fully visible, occupying only the central third of the image, with empty background above and below. No text, no labels, no logos, no people, no human hands.",
+  "out": "content/ai/series_test/ep01/cfS2.jpg",
+  "w": 704,
+  "h": 1216
+ },
+ {
+  "prompt": "Pixar-style 3D animated film character: a living snow-white office blouse with a crisp collar, a row of buttons and a small red bow at the collar, hanging on a wooden hanger. The glowing pure white fabric is perfectly smooth and freshly pressed, without a single wrinkle, with tiny sparkles around it. The character has big round brown cartoon eyes with eyelashes, happy eyebrows, rosy cheeks and a big joyful open smile, sculpted in 3D as part of the fabric on the chest; its long sleeves are raised up in celebration like arms, standing proud. Bright cosy bedroom with a light wooden wardrobe, warm morning sunlight, vivid saturated colours. The character is centered and fully visible, occupying only the central third of the image, with empty background above and below. No text, no labels, no logos, no people, no human hands.",
+  "out": "content/ai/series_test/ep01/cfS3.jpg",
+  "w": 704,
+  "h": 1216
+ },
+ {
+  "prompt": "Pixar-style 3D animated film villain character: an old heavy clothes iron standing upright on an ironing board, with a smug, menacing but funny face sculpted in 3D on its body: narrowed glowing orange eyes, thick angry eyebrows and a wide toothy evil grin, puffs of hot steam rising around it, glowing hot metal soleplate, dramatic warm rim light. Bright cosy bedroom with a light wooden wardrobe, warm morning sunlight, vivid saturated colours. The character is centered and fully visible, occupying only the central third of the image, with empty background above and below. No text, no labels, no logos, no people, no human hands.",
+  "out": "content/ai/series_test/ep01/cfI1.jpg",
+  "w": 704,
+  "h": 1216
+ },
+ {
+  "prompt": "Pixar-style 3D animated film villain character: an old heavy clothes iron standing upright on an ironing board, with a smug, menacing but funny face sculpted in 3D on its body: small squinting red-orange eyes, one raised eyebrow and a sly crooked smirk, puffs of hot steam rising around it, glowing hot metal soleplate, dramatic warm rim light. Bright cosy bedroom with a light wooden wardrobe, warm morning sunlight, vivid saturated colours. The character is centered and fully visible, occupying only the central third of the image, with empty background above and below. No text, no labels, no logos, no people, no human hands.",
+  "out": "content/ai/series_test/ep01/cfI2.jpg",
+  "w": 704,
+  "h": 1216
+ },
+ {
+  "prompt": "Pixar-style 3D animated film villain character: an old heavy clothes iron standing upright on an ironing board, with a smug, menacing but funny face sculpted in 3D on its body: big angry yellow eyes, bushy black eyebrows and a wide grin with square teeth, puffs of hot steam rising around it, glowing hot metal soleplate, dramatic warm rim light. Bright cosy bedroom with a light wooden wardrobe, warm morning sunlight, vivid saturated colours. The character is centered and fully visible, occupying only the central third of the image, with empty background above and below. No text, no labels, no logos, no people, no human hands.",
+  "out": "content/ai/series_test/ep01/cfI3.jpg",
+  "w": 704,
+  "h": 1216
  }
 ]
