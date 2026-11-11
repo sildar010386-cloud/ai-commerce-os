@@ -116,8 +116,8 @@ def plates(lines, size, top, colors, path, pad=(34, 14), gap=18, radius=34):
     sh_l = sh_l.filter(ImageFilter.GaussianBlur(9))
     Image.alpha_composite(sh_l, img).save(path)
     return y
-plates(["Если бомбер помялся,", "не гладьте его", "утюгом"], 84, 270, [RED] * 3, f"{D}/title.png")
-plates(["Напишите", "«ПАР»", "в комментариях"], 84, 800, [(20, 20, 20), RED, (20, 20, 20)], f"{D}/cta.png")
+plates(["Если бомбер помялся,", "не гладьте его", "утюгом"], 70, 270, [RED] * 3, f"{D}/title.png", pad=(30, 12))
+plates(["Напишите", "«ПАР»", "в комментариях"], 96, 760, [(20, 20, 20), RED, (20, 20, 20)], f"{D}/cta.png")
 sh(["ffmpeg", "-y", "-loglevel", "error", "-i", f"{D}/video_plain.mp4", "-i", f"{D}/title.png", "-i", f"{D}/cta.png",
     "-filter_complex", f"[0:v][1:v]overlay=0:0[a];[a][2:v]overlay=0:0:enable='gte(t,{cta_start})'[b];[b]ass={D}/reel56.ass:fontsdir={FONT}[v]",
     "-map", "[v]", "-c:v", "libx264", "-crf", "17", "-preset", "medium", "-pix_fmt", "yuv420p", "-r", "30", f"{D}/video_text.mp4"])
