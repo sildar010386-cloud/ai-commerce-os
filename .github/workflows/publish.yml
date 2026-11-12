@@ -6,8 +6,8 @@ name: Publish
 on:
   schedule:
     # Almaty = UTC+5. GitHub often starts scheduled runs 20-40 min late or drops one, so instead of one run per slot
-    # the queue is checked every 10 minutes 09:00-20:59 Almaty: each slot goes out on the first run after its time.
-    - cron: "4,14,24,34,44,54 4-15 * * *"
+    # the queue is checked every 10 minutes 09:00-21:59 Almaty: each slot goes out on the first run after its time.
+    - cron: "4,14,24,34,44,54 4-16 * * *"
   workflow_dispatch:
     inputs:
       date:
