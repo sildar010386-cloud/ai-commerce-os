@@ -11,5 +11,5 @@
       "Bash(python3 tools/tiktok/tt.py *)"
     ]
   },
-  "model": "opus"
+  "model": "claude-opus-5-5"
 }
