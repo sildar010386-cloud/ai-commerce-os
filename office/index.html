@@ -291,7 +291,9 @@ const INFO={
  dn:{name:'Данияр',role:'Таргетолог',status:'реклама и креативы',color:0xff6b4a,glyph:'target',
   bullets:['переделывает залетевший контент в рекламу','настраивает рекламу','следит за результатом'],how:'вместе с Ерланом.'},
  law:{name:'Асель',role:'Юрист',status:'документы и договоры',color:0xf2c14e,glyph:'⚖',
-  bullets:['документы и договоры','письма и обращения','реестр входящих и исходящих номеров'],how:'по задачам от директора.'}};
+  bullets:['документы и договоры','письма и обращения','реестр входящих и исходящих номеров'],how:'по задачам от директора.'},
+ fin:{name:'Нурлан',role:'Финансовый консультант',status:'ипотека и банки',color:0x3aa6c9,glyph:'₸',
+  bullets:['расчёты ипотеки и платежей','сравнение банков и программ','документы и заявления в банк'],how:'по задачам от директора.'}};
 const P={
  dir:{skin:SK.asian,hair:0x2a1e18,hairStyle:'mens2',brow:0x56402e,outfit:'suit',top:0x23283a,bottom:0x23283a,lapel:0x181c2a,tie:1,shoe:0x15151a,arm:.95},
  cm:{fem:1,skin:SK.asian,hair:HC.black,hairStyle:'long',outfit:'dress',top:0xb7a4e0,sleeve:'none',shoe:0xffffff},
@@ -299,7 +301,8 @@ const P={
  an:{fem:1,skin:SK.fair,hair:HC.auburn,hairStyle:'bob',outfit:'shirt',top:0xffffff,bottom:0x6c7380,sleeve:'long',glasses:1,shoe:0x3a3d46},
  er:{skin:SK.olive,hair:HC.brown,hairStyle:'short',outfit:'shirt',top:0x9fc0e0,bottom:0xc9b08a,sleeve:'short',glasses:1,shoe:0x8a6a4a},
  dn:{skin:SK.light,hair:HC.dbrown,hairStyle:'short',outfit:'tshirt',top:0xe0b24f,bottom:0x5b79a6,sleeve:'short'},
- law:{fem:1,skin:SK.brown,hair:HC.black,hairStyle:'bun',outfit:'skirt',top:0xf3eefc,bottom:0x2f3750,sleeve:'long',shoe:0x2a2a30}};
+ law:{fem:1,skin:SK.brown,hair:HC.black,hairStyle:'bun',outfit:'skirt',top:0xf3eefc,bottom:0x2f3750,sleeve:'long',shoe:0x2a2a30},
+ fin:{skin:SK.tan,hair:HC.dbrown,hairStyle:'mens',outfit:'shirt',top:0xa9d3ee,bottom:0x23262f,sleeve:'long',glasses:1,shoe:0x1f1f24}};
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $=s=>document.querySelector(s);
 const app=$('#app');
@@ -425,6 +428,22 @@ function drawScreen(sd){
       c.strokeStyle='#fff';c.lineWidth=3;const mx=cx+Math.sin(t*.9)*30,my=cy+Math.cos(t*1.1)*24;c.beginPath();c.moveTo(mx-16,my);c.lineTo(mx+16,my);c.moveTo(mx,my-16);c.lineTo(mx,my+16);c.stroke();
       for(let i=0;i<4;i++){const y=60+i*62;c.fillStyle='rgba(255,255,255,.1)';rr(c,262,y,224,48,10);c.fill();c.fillStyle='rgba(255,255,255,.5)';rr(c,276,y+9,70,8,4);c.fill();c.fillStyle='rgba(255,255,255,.18)';rr(c,276,y+28,196,9,4);c.fill();const f=clamp(((t*.12+i*.23)%1.2)/1,0,1);c.fillStyle=PAL[(i+3)%6];rr(c,276,y+28,196*f,9,4);c.fill();}}
     scrHead(c,col);
+  }else if(id==='fin'){ // loan amortization: declining balance curve + payment bars
+    c.strokeStyle='rgba(255,255,255,.16)';c.lineWidth=2;for(let i=0;i<5;i++){c.beginPath();c.moveTo(34,70+i*40);c.lineTo(340,70+i*40);c.stroke();}
+    const g=clamp(((t*.14)%1.5)*1.6,0,1),NB=10;
+    for(let k=0;k<NB;k++){const gr=clamp(g*1.5-k*.05,0,1),hh=(34+10*Math.sin(k*.9))*ease(gr);c.fillStyle=col;c.globalAlpha=.85;rr(c,40+k*30,244-hh,20,hh+2,4);c.fill();c.fillStyle='#fff';c.globalAlpha=.35;rr(c,40+k*30,244-hh,20,Math.max(2,hh*.35),4);c.fill();}
+    c.globalAlpha=1;
+    // balance curve: declines with a slight accelerating drop (annuity-like)
+    const bal=u=>1-Math.pow(u,1.7)*.92;
+    c.strokeStyle='#fff';c.lineWidth=5;c.lineJoin='round';c.beginPath();const n=Math.floor(g*40);
+    for(let i=0;i<=n;i++){const u=i/40,x=40+u*300,y=72+(1-bal(u))*159;if(i)c.lineTo(x,y);else c.moveTo(x,y);}c.stroke();
+    {const u=n/40,x=40+u*300,y=72+(1-bal(u))*159;c.fillStyle=col;c.beginPath();c.arc(x,y,8,0,7);c.fill();c.strokeStyle='#fff';c.lineWidth=3;c.stroke();}
+    // side cards: share of principal vs interest (bars), rate gauge
+    for(let i=0;i<3;i++){const y=50+i*84;c.fillStyle='rgba(255,255,255,.09)';rr(c,364,y,124,72,10);c.fill();
+      c.fillStyle='rgba(255,255,255,.2)';rr(c,376,y+44,100,10,5);c.fill();const f=clamp(.25+.2*i+.12*Math.sin(t*.8+i),.1,.95);c.fillStyle=PAL[(i*2+3)%6];rr(c,376,y+44,100*f,10,5);c.fill();
+      c.fillStyle='rgba(255,255,255,.55)';rr(c,376,y+14,46+i*14,9,4);c.fill();c.strokeStyle=col;c.lineWidth=4;c.beginPath();c.arc(460,y+20,9,Math.PI*.8,Math.PI*(.8+1.4*(.5+.5*Math.sin(t*.7+i*2))));c.stroke();}
+    c.fillStyle='rgba(255,255,255,.12)';rr(c,34,262,306,34,10);c.fill();c.fillStyle=col;rr(c,44,274,((t*18)%250)+30,10,5);c.fill();
+    scrHead(c,col);
   }else{ // director: two overview screens
     if(sd.idx===0){for(let j=0;j<2;j++)for(let i=0;i<3;i++){const x=24+i*158,y=48+j*130,k=j*3+i;c.fillStyle='rgba(255,255,255,.08)';rr(c,x,y,148,118,12);c.fill();c.fillStyle=PAL[k];c.globalAlpha=.9;c.beginPath();c.arc(x+30,y+32,14,0,7);c.fill();c.globalAlpha=1;
         c.fillStyle='rgba(255,255,255,.5)';rr(c,x+54,y+24,70,10,5);c.fill();c.fillStyle='rgba(255,255,255,.2)';rr(c,x+16,y+78,116,10,5);c.fill();c.fillStyle=PAL[k];rr(c,x+16,y+78,116*(((t*.09+k*.19)%1)),10,5);c.fill();
@@ -493,7 +512,7 @@ function propSpots(){return props;}
 
 /* ---- staff, chips, layout data ---- */
 const stations={},crew={},screens=[];
-const IDS=['dir','law','an','cm','ed','er','dn'];
+const IDS=['dir','law','an','cm','ed','er','dn','fin'];
 const SPEED=2.3,GAIT=1.09;
 const selectCb={fn:null};
 function mkChip(id){const d=INFO[id];const b=document.createElement('button');b.type='button';b.className='lab'+(id==='dir'?' big':'');b.dataset.id=id;
@@ -506,7 +525,7 @@ function addUnit(id,s,wide){
   st.userData.who=id;scene.add(st);stations[id]={st,s};
   st.traverse(n=>{if(n.userData&&n.userData.screen)screens.push(n);});
 }
-addUnit('dir',1,true);addUnit('law',1);addUnit('an',-1);addUnit('cm',1);addUnit('ed',-1);addUnit('er',-1);addUnit('dn',1);
+addUnit('dir',1,true);addUnit('law',1);addUnit('an',-1);addUnit('cm',1);addUnit('ed',-1);addUnit('er',-1);addUnit('dn',1);addUnit('fin',-1);
 buildProps();
 const TGBASE={};
 function buildCrew(){
@@ -531,8 +550,8 @@ const tag=new CSS2DObject(tagEl);scene.add(tag);
 const ring=new THREE.Mesh(new THREE.RingGeometry(1.0,1.18,48),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false,side:2}));
 ring.rotation.x=-Math.PI/2;ring.position.y=.14;ring.visible=false;scene.add(ring);
 /* ---- layouts, seats, props placement, waypoint graph ---- */
-const LAY={wide:{dir:[0,0],law:[-8.2,-7.4],an:[8.2,-7.4],cm:[-12.3,.6],ed:[12.3,.6],er:[-1.85,10.8],dn:[1.85,10.8]},
-           narrow:{dir:[0,-4],law:[-5.6,-12.5],an:[5.6,-12.5],cm:[-5.6,3.4],ed:[5.6,3.4],er:[-1.85,11],dn:[1.85,11]}};
+const LAY={wide:{dir:[0,0],law:[-8.2,-7.4],an:[8.2,-7.4],cm:[-12.3,.6],ed:[12.3,.6],er:[-1.85,10.8],dn:[1.85,10.8],fin:[11.5,8.5,-1]},
+           narrow:{dir:[0,-4],law:[-5.6,-12.5],an:[5.6,-12.5],cm:[-5.6,3.4],ed:[5.6,3.4],er:[-1.85,11],dn:[1.85,11],fin:[-5.8,7.4,1]}};
 const LP={wide:{coffeeX:9.0,coolerX:13.0,table:[-9.0,8.0],board:[-12.2,8.9]},narrow:{coffeeX:7.1,coolerX:10.6,table:[.3,8.9],board:[3.9,9.3]}};
 let mode='',N={},ADJ={},OBST=[],curLP=null;const PKD=2.0,PKF=.2;
 function buildGraph(m){
@@ -555,6 +574,7 @@ function buildGraph(m){
     e('S_er','V_er');e('S_er','F_L');e('F_L','F_M','F_R');e('V_er','F_M');e('V_dn','F_M');e('F_L','Pk_er');e('F_L','ErA','HL','BL');e('HL','C0');
     e('S_dn','V_dn');e('S_dn','F_R');e('F_R','Pk_dn');e('F_R','DnA','HR','BR');e('HR','C0');
     e('Jt','CmA');e('Jt','TbA0','Tb_a');e('Jt','TbB0','Tb_b');e('HL','Jt');e('Tb_b','ErA');
+    n('FnA',8.2,12.2);e('S_fin','FnA');e('Pk_fin','DnA');e('Pk_fin','FnA');e('FnA','F_R');e('V_fin','FnA');
   }else{
     n('TLn',-4.9,-9.2);n('TRn',4.9,-9.2);n('MLn',-4.9,-5.6);n('MRn',4.9,-5.6);n('BLn',-4.9,.8);n('BRn',4.9,.8);n('Dm',.3,-9.2);n('Hn',.3,.8);n('V_dir',0,-1.5);n('Cn',.3,6.5);
     n('DR',.3,-13);n('Dn1',.3,-15.5);n('dsL',-3.7,-5.9);n('dsR',3.7,-5.9);n('CmA',-1.6,6.2);n('EdA',2.2,6.2);n('ErA',-6.6,8.8);n('DnA',6.6,8.8);n('Jt',tx,tz-1.9);
@@ -563,9 +583,10 @@ function buildGraph(m){
     e('S_law','Dm');e('V_law','Dm');e('Pk_law','DR');e('S_law','TLn');e('S_an','Dm');e('V_an','Dm');e('Pk_an','DR');e('S_an','TRn');
     e('S_cm','CmA');e('V_cm','CmA');e('Pk_cm','Hn');e('CmA','Cn');e('S_ed','EdA');e('V_ed','EdA');e('Pk_ed','Hn');e('EdA','Cn');
     e('S_dir','dsL','MLn');e('S_dir','dsR','MRn');
-    e('S_er','F_L');e('S_er','V_er');e('F_L','F_M','F_R');e('V_er','F_M');e('V_dn','F_M');e('F_L','Pk_er');e('F_L','ErA','Cn');
+    e('S_er','F_L');e('S_er','V_er');e('F_L','F_M','F_R');e('V_er','F_M');e('V_dn','F_M');e('F_L','Pk_er');e('F_L','ErA','ErC','Cn');
     e('S_dn','F_R');e('S_dn','V_dn');e('F_R','Pk_dn');e('F_R','DnA','Cn');
     e('Cn','Jt');e('Jt','TbA0','Tb_a');e('Jt','TbB0','Tb_b');
+    n('ErC',-3.0,9.65);e('S_fin','ErA');e('V_fin','ErA');e('Pk_fin','ErC');
   }
   ADJ={};for(const k in N)ADJ[k]=[];
   for(const [a,b] of E){if(!N[a]||!N[b]){console.warn('bad edge',a,b);continue;}const d=Math.hypot(N[a].x-N[b].x,N[a].z-N[b].z);ADJ[a].push([b,d]);ADJ[b].push([a,d]);}
@@ -620,7 +641,7 @@ function applyLayout(m){
   mode=m;const L=LAY[m],lp=LP[m];curLP=lp;
   for(const id in L){const [x,z]=L[id];stations[id].st.position.set(x,0,z);}
   const [dx,dz]=L.dir;rugG.position.set(dx,0,dz);spot.position.set(dx,17,dz+6);spot.target.position.set(dx,0,dz);
-  for(const id of IDS){const p=crew[id],st=stations[id].st,s=stations[id].s;
+  for(const id of IDS){const p=crew[id],st=stations[id].st,s=L[id][2]||stations[id].s;  // optional 3rd LAY item: which side of the desk the chair stands on
     if(id==='dir'){p.seat={x:st.position.x,z:st.position.z-1.65*1.3};p.syaw=0;p.R=1.0;p.deskYaw=0;p.aim=0;p.mon={x:st.position.x,z:st.position.z-.3};}
     else{p.seat={x:st.position.x+s*2.15,z:st.position.z+.95};p.syaw=-.8*s;p.R=1.15*p.sc;p.deskYaw=-s*.6;p.aim=-s*.22;p.mon={x:st.position.x-.2,z:st.position.z-.2};}
     p.fwd={x:Math.sin(p.syaw),z:Math.cos(p.syaw)};p.back={x:-p.fwd.x,z:-p.fwd.z};
@@ -648,8 +669,8 @@ function resetSim(){
 const TGWALK={walk:1},TGWORK={type:1},TGLEAN={type:.6,lean:1};
 const tgOf=(s,d)=>Object.assign({},s.tg||d||TGBASE);
 function faceOf(p,s){const f=typeof s.face==='function'?s.face():s.face;if(f)p.yawT=Math.atan2(f.x-p.x,f.z-p.z);else if(s.yaw!==undefined)p.yawT=s.yaw;else if(p.mode==='seat'&&p.u===0)p.yawT=p.syaw;}
-const TOP={cm:['пост на завтра','хук для Reels','карусель на вечер'],ed:['монтаж ролика','субтитры готовы'],an:['отчёт за день','обращения за сегодня'],er:['что залетает','новый товар'],dn:['креатив для рекламы','запуск рекламы'],law:['договор','письмо на ответ'],dir:['как продвигается?','отлично, отправляем','поправь и покажи']};
-const TOPP={'cm>ed':['хук для Reels','карусель на вечер'],'ed>cm':['монтаж ролика','субтитры готовы'],'er>dn':['что залетает','новый товар'],'dn>er':['креатив для рекламы','запуск рекламы'],'cm>dir':['пост на завтра','карусель на вечер'],'an>dir':['отчёт за день','обращения за сегодня'],'er>dir':['что залетает','новый товар'],'dn>dir':['запуск рекламы','креатив для рекламы'],'ed>dir':['субтитры готовы','монтаж ролика'],'law>dir':['договор','письмо на ответ'],'dir>*':['как продвигается?','поправь и покажи','отлично, отправляем']};
+const TOP={cm:['пост на завтра','хук для Reels','карусель на вечер'],ed:['монтаж ролика','субтитры готовы'],an:['отчёт за день','обращения за сегодня'],er:['что залетает','новый товар'],dn:['креатив для рекламы','запуск рекламы'],law:['договор','письмо на ответ'],fin:['расчёт платежа','условия банка','документы в банк'],dir:['как продвигается?','отлично, отправляем','поправь и покажи']};
+const TOPP={'cm>ed':['хук для Reels','карусель на вечер'],'ed>cm':['монтаж ролика','субтитры готовы'],'er>dn':['что залетает','новый товар'],'dn>er':['креатив для рекламы','запуск рекламы'],'cm>dir':['пост на завтра','карусель на вечер'],'an>dir':['отчёт за день','обращения за сегодня'],'er>dir':['что залетает','новый товар'],'dn>dir':['запуск рекламы','креатив для рекламы'],'ed>dir':['субтитры готовы','монтаж ролика'],'law>dir':['договор','письмо на ответ'],'fin>dir':['расчёт платежа','условия банка'],'dir>*':['как продвигается?','поправь и покажи','отлично, отправляем']};
 function pickTopic(a,b){const l=TOPP[a.id+'>'+b.id]||(a.id==='dir'?TOPP['dir>*']:TOP[a.id]);let t=l[Math.floor(rnd()*l.length)];if(l.length>1&&t===a.lastTopic)t=l[(l.indexOf(t)+1)%l.length];a.lastTopic=t;return t;}
 function talkUpd(p,s,dt){const sh=s.talk;if(s.idx===0){sh.t+=dt;sh.nsw-=dt;if(sh.nsw<=0){sh.spk^=1;sh.nsw=RR(2.2,3.4);sh.nt=1;}}
   p.speaking=(sh.spk===s.idx)&&sh.t<sh.dur-.5;
@@ -719,7 +740,7 @@ function idleP(p,dt){
   p.v=0;p.speaking=false;p.mt-=dt;
   if(p.mt<=0&&!p.res){p.mt=RR(3,7);const r=rnd();
     if(r<.3){p.yawOff=RR(-.5,.5);p.yawOffT=RR(1.6,3.2);}
-    else if(r<.52){const o=crew[IDS[Math.floor(rnd()*7)]];if(o!==p&&o.sitv>.9&&!o.hidden){p.look={x:o.x,z:o.z};p.lookT=RR(1.6,2.8);}}
+    else if(r<.52){const o=crew[IDS[Math.floor(rnd()*IDS.length)]];if(o!==p&&o.sitv>.9&&!o.hidden){p.look={x:o.x,z:o.z};p.lookT=RR(1.6,2.8);}}
     else if(r<.7){p.leanT=RR(2,3.2);}}
   if(p.yawOffT>0){p.yawOffT-=dt;if(p.yawOffT<=0)p.yawOff=0;}
   if(p.lookT>0){p.lookT-=dt;if(p.lookT<=0)p.look=null;}
@@ -732,8 +753,8 @@ const endS=()=>({k:'call',fn:p=>{p.res=false;p.act=null;p.cap=null;p.nextAt=T+RR
 const toSeat=p=>[{k:'walk',to:'S_'+p.id},{k:'sitdown'}];
 const idle=p=>!p.res&&!p.cur&&!p.q.length&&p.mode==='seat'&&p.u===0&&!p.away&&!p.hidden;
 function pickOther(p,pred){const c=IDS.map(i=>crew[i]).filter(o=>o!==p&&idle(o)&&(!pred||pred(o)));return c.length?c[Math.floor(rnd()*c.length)]:null;}
-const DAT={dir:'Арману',cm:'Айгерим',ed:'Олжасу',an:'Динаре',er:'Ерлану',dn:'Данияру',law:'Асель'};
-const GEN={dir:'Армана',cm:'Айгерим',ed:'Олжаса',an:'Динары',er:'Ерлана',dn:'Данияра',law:'Асель'};
+const DAT={dir:'Арману',cm:'Айгерим',ed:'Олжасу',an:'Динаре',er:'Ерлану',dn:'Данияру',law:'Асель',fin:'Нурлану'};
+const GEN={dir:'Армана',cm:'Айгерим',ed:'Олжаса',an:'Динары',er:'Ерлана',dn:'Данияра',law:'Асель',fin:'Нурлана'};
 const INS={er:'Ерланом',dn:'Данияром'};
 const CAPB='↩ возвращается';
 const busy=k=>IDS.some(i=>crew[i].act===k);
