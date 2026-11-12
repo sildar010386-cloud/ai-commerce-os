@@ -14,7 +14,7 @@ Owner-facing docs are in Russian; code, comments and commit messages are in Engl
 
 ## Map — where things live
 Full map with staff and code folders: `MAP.md`.
-- **director** → `docs/director/` (start with `docs/director/HANDOFF.md` top section «Состояние на 12.11», then `docs/director/DECISIONS.md`); rules: `docs/director/RULES.md`.
+- **director** → `docs/director/` (start with `docs/director/HANDOFF.md` top section «Состояние на 13.11», then `docs/director/DECISIONS.md`); rules: `docs/director/RULES.md`.
 - **content** → `docs/content/RULES.md` + skill `.claude/skills/bikas-content/SKILL.md`.
 - **video** → `docs/video/RULES.md`.
 - **analytics** → `docs/analytics/`.
@@ -28,7 +28,7 @@ Full map with staff and code folders: `MAP.md`.
 
 ## Read first
 - `docs/director/DECISIONS.md` — facts about the business and every owner decision. Source of truth; update it when a decision is made.
-- `docs/director/HANDOFF.md` — current handoff (top section «Состояние на 12.11»); the 2026-11-12 handoff rule and model routing are in `docs/director/RULES.md`.
+- `docs/director/HANDOFF.md` — current handoff (top section «Состояние на 13.11»); the 2026-11-12 handoff rule and model routing are in `docs/director/RULES.md`.
 - `docs/director/PLAN_V2_KZ.md` — current plan and phase order (Kazakhstan, organic content, no managers).
 - `docs/director/ARCHITECTURE_V1.md` — architecture principles: economics first, code before LLM, one PostgreSQL, Telegram as UI only, no business logic in the bot, LLM provider abstraction, kill switches.
 
