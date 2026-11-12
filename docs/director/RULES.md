@@ -6,7 +6,7 @@
 - **Модели (владелец, 2026-10-22):** Opus — дирижёр и проверяющий; тексты — `bikas-writer` (Sonnet), тяжёлое чтение — `bikas-researcher` (Sonnet), механика публикаций и сбор данных — `bikas-publisher` (Haiku). Всё от помощников проверяется по `docs/director/QA_CHECKLIST.md` до отправки владельцу. Порядок: `docs/director/MODEL_ROUTING.md`. Одна сессия — один день/задача.
 
 ## Как Арман поручает работу (владелец, 2026-11-12)
-- Сотрудники и их папки — `docs/director/STAFF_RULES.md`; файлы ролей — `.claude/agents/` (aigerim, olzhas, dinara, erlan, daniyar, asel).
-- Поручать по имени (Agent, subagent_type = имя файла). Модель задана в файле роли: Арман и Асель — Opus 5.5, остальные — Sonnet 5.5; менять только с разрешения владельца.
+- Сотрудники и их папки — `docs/director/STAFF_RULES.md`; файлы ролей — `.claude/agents/` (aigerim, olzhas, dinara, erlan, daniyar, asel, nurlan).
+- Поручать по имени (Agent, subagent_type = имя файла). Модель задана в файле роли: Арман, Асель и Нурлан — Opus 5.5, остальные — Sonnet 5.5; менять только с разрешения владельца.
 - Перед каждым сохранением — `git diff --stat`: изменения только в папке сотрудника; защищённые папки (crm, connector, tools, office, spybot, .claude, CLAUDE.md…) не тронуты.
 - Старые помощники `bikas-writer`, `bikas-researcher`, `bikas-publisher` остаются до проверки новых на реальной задаче, потом убираются в архив по решению владельца.

@@ -12,6 +12,7 @@
 | Ерлан | аналитик рекламы | Sonnet 5.5 | `.claude/agents/erlan.md` | только репозиторий `bikas-target`: `notes/` (разведка, разборы) |
 | Данияр | таргетолог | Sonnet 5.5 | `.claude/agents/daniyar.md` | только репозиторий `bikas-target`: `notes/`, `tools/video/`, `landing/` (с разрешения) |
 | Асель | юрист | Opus 5.5 (`claude-opus-5-5`) | `.claude/agents/asel.md` | только закрытый репозиторий `bikas-legal`: папка своего дела (`land/` или `civil/`) |
+| Нурлан | финансовый консультант (ипотека) | Opus 5.5 (`claude-opus-5-5`) | `.claude/agents/nurlan.md` | только закрытый репозиторий `finance-ipoteka` |
 
 Модели меняет только Арман и только с разрешения владельца, каждое изменение — запись в `docs/director/DECISIONS.md`. Разово на одну задачу Арман может запустить сотрудника на другой модели по команде владельца.
 

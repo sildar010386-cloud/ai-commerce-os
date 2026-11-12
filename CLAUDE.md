@@ -23,6 +23,7 @@ Full map with staff and code folders: `MAP.md`.
 - **ads** → the separate private repo, see the bullet below.
 - **office 3D page** → `office/`.
 - **legal** → the separate private repo `sildar010386-cloud/bikas-legal` (created 2026-11-12; lawyer Асель on Opus 5.5; `land/` — земельные отношения, `civil/` — гражданское дело; read its `CLAUDE.md`; `add_repo` access=push, clone to `/home/user/bikas-legal`). Nothing from it ever goes into this public repo.
+- **mortgage / finance** → the separate private repo `sildar010386-cloud/finance-ipoteka` (created 2026-11-12; Нурлан, financial consultant, Opus 5.5; commercial-real-estate mortgage; read its `CLAUDE.md`; `add_repo` access=push, clone to `/home/user/finance-ipoteka`). Nothing from it ever goes into this public repo.
 - **Таргет (с 2026-11-12) ведётся из этого чата:** знания и правила рекламы — в отдельном закрытом репозитории `sildar010386-cloud/bikas-target` (читать его `CLAUDE.md` и `notes/HANDOFF.md`; подключать `add_repo` с access=push, клонировать в `/home/user/bikas-target`). Всё по рекламе сохранять только туда, органику — сюда; клиентские данные в этот публичный репозиторий не класть. Отдельный чат bikas-target больше не продолжаем.
 
 ## Read first
