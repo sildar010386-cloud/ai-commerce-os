@@ -3,7 +3,7 @@
   "id": "R1",
   "type": "reach",
   "title": "Если вы не доверяете интернет-магазину",
-  "source": "пример владельца (docs/CONTENT_RULES_ARMAN.md §3, тема «доверие»); форма-ориентир: r01 @bopetay.kz, 880 600 просмотров, https://www.tiktok.com/@bopetay.kz/video/7632215774798548245",
+  "source": "пример владельца (docs/content/CONTENT_RULES_ARMAN.md §3, тема «доверие»); форма-ориентир: r01 @bopetay.kz, 880 600 просмотров, https://www.tiktok.com/@bopetay.kz/video/7632215774798548245",
   "length_s": 52,
   "needs_footage": "",
   "scenes": [
@@ -69,7 +69,7 @@
   "id": "R2",
   "type": "reach",
   "title": "Почему мы работаем только по предоплате",
-  "source": "банк тем охвата №3 (docs/CONTENT_RULES_ARMAN.md); форма-ориентир: r01 @bopetay.kz (880 600), https://www.tiktok.com/@bopetay.kz/video/7632215774798548245",
+  "source": "банк тем охвата №3 (docs/content/CONTENT_RULES_ARMAN.md); форма-ориентир: r01 @bopetay.kz (880 600), https://www.tiktok.com/@bopetay.kz/video/7632215774798548245",
   "length_s": 46,
   "needs_footage": "",
   "scenes": [
@@ -128,7 +128,7 @@
   "id": "R3",
   "type": "reach",
   "title": "Как отследить посылку Казпочты за 10 секунд",
-  "source": "банк тем охвата №2 (docs/CONTENT_RULES_ARMAN.md), пример владельца; форма-ориентир: r07 @egor_egregor (468 600), текст на экране, https://www.tiktok.com/@egor_egregor/video/7569999746266336534",
+  "source": "банк тем охвата №2 (docs/content/CONTENT_RULES_ARMAN.md), пример владельца; форма-ориентир: r07 @egor_egregor (468 600), текст на экране, https://www.tiktok.com/@egor_egregor/video/7569999746266336534",
   "length_s": 50,
   "needs_footage": "запись экрана post.kz с трек-номером (демо-трек или наш, с закрытыми персональными данными); подтвердить, как на сайте называется поле отслеживания",
   "scenes": [
@@ -194,7 +194,7 @@
   "id": "R4",
   "type": "reach",
   "title": "Если посылка задерживается: что делать",
-  "source": "банк тем охвата №5 (docs/CONTENT_RULES_ARMAN.md); форма-ориентир: r07 @egor_egregor (чек-лист «как должно быть», 468 600)",
+  "source": "банк тем охвата №5 (docs/content/CONTENT_RULES_ARMAN.md); форма-ориентир: r07 @egor_egregor (чек-лист «как должно быть», 468 600)",
   "length_s": 48,
   "needs_footage": "запись экрана post.kz (то же, что в R3)",
   "scenes": [
@@ -430,7 +430,7 @@
   "id": "R8",
   "type": "reach",
   "title": "Почему рубашка мнётся сразу после глажки",
-  "source": "банк тем охвата №6 (docs/CONTENT_RULES_ARMAN.md); форма-ориентир: шорт-лист хуков №8 (T9 «Почему полы в отелях чище», 431 500)",
+  "source": "банк тем охвата №6 (docs/content/CONTENT_RULES_ARMAN.md); форма-ориентир: шорт-лист хуков №8 (T9 «Почему полы в отелях чище», 431 500)",
   "length_s": 47,
   "needs_footage": "",
   "scenes": [

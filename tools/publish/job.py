@@ -1,4 +1,4 @@
-"""One queued publication from content/queue/<date>.json, end to end (docs/DAILY_ROUTINE.md §2).
+"""One queued publication from content/queue/<date>.json, end to end (docs/content/DAILY_ROUTINE.md §2).
 
   python3 tools/publish/job.py reel REEL-07 SHA DATE "HH:MM" "Title for the bot"
   python3 tools/publish/job.py thread T-12 SHA DATE "HH:MM" "Title for the bot"
@@ -6,7 +6,7 @@
 reel:   Reels (MP4 pinned to commit SHA) -> caption check -> Stories -> TikTok video draft -> bot notice + caption message.
 thread: Threads chain -> /conversation check -> carousel slides to the bot for a manual TikTok upload -> notice.
 Then marks the queue item done, updates the README status line and commits + pushes. Every step's output is printed
-in full (no tail: see docs/ERRORS.md, T-09).
+in full (no tail: see docs/director/ERRORS.md, T-09).
 """
 import json, re, subprocess, sys, urllib.request
 

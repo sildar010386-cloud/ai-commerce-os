@@ -3,7 +3,7 @@
   python3 tools/stats/daily.py [SUFFIX]      e.g. "am" -> content/stats/<date>-am.json (morning run)
 
 Run at the start of each work session; compare with earlier snapshots before planning new content
-(CONTENT_PLAYBOOK.md §13). Key numbers: IG average watch time (hook strength), Threads read-through
+(docs/content/CONTENT_PLAYBOOK.md §13). Key numbers: IG average watch time (hook strength), Threads read-through
 (last post views / first post views), views per video vs the ~150-view test pool.
 """
 import glob, json, os, subprocess, sys, time, urllib.parse, urllib.request

@@ -8,7 +8,7 @@ thread:    job.py thread (Threads post -> bot notice -> queue done -> commit), t
            if the item has "reply" (selling posts: «ПАР» goes only in our reply, owner 2026-10-12).
 carousel:  slides content/carousels/<code>/0*.jpg + caption to the bot for a manual TikTok upload, queue done.
 Never publishes a slot that is not approved or already done; a thread whose text is already on the profile
-today is marked done instead of being posted again (a lost push must not cause a duplicate, docs/PUBLISHING.md).
+today is marked done instead of being posted again (a lost push must not cause a duplicate, docs/content/PUBLISHING.md).
 """
 import datetime, glob, json, os, re, subprocess, sys, urllib.parse, urllib.request
 from zoneinfo import ZoneInfo

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Download reference reels and prepare them for analysis (docs/REF_SEARCH.md).
+# Download reference reels and prepare them for analysis (docs/content/REF_SEARCH.md).
 #   tools/refs/fetch.sh LINKS.txt OUTDIR     LINKS.txt: "ID URL" per line
 # Output in OUTDIR: ID.mp4 + ID.info.json (views, likes, description), stt/ID.json (speech with word times,
 # ElevenLabs scribe_v1), sheet*.jpg (per video: frames 0-3 s every 0.5 s + 6 points across the reel).

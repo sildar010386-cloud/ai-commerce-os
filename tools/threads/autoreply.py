@@ -3,7 +3,7 @@
   python3 tools/threads/autoreply.py            reply to new comments (after funnel.py has handled trigger words)
   python3 tools/threads/autoreply.py --dry-run  only print what would be answered
 
-Rules first, AI second (docs/ARCHITECTURE_V1.md: code before LLM):
+Rules first, AI second (docs/director/ARCHITECTURE_V1.md: code before LLM):
 - trigger word («пар») -> left to funnel.py;
 - buying intent (цена, где купить, хочу такой, ...) -> fixed reply with the WhatsApp link, 🔥 to the bot, CRM lead;
 - empty comment (sticker/photo) -> a short emoji reply;
