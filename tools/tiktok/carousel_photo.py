@@ -63,6 +63,13 @@ h1{font-weight:900;font-size:var(--t);line-height:1.04;letter-spacing:-1px;margi
 .lab{font-weight:900;font-size:58px;line-height:1.1}
 .val{font-weight:800;font-size:50px;line-height:1.2;margin-top:10px;display:inline-block;background:var(--a);padding:2px 16px;border-radius:16px;
   border:4px solid var(--d)}
+/* 5+ items: compact rows so the list and footer fit 1920px */
+.dense h1{font-size:92px;margin:150px 0 30px}
+.dense .rows{gap:20px}
+.dense .row{padding:14px 28px;max-height:225px;border-radius:36px}
+.dense .ico{width:112px;height:112px;font-size:66px}
+.dense .lab{font-size:50px}
+.dense .val{font-size:42px;margin-top:6px}
 .deco{position:absolute;border-radius:50%;background:#fff;opacity:.35}
 /* final slide */
 .final{flex:1;display:flex;flex-direction:column;padding:290px 64px 40px;position:relative;z-index:2}
@@ -133,10 +140,11 @@ def list_slide(s, n, total, cfg):
     for it in s["items"]:
         label, _, value = it["text"].partition(": ")
         rows.append(f'<div class="row"><div class="ico">{it["icon"]}</div>'
-                    f'<div><div class="lab">{esc(label)}</div><div class="val">{esc(value)}</div></div></div>')
+                    f'<div><div class="lab">{esc(label)}</div>'
+                    + (f'<div class="val">{esc(value)}</div>' if value else '') + '</div></div>')
     deco = '<div class="deco" style="width:700px;height:700px;top:-260px;right:-240px"></div>' \
            '<div class="deco" style="width:520px;height:520px;bottom:-200px;left:-200px"></div>'
-    body = (f'{deco}{counter(n, total)}<div class="list"><h1>{esc(s["title"])}</h1>'
+    body = (f'{deco}{counter(n, total)}<div class="list{" dense" if len(s["items"]) >= 5 else ""}"><h1>{esc(s["title"])}</h1>'
             f'<div class="rows">{"".join(rows)}</div>{footer(cfg, n == total)}</div>')
     return page(body, cfg, fit=False)
 
