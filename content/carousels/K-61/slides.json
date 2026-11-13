@@ -1,0 +1,61 @@
+{
+ "accent": "#06D6A0",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Что нельзя гладить утюгом: 6 вещей и тканей",
+   "text": "Сначала посмотрите на ярлык →",
+   "prompt": "Colorful fabric swatches of velvet silk and cotton on a bright table, top view, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1–2. Бархат и велюр",
+   "text": "Утюг приминает ворс, и остаются блестящие пятна. Таким тканям нужен другой уход.",
+   "prompt": "Rich purple velvet pillow and curtain fabric in a bright living room, vivid colors, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "🟣",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "3–4. Шёлк и вискоза",
+   "text": "Высокая температура оставляет следы. Смотрите на значок утюга на ярлыке и гладьте через ткань.",
+   "prompt": "Colorful silk scarves draped over a bright chair, soft sunlight, close-up of fabric, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "🏷️",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "5–6. Кожа и замша",
+   "text": "Прямой утюг портит поверхность и оставляет следы. Смотрите рекомендации производителя.",
+   "prompt": "Brown leather jacket and a suede bag on hangers in a sunny wardrobe, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "🧥",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: перед глажкой",
+   "items": [
+    {
+     "icon": "🏷️",
+     "text": "Смотреть значок на ярлыке"
+    },
+    {
+     "icon": "🔥",
+     "text": "Начинать с низкой температуры"
+    },
+    {
+     "icon": "🧵",
+     "text": "Гладить через ткань"
+    },
+    {
+     "icon": "🔍",
+     "text": "Проверять на изнанке"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь тому, кто гладит всё подряд.\nА что вы уже испортили утюгом? Пишите в комментариях"
+  }
+ ]
+}

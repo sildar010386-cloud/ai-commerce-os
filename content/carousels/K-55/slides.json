@@ -1,0 +1,65 @@
+{
+ "accent": "#06D6A0",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Если куртка стала жёсткой после стирки, проверьте 5 ошибок",
+   "text": "Чаще всего дело в одной из них →",
+   "prompt": "Bright colorful puffy jackets hanging in a sunny hallway, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Слишком много порошка",
+   "text": "Лишний порошок не вымывается и оставляет жёсткость. Дозируйте строго по упаковке.",
+   "prompt": "Bright laundry room with a measuring cap and colorful detergent box next to a washing machine door, no people, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "🧴",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Куртка свёрнута в барабане",
+   "text": "Для объёмной вещи нужен запас места, иначе она плохо полоскается. Загружайте не больше половины барабана.",
+   "prompt": "Open front-loading washing machine drum half filled with a bright blue puffy jacket, vivid colors, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "🌀",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Сушка в тесной комнате",
+   "text": "Сушите куртку на плечиках, периодически встряхивая и взбивая наполнитель, пока не высохнет полностью.",
+   "prompt": "Bright blue and orange puffy jackets hanging on a drying rack near a window with sunlight, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "🧥",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: куртка после стирки",
+   "items": [
+    {
+     "icon": "🧴",
+     "text": "Порошка меньше"
+    },
+    {
+     "icon": "🌀",
+     "text": "Барабан не набивать"
+    },
+    {
+     "icon": "🔁",
+     "text": "Дополнительное полоскание"
+    },
+    {
+     "icon": "🧥",
+     "text": "Взбивать при сушке"
+    },
+    {
+     "icon": "🏷️",
+     "text": "Читать ярлык"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь тому, у кого куртка ждёт стирки.\nА вы стираете куртки дома или сдаёте в химчистку? Пишите в комментариях"
+  }
+ ]
+}

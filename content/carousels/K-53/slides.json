@@ -1,0 +1,61 @@
+{
+ "accent": "#06D6A0",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Как вывести пятно от кофе и чая с одежды: 4 шага",
+   "text": "Свежее и старое пятно: что делать →",
+   "prompt": "Coffee and tea cups with colorful cotton clothes on a bright table, top view, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Не тереть",
+   "text": "Промокните пятно салфеткой от краёв к центру. Растирание вдавливает кофе глубже в ткань.",
+   "prompt": "Spilled coffee cup on a bright white tablecloth with paper napkins, top view, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "☕",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Холодная вода с изнанки",
+   "text": "Промойте пятно холодной водой с изнанки ткани: горячая закрепляет следы кофе и чая.",
+   "prompt": "Cotton shirt sleeve under a stream of water in a bright sink, close-up fabric, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "💧",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Мыло и 15 минут",
+   "text": "Нанесите немного жидкого мыла или средства для стирки, подождите 15 минут и только потом стирайте.",
+   "prompt": "Colorful laundry detergent bottles and a folded white shirt on a bright shelf, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "🧼",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: пятно от кофе и чая",
+   "items": [
+    {
+     "icon": "🚫",
+     "text": "Не тереть, а промокать"
+    },
+    {
+     "icon": "💧",
+     "text": "Холодная вода с изнанки"
+    },
+    {
+     "icon": "🧼",
+     "text": "Мыло, 15 минут"
+    },
+    {
+     "icon": "🔍",
+     "text": "Проверить пятно до сушки"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь тому, кто любит кофе на ходу.\nА какое пятно вам сложнее всего вывести? Пишите в комментариях"
+  }
+ ]
+}

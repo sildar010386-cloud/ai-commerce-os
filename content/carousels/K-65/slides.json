@@ -1,0 +1,65 @@
+{
+ "accent": "#06D6A0",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Если шкаф вечно завален, попробуйте 5 правил хранения",
+   "text": "Хватит 15 минут и пара коробок →",
+   "prompt": "Tidy wardrobe with colorful folded clothes in bright light, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Вынуть всё и разобрать",
+   "text": "Положите вещи на кровать: оставьте нужное, отдельно отложите то, что не носите год.",
+   "prompt": "Colorful clothes sorted into piles on a bright bed in a sunny bedroom, top view, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "🛏️",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Хранить вертикально",
+   "text": "Сложенные «книжкой» футболки стоят в ящике рядами, и нужная вещь видна сразу.",
+   "prompt": "Colorful t-shirts folded and standing upright in a drawer, bright natural light, top view, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "🗂️",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Сезонное убрать выше",
+   "text": "Зимние вещи на верхнюю полку в коробках, а то, что носите каждый день, держите на уровне глаз.",
+   "prompt": "Bright storage boxes on an upper shelf of a tidy wardrobe, vivid colors, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "📦",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: порядок в шкафу",
+   "items": [
+    {
+     "icon": "🛏️",
+     "text": "Разобрать всё сразу"
+    },
+    {
+     "icon": "🗂️",
+     "text": "Вертикальное хранение"
+    },
+    {
+     "icon": "📦",
+     "text": "Сезонное повыше"
+    },
+    {
+     "icon": "🔁",
+     "text": "Раз в сезон пересматривать"
+    },
+    {
+     "icon": "🧺",
+     "text": "Коробка «не уверен»"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь тому, у кого шкаф не закрывается.\nСколько вещей вы не носили больше года? Пишите в комментариях"
+  }
+ ]
+}

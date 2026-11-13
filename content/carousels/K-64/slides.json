@@ -1,0 +1,63 @@
+{
+ "accent": "#06D6A0",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Үтік тақтасы болмаса да, көйлек тегіс болады",
+   "text": "Қалай екенін көрейік →",
+   "prompt": "Cozy small bright apartment corner with a clothes rail and a plant, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "Тақтаға орын жоқ",
+   "text": "Шағын үйде үлкен тақтаны қоятын орын аз. Ал көйлек таңертең тегіс болуы керек.",
+   "prompt": "Small bright apartment corner with a wrinkled green dress on a hanger, no appliance, no people, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup",
+   "emoji": "🏠",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "Кереует басында да",
+   "text": "Үтіктей де, буландыра да алады: 2-і 1-де. 9 секундта қызады.",
+   "real": true,
+   "frame": "СЦЕНА: Крупный план: отпариватель в руке рядом с дисплеем нагрева, включён (запасной кадр: content/carousels/K-02/src/p5.jpg; путь из CATALOG.md подставит Олжас)",
+   "note": "Реальный кадр нашего отпаривателя, ИИ не рисуем",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "Шағын қорапқа сияды",
+   "text": "Жиналып, шағын қорапқа сияды. Сапарға да алуға болады.",
+   "real": true,
+   "frame": "СЦЕНА: Одежда на вешалке и отпариватель рядом, общий план (запасной кадр: content/carousels/K-02/src/p4.jpg; путь из CATALOG.md подставит Олжас)",
+   "note": "Реальный кадр нашего отпаривателя, ИИ не рисуем",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: қолмен буландыргыш",
+   "items": [
+    {
+     "icon": "⏱️",
+     "text": "9 секунд: қызу"
+    },
+    {
+     "icon": "🔁",
+     "text": "2-і 1-де: үтіктейді және буландырады"
+    },
+    {
+     "icon": "🚫",
+     "text": "Үтік тақтасынсыз"
+    },
+    {
+     "icon": "📦",
+     "text": "Шағын қорапқа сияды"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сақтап қой да, шағын үйде тұратын адамға жібер.\nТүсініктемеге «ПАР» деп жазыңыз, менеджер сізбен байланысып, бәрін айтып береді\nҚазақстан бойынша Қазпошта арқылы тегін жеткізу"
+  }
+ ]
+}

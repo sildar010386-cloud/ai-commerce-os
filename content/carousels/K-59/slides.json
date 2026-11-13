@@ -1,0 +1,65 @@
+{
+ "accent": "#06D6A0",
+ "dark": "#1B1B1B",
+ "brand": "@bikas.home",
+ "slides": [
+  {
+   "kind": "cover",
+   "title": "Почему белые вещи становятся серыми: 5 причин",
+   "text": "Проверьте, какая из них ваша →",
+   "prompt": "Stack of bright white clothes and towels next to colorful laundry basket, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "photo": "src/01.jpg"
+  },
+  {
+   "title": "1. Стираете всё вместе",
+   "text": "Тёмные и светлые вещи в одной загрузке отдают друг другу цвет. Белое стирайте отдельно.",
+   "prompt": "Pile of white clothes and a separate pile of dark clothes in two bright baskets, vivid colors, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "🧺",
+   "photo": "src/02.jpg"
+  },
+  {
+   "title": "2. Холодная вода без добавок",
+   "text": "При низкой температуре грязь и жир смываются хуже. Смотрите на ярлык: белое хлопковое часто выдерживает 40–60 °C.",
+   "prompt": "Bright white towels stacked in a sunny bathroom with blue tiles, no people, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "🌡️",
+   "photo": "src/03.jpg"
+  },
+  {
+   "title": "3. Мало места в барабане",
+   "text": "Тесные вещи плохо полощутся, и серый налёт остаётся на ткани. Не набивайте барабан доверху.",
+   "prompt": "Open washing machine drum with white laundry, bright blue room, vivid colors, vivid saturated colors, bright natural light, commercial marketplace-card photography, no text, no letters, no logos, no people closeup, no appliance",
+   "emoji": "🌀",
+   "photo": "src/04.jpg"
+  },
+  {
+   "kind": "list",
+   "title": "Шпаргалка: белое остаётся белым",
+   "items": [
+    {
+     "icon": "🧺",
+     "text": "Белое отдельно"
+    },
+    {
+     "icon": "🌡️",
+     "text": "Температура по ярлыку"
+    },
+    {
+     "icon": "🌀",
+     "text": "Не набивать барабан"
+    },
+    {
+     "icon": "🔁",
+     "text": "Хорошо полоскать"
+    },
+    {
+     "icon": "🧴",
+     "text": "Порошка по норме"
+    }
+   ]
+  },
+  {
+   "kind": "final",
+   "text": "Сохраняй и отправь тому, у кого белые футболки посерели.\nА белое вы стираете отдельно? Пишите в комментариях"
+  }
+ ]
+}
