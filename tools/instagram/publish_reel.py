@@ -3,7 +3,10 @@
 Instagram Login tokens need a public video_url (resumable upload is rejected), so commit the
 approved MP4 and pass its raw.githubusercontent.com URL pinned to the commit SHA.
 
-Usage: publish_reel.py VIDEO_URL CAPTION.txt OUT.json [--story]
+Usage: publish_reel.py VIDEO_URL CAPTION.txt OUT.json [--story] [--trial auto|manual]
+
+--trial: Instagram trial Reel (shown to non-followers first). auto = SS_PERFORMANCE (Instagram shares it
+with followers if it performs well), manual = MANUAL (owner graduates it in the app). Owner decision 2026-11-15.
 """
 import json, os, sys, time, urllib.parse, urllib.request
 
@@ -27,14 +30,17 @@ def api(method, path, **params):
     return req("POST", f"{API}/{path}", data=q.encode())
 
 
-def main(video, caption_file, out, story=False):
+def main(video, caption_file, out, story=False, trial=None):
     me = api("GET", "me", fields="user_id,username")
     if story:
         cid = api("POST", f"{me['user_id']}/media", media_type="STORIES", video_url=video)["id"]
     else:
         caption = open(caption_file).read().strip()
+        extra = {}
+        if trial:
+            extra["trial_params"] = json.dumps({"graduation_strategy": {"auto": "SS_PERFORMANCE", "manual": "MANUAL"}[trial]})
         cid = api("POST", f"{me['user_id']}/media", media_type="REELS", video_url=video,
-                  caption=caption, share_to_feed="true")["id"]
+                  caption=caption, share_to_feed="true", **extra)["id"]
     print("container", cid)
     for _ in range(60):
         st = api("GET", cid, fields="status_code,status")
@@ -53,4 +59,6 @@ def main(video, caption_file, out, story=False):
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:4], story="--story" in sys.argv[4:])
+    rest = sys.argv[4:]
+    trial = rest[rest.index("--trial") + 1] if "--trial" in rest else None
+    main(*sys.argv[1:4], story="--story" in rest, trial=trial)
