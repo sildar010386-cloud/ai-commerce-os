@@ -1,5 +1,7 @@
 # Правила контента (органика): охват, продажи, расписание, публикации
 
+- **Всё полезное от Армана Калижарова для наших роликов (владелец, 2026-11-18):** `docs/content/ARMAN_PLAYBOOK.md` — заголовки «если/почему/как», 5 шаблонов заголовков-запретов, что залетает в охватных, длина, плашка, субтитры с жёлтым словом, повтор удачного.
+
 Перенесено из CLAUDE.md 2026-11-12 без изменений.
 
 - **Kazakhstan first (owner, 2026-10-31):** all content sources (Threads posts, carousels, reel hooks) from Kazakhstan authors (foreign ≤ 1 in 5 a day), local markers in selling posts where true, warm-up only with Kazakhstan authors — `docs/content/CONTENT_RULES_ARMAN.md` §7. Never start work without the owner's command: first say briefly what you want and what you need from him, wait for «начинай» — this covers every creation (trial videos, images, variants), even a step discussed earlier; production goes to Sonnet helpers, Opus only assigns and checks (owner 2026-10-31, repeated); Chrome tasks go to the chat, not the bot.
