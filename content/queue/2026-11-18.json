@@ -27,7 +27,9 @@
   "title": "Если каждое утро перед работой вы ждёте, пока нагреется у…",
   "type": "продажа",
   "approved": true,
-  "fails": 1
+  "fails": 1,
+  "done": "12:10",
+  "url": "https://www.threads.com/@bikas.home/post/Df39PS2FtQk"
  },
  {
   "time": "14:50",
