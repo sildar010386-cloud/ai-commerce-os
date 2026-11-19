@@ -11,6 +11,7 @@ Owner-facing docs are in Russian; code, comments and commit messages are in Engl
 - Publishing: every post on every platform (Reels, TikTok, Threads posts/threads) only after the owner explicitly approves that exact post. Videos one at a time. Exception: an approved Reel is also posted to Instagram Stories right after it, without asking again. Drafts live in `content/threads/`, `content/reels/`.
 - `app/` (Telegram intake bot for a VPS) is parked: the owner did not approve a paid server. Do not deploy or extend it without explicit approval.
 - Never add paid services or servers without the owner's explicit approval (see docs/director/DECISIONS.md).
+- **Hook title style on EVERY reel (owner, 2026-11-19, main rule, from Arman Kalizharov):** red cross ❌ at the start, the hook in CAPS centred in white `#FFFFFF` (key word may be yellow `#F2E27D`), three red exclamation marks at the end (drawn red `#E53935` on video; ❗❗❗ emoji in text). Shown from frame 0 to the end. Example: «❌ ЧТО НЕЛЬЗЯ ДЕЛАТЬ С ПУХОВИКОМ ❗❗❗». Old title style is cancelled. Details: `docs/video/RULES.md`.
 
 ## Map — where things live
 Full map with staff and code folders: `MAP.md`.
