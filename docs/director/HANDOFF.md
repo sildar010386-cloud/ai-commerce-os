@@ -27,6 +27,7 @@
 - Владельцу называть сотрудников «имя (должность)». VoiceStudio — на ноутбук владельца (ответа про видеокарту нет).
 - Сеть среды: добавлены Alibaba (4 адреса), Google Drive (2), Hugging Face CDN (3).
 
+**Где что лежит в закрытых хранилищах (указатели, без данных):** объявление о продаже автомойки (для krisha.kz / OLX, последняя версия — «Версия 3», цена 49 млн) — `finance-ipoteka/documents/obyavlenie_avtomoyka.md`; расчёт срочной цены мойки — `finance-ipoteka/calculations/avtomoyka_srochnaya_prodazha_2026-11-17.md`; варианты банка — `finance-ipoteka/calculations/`. Любой вопрос про автомойку, банк, ипотеку → подключить `finance-ipoteka` (add_repo access=push). Вода, жалоба в КРЕМ, суды → `bikas-legal`.
 **Закрытые дела — состояние только в закрытых хранилищах (сюда не копировать):** юрист — `bikas-legal/civil/decisions.md` и `registry.md` (жалоба отправлена 13.11, ждём ответ); ипотека — `finance-ipoteka/decisions.md` и `calculations/` (ждём решение владельца по варианту банка).
 
 ## Состояние на 14.11 — читать первым
