@@ -57,7 +57,9 @@
   "code": "T-247",
   "title": "Если вместо завтрака стоите у доски и ждёте, пока нагреет…",
   "type": "продажа",
-  "approved": true
+  "approved": true,
+  "done": "20:10",
+  "url": "https://www.threads.com/@bikas.home/post/Df98oXomzog"
  },
  {
   "time": "21:30",
