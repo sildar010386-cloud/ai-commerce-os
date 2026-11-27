@@ -1,5 +1,17 @@
 # HANDOFF — начать отсюда (обновлено 2026-11-12)
 
+## Состояние на 27.11 — читать первым
+**Сессия 18–27.11 (директор Арман) закрыта. Рабочая ветка — `claude/practical-mendel-vjtsd5`, полный HANDOFF там: `docs/director/HANDOFF.md`.** Состояние закрытых дел — только в закрытых репозиториях (подключать под задачу, `add_repo` access=push), сюда подробности не писать:
+- ипотека, автомойка, оценка — `finance-ipoteka/decisions.md` (запись 27.11 — с чего начать);
+- юридические дела — `bikas-legal/civil/decisions.md` и `registry.md` (последние записи 26.11, контроль ~01.12);
+- трейдинг (на паузе) — `trading-demo/DECISIONS.md`;
+- ИИ-менеджер продаж и сайт салона — `bikas-target/notes/HANDOFF.md`, `notes/agent_diana/README.md`, `landing/tomiris/`.
+
+**Контент — проверить в первую очередь:** очередь была одобрена только до 24.11, пакет с 25.11 не собран; токены Instagram и Threads истекали ~25.11 — напомнить владельцу. Личный бренд отложен (DECISIONS 24.11).
+
+**Уроки сессии:** файлы владельцу — пачкой одним сообщением с подписями; перед ответом проверять, что файл реально есть в архиве; тексты для госпорталов — одним блоком кода; номера статей законов без сверки не ставить; результат помощника Sonnet проверять построчно.
+
+
 ## Первые шаги новой сессии
 1. **Работать только в ветке `claude/practical-mendel-vjtsd5`** (`git fetch origin claude/practical-mendel-vjtsd5 && git checkout claude/practical-mendel-vjtsd5`). Из неё Actions берут очередь и публикуют. Правила (`CLAUDE.md`, `docs/HANDOFF.md`, `docs/DECISIONS.md`, `docs/CONTENT_RULES_ARMAN.md`, `docs/QA_CHECKLIST.md`, `docs/WARMUP.md`, `docs/PUBLISHING.md`) после изменения копировать и в основную ветку `claude/ai-ecommerce-automation-3n1lgz`.
 2. Прочитать только: `CLAUDE.md`, этот раздел, строки `docs/DECISIONS.md` с 31.10, `docs/CONTENT_RULES_ARMAN.md`. Остальное — под задачу.
