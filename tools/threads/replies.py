@@ -10,7 +10,7 @@ import json, os, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from publish_thread import call, wait_ready  # noqa: E402
 
-ME = "bikas.home"
+ME = "ildar.s6"  # owner renamed the account 2026-11-28
 LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "content", "comments", "threads.jsonl")
 
 
