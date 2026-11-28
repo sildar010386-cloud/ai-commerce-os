@@ -279,6 +279,10 @@ input[type=radio]{width:22px;height:22px;min-height:0;padding:0}
 .bub{max-width:min(82%,520px);padding:8px 10px;border-radius:12px;background:var(--card);border:1px solid var(--line);white-space:pre-wrap;overflow-wrap:anywhere}
 .msg.out .bub{background:var(--accent-bg)}
 .mmeta{font-size:11px;color:var(--muted);margin-top:3px;white-space:normal}
+.mact{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;white-space:normal}
+.mact button{font:inherit;font-size:11px;line-height:1.2;padding:2px 6px;min-height:0;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--muted);cursor:pointer}
+.mact button:hover{border-color:var(--muted)}
+@media (hover:hover) and (pointer:fine){.mact{opacity:0;transition:opacity .12s}.msg:hover .mact,.mact:focus-within{opacity:1}}
 .mimg{max-width:100%;max-height:320px;border-radius:8px;display:block}
 .mimg.stk{max-height:140px}
 .mlbl{font-size:12px;color:var(--muted)}

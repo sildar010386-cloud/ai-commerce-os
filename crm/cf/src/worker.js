@@ -3,6 +3,7 @@
 // User-facing messages are in Russian. Client names and phones are never logged.
 
 import { detectSource } from './source.js';
+import { extractOrderFields } from './extract.js';
 import { parseWebhook, normalizeInboxEvents } from './wa.js';
 import { CLOUD_INIT_TEMPLATE } from './connector_script.js';
 import { WINDOWS_SETUP_TEMPLATE } from './connector_windows.js';
@@ -2167,13 +2168,19 @@ async function orderFromChat(env, user, idStr) {
     if (ex) return json({ ok: true, existing: true, id: String(ex.id), num: ex.num });
   }
   const { results } = await env.DB.prepare(
-    "SELECT body, caption FROM messages WHERE contact_id = ? AND direction = 'in' ORDER BY ts DESC, id DESC LIMIT 10"
+    "SELECT body, caption FROM messages WHERE contact_id = ? AND direction = 'in' ORDER BY ts DESC, id DESC LIMIT 30"
   ).bind(c.id).all();
-  const lastText = ((results || []).map((m) => m.body || m.caption).find(Boolean) || '').slice(0, 1000);
+  const texts = (results || []).map((m) => m.body || m.caption).filter(Boolean); // newest first
+  const lastText = (texts[0] || '').slice(0, 1000);
+  // Full name / city / address are pulled out of the customer's messages (src/extract.js); empty when not found, the owner fixes them by hand.
+  const ex = extractOrderFields(texts);
+  const address = ex.address && ex.index && !ex.address.includes(ex.index) ? ex.address + ', индекс ' + ex.index : ex.address || (ex.index ? 'индекс ' + ex.index : '');
   const b = {
-    name: c.name, phone: c.phone ? '+' + c.phone : '', source: 'WhatsApp', comment: lastText,
+    name: ex.fullName || c.name, phone: c.phone ? '+' + c.phone : '', source: 'WhatsApp', comment: lastText,
     traffic: c.traffic === 'old' ? '' : c.traffic, targetCode: c.target_code
   };
+  if (ex.city) b.city = ex.city;
+  if (address) b.address = address;
   if (c.product_name) {
     const { results: prods } = await env.DB.prepare('SELECT id, name FROM products WHERE active = 1').all();
     const want = c.product_name.trim().toLowerCase();

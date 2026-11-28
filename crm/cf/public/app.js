@@ -1354,7 +1354,14 @@ function bubbleHTML(m) {
   }
   var st = m.direction === 'out' ? (OUT_STATUS[m.status] || '') : '';
   return '<div class="msg ' + (m.direction === 'out' ? 'out' : 'in') + '"><div class="bub' + (m.status === 'failed' && m.direction === 'out' ? ' mfail' : '') + '">' + body +
-    '<div class="mmeta">' + esc(fmtDate(m.ts)) + (m.fromApp ? ' · с телефона' : '') + (m.status === 'failed' && m.direction === 'out' ? '<b class="neg">' + st + '</b>' : st) + '</div></div></div>';
+    '<div class="mmeta">' + esc(fmtDate(m.ts)) + (m.fromApp ? ' · с телефона' : '') + (m.status === 'failed' && m.direction === 'out' ? '<b class="neg">' + st + '</b>' : st) + '</div>' +
+    (m.direction === 'in' && m.type === 'text' && m.body ? msgActionsHTML(m) : '') + '</div></div>';
+}
+// Small «→ ФИО / → Город / → Адрес» buttons under an incoming text message: copy it (or the part the extractor recognises) into the chat's order.
+function msgActionsHTML(m) {
+  return '<div class="mact">' + [['name', 'ФИО'], ['city', 'Город'], ['address', 'Адрес']].map(function (f) {
+    return '<button type="button" data-act="msg-to" data-f="' + f[0] + '" data-mid="' + esc(m.id) + '" title="Записать в заказ: ' + f[1] + '">→ ' + f[1] + '</button>';
+  }).join('') + '</div>';
 }
 function chatMsgsHTML() {
   var th = S.chat.thread;
@@ -1696,6 +1703,32 @@ async function chatMakeOrder() {
     await Promise.all([load('orders'), chatsRefreshThread()]);
     chatsPaintMessages();
     openCard(d.id);
+  } catch (e) { toast('Не получилось: ' + e.message, 'err'); }
+}
+// «→ ФИО / → Город / → Адрес» on an incoming message. The extractor (public/extract.js) is tried on that one message first; the plain text is the fallback.
+// Without an order the chat gets one first (the same server call as «Оформить заказ», the card is not opened).
+function msgFieldValue(field, text) {
+  text = String(text || '').trim();
+  var ex = window.Extract ? window.Extract.extractOrderFields([text]) : null;
+  var v = ex ? (field === 'name' ? ex.fullName : field === 'city' ? ex.city : ex.address) : '';
+  return (v || text).slice(0, field === 'name' ? 200 : field === 'city' ? 120 : 400);
+}
+async function chatMessageToOrder(mid, field) {
+  var th = S.chat.thread, id = S.chat.openId;
+  if (!th || id == null) return;
+  var m = th.messages.filter(function (x) { return String(x.id) === String(mid); })[0];
+  if (!m || !m.body || ['name', 'city', 'address'].indexOf(field) < 0) return;
+  var patch = {}; patch[field] = msgFieldValue(field, m.body);
+  try {
+    var orderId = th.chat.orderId;
+    if (!orderId) {
+      var d = await api('POST', '/api/chats/' + id + '/order', {});
+      orderId = d.id;
+    }
+    await api('PATCH', '/api/orders/' + orderId, patch);
+    toast('Сохранено в заказ', 'ok');
+    await Promise.all([load('orders'), chatsRefreshThread()]);
+    chatsPaintMessages();
   } catch (e) { toast('Не получилось: ' + e.message, 'err'); }
 }
 async function chatOpenOrder(orderId) {
@@ -2139,6 +2172,7 @@ var ACTIONS = {
   },
   'chat-older': function () { chatOlder(); },
   'chat-order': function () { chatMakeOrder(); },
+  'msg-to': function (t) { chatMessageToOrder(t.dataset.mid, t.dataset.f); },
   'chat-order-open': function (t) { chatOpenOrder(t.dataset.id); },
   'wan-add': async function () {
     var data = { phone: textField('wn-phone'), label: textField('wn-label'), phoneNumberId: textField('wn-pnid') };

@@ -165,7 +165,7 @@ const spendRows = async (from, to) => (await jget(`/api/ads/spend?from=${from}&t
 
 before(async () => {
   if (!Miniflare) return;
-  const mods = ['wa.js', 'source.js', 'fx.js', 'connector_script.js', 'connector_windows.js'].map((f) => ({ type: 'ESModule', path: f, contents: fs.readFileSync(path.join(SRC, f), 'utf8') }));
+  const mods = ['wa.js', 'source.js', 'extract.js', 'fx.js', 'connector_script.js', 'connector_windows.js'].map((f) => ({ type: 'ESModule', path: f, contents: fs.readFileSync(path.join(SRC, f), 'utf8') }));
   outbound = defaultOutbound;
   mf = new Miniflare({
     modules: [{ type: 'ESModule', path: 'entry.js', contents: fs.readFileSync(path.join(SRC, 'worker.js'), 'utf8') }].concat(mods),
