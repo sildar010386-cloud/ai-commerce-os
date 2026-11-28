@@ -19,7 +19,7 @@ const LOCK_MIN = 15;
 const MAX_BODY = 1024 * 1024;
 
 const STATUSES = ['new', 'accepted', 'pay', 'reserve', 'paid', 'sent', 'done', 'cancel'];
-const DELIVERY = ['Казпочта', 'Курьер', 'СДЭК'];
+const DELIVERY = ['Казпочта', 'СДЭК', 'Курьер']; // stored values; the labels are in public/app.js (DELIVERY_LABEL)
 const LEAD_SOURCES = ['Threads', 'Instagram', 'TikTok', 'WhatsApp'];
 const CONTENT_STATUSES = ['ждёт', 'вышел', 'в боте', 'ошибка', 'не одобрено'];
 const SETTINGS_KEYS = ['wa1', 'wa2', 'payLink', 'templates', 'track_msg', 'track_url', 'usd_manual'];
@@ -269,7 +269,7 @@ async function cleanOrderFields(env, b, cur) {
   if ('track' in b) f.track = str(b.track, 100, 'Трек-номер');
   if ('delivery' in b) {
     const d = str(b.delivery, 40, 'Доставка');
-    if (d && !DELIVERY.includes(d)) fail(400, 'Неизвестная служба доставки');
+    if (d && !DELIVERY.includes(d)) fail(400, 'Неизвестный способ доставки');
     f.delivery = d;
   }
   if ('remindAt' in b) {
@@ -305,7 +305,7 @@ async function cleanOrderFields(env, b, cur) {
 function validateStatusFields(prevStatus, status, merged, touched) {
   if (status === 'reserve' && !isDate(merged.remind_at)) fail(400, 'Для резерва укажите дату «Напомнить»');
   if (status === 'sent' && (prevStatus !== 'sent' || touched.delivery || touched.track)) {
-    if (!DELIVERY.includes(merged.delivery)) fail(400, 'Для отправки выберите службу доставки');
+    if (!DELIVERY.includes(merged.delivery)) fail(400, 'Для отправки выберите способ доставки');
     if (merged.delivery !== 'Курьер' && !merged.track) fail(400, 'Для отправки впишите трек-номер');
   }
 }
@@ -2180,6 +2180,7 @@ async function orderFromChat(env, user, idStr) {
     traffic: c.traffic === 'old' ? '' : c.traffic, targetCode: c.target_code
   };
   if (ex.city) b.city = ex.city;
+  if (ex.city === 'Алматы') b.delivery = 'Курьер'; // own courier within Almaty; other cities are chosen by hand
   if (address) b.address = address;
   if (c.product_name) {
     const { results: prods } = await env.DB.prepare('SELECT id, name FROM products WHERE active = 1').all();

@@ -6,7 +6,11 @@
 var ST = [['new', 'Новый'], ['accepted', 'Принят'], ['pay', 'Ждёт оплату'], ['reserve', 'Резерв'], ['paid', 'Оплачен'], ['sent', 'Отправлен'], ['done', 'Получен'], ['cancel', 'Отказ']];
 var STN = {}; ST.forEach(function (s) { STN[s[0]] = s[1]; });
 var NEEDS = { reserve: 1, sent: 1 }; // statuses that need extra fields before they can be saved
-var DELIVERY = ['Казпочта', 'Курьер', 'СДЭК'];
+var DELIVERY = ['Казпочта', 'СДЭК', 'Курьер'];
+var DELIVERY_LABEL = { 'Казпочта': 'Казпочта', 'СДЭК': 'СДЭК — междугородний курьер', 'Курьер': 'Свой курьер по Алматы' };
+var DELIVERY_SHORT = { 'Казпочта': 'Казпочта', 'СДЭК': 'СДЭК', 'Курьер': 'Свой курьер' };
+function deliveryLabel(d) { return DELIVERY_LABEL[d] || d || ''; }
+function deliveryShort(d) { return DELIVERY_SHORT[d] || d || ''; }
 var PUBLISH_URL = 'https://github.com/sildar010386-cloud/ai-commerce-os/actions/workflows/publish.yml';
 function ostat(o) { var k = o && o.status; if (k === 'work') return 'accepted'; return STN[k] ? k : 'new'; }
 var PAID = { paid: 1, sent: 1, done: 1 };
@@ -282,8 +286,8 @@ function renderOrders() {
     ? '<button type="button" class="remind s-pay' + (S.filter === 'remind' ? ' on' : '') + '" data-act="filter" data-f="remind"><span>Сегодня напомнить: ' + due.length + '</span><small>' + (S.filter === 'remind' ? 'показать все' : 'показать') + '</small></button>' : '';
   var rows = list.map(function (o) {
     var st = ostat(o), sub = '';
-    if (st === 'sent' && (o.delivery || o.track)) {
-      sub = '<small class="dl">' + esc([o.delivery, o.track].filter(Boolean).join(' · ')) + trackLinkHTML(o) +
+    if (o.delivery || (st === 'sent' && o.track)) {
+      sub = '<small class="dl">' + esc([deliveryShort(o.delivery), st === 'sent' ? o.track : ''].filter(Boolean).join(' · ')) + trackLinkHTML(o) +
         (o.trackSentAt ? ' <span class="trk-ok">трек отправлен ✓</span>' : '') + '</small>';
     }
     else if (st === 'reserve' && o.remindAt) sub = '<small class="dl' + (o.remindAt <= today ? ' due' : '') + '">напомнить ' + esc(fmtDay(o.remindAt)) + '</small>';
@@ -776,17 +780,17 @@ function renderAll() { renderHeader(); renderDrawer(); doRender(true); }
 /* ---------- order card ---------- */
 function validDate(v) { return /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')); }
 function extraHTML(o, st) {
-  var hasSent = !!(o.delivery || o.track), delOpts = '<option value="">— выберите —</option>' + DELIVERY.map(function (d) {
-    return '<option value="' + esc(d) + '"' + (d === o.delivery ? ' selected' : '') + '>' + esc(d) + '</option>';
+  var hasSent = !!o.track, delOpts = '<option value="">— не выбран —</option>' + DELIVERY.map(function (d) {
+    return '<option value="' + esc(d) + '"' + (d === o.delivery ? ' selected' : '') + '>' + esc(deliveryLabel(d)) + '</option>';
   }).join('');
-  return '<div class="xblk s-reserve' + (st === 'reserve' ? '' : ' hide') + '" id="x-reserve">' +
+  return '<div class="fld"><label for="f-delivery">Способ доставки</label><select id="f-delivery">' + delOpts + '</select></div>' +
+    '<div class="xblk s-reserve' + (st === 'reserve' ? '' : ' hide') + '" id="x-reserve">' +
     '<div class="fld"><label for="f-remind">Напомнить (дата) *</label><input id="f-remind" type="date" value="' + esc(validDate(o.remindAt) ? o.remindAt : '') + '"></div>' +
     '<div class="fld"><label for="f-reserve">Причина</label><input id="f-reserve" type="text" autocomplete="off" placeholder="ждёт пенсию / пособие" value="' + esc(o.reserveNote) + '"></div>' +
     '<div class="need" id="need-reserve">Без даты напоминания резерв не сохранить.</div></div>' +
     '<div class="xblk s-sent' + (st === 'sent' || hasSent ? '' : ' hide') + '" id="x-sent">' +
-    '<div class="fld"><label for="f-delivery">Служба доставки *</label><select id="f-delivery">' + delOpts + '</select></div>' +
     '<div class="fld"><label for="f-track">Трек-номер</label><input id="f-track" type="text" autocomplete="off" value="' + esc(o.track) + '"></div>' +
-    '<div class="need" id="need-sent">Выберите службу доставки и впишите трек-номер (для курьера трек можно не писать).</div></div>' +
+    '<div class="need" id="need-sent">Выберите способ доставки и впишите трек-номер. Для своего курьера по Алматы трек не нужен.</div></div>' +
     '<div class="xblk s-cancel' + (st === 'cancel' || o.cancelNote ? '' : ' hide') + '" id="x-cancel">' +
     '<div class="fld"><label for="f-cancel">Причина отказа (необязательно)</label><input id="f-cancel" type="text" autocomplete="off" value="' + esc(o.cancelNote) + '"></div></div>';
 }
@@ -800,7 +804,7 @@ function syncExtra() {
   if (sel && sel.value !== st) sel.value = st;
   if (w) w.className = 'stsel big s-' + st;
   showEl('x-reserve', st === 'reserve');
-  showEl('x-sent', st === 'sent' || !!(o.delivery || o.track));
+  showEl('x-sent', st === 'sent' || !!o.track);
   showEl('x-cancel', st === 'cancel' || !!o.cancelNote);
   showEl('need-reserve', st === 'reserve' && !validDate(fv('f-remind')));
   var dl = fv('f-delivery');
@@ -1003,7 +1007,7 @@ function validateStatus(c, f) {
   var st = c.status;
   if (st === 'reserve' && !validDate(f.remindAt)) return { msg: 'для резерва укажите дату «Напомнить»', id: 'f-remind' };
   if (st === 'sent' && (c.isNew || st !== c.orig.status)) {
-    if (DELIVERY.indexOf(f.delivery) < 0) return { msg: 'выберите службу доставки', id: 'f-delivery' };
+    if (DELIVERY.indexOf(f.delivery) < 0) return { msg: 'выберите способ доставки', id: 'f-delivery' };
     if (f.delivery !== 'Курьер' && !f.track) return { msg: 'впишите трек-номер', id: 'f-track' };
   }
   return null;

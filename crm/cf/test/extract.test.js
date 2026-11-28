@@ -123,3 +123,49 @@ test('orderFromChat keeps the WhatsApp name and leaves city/address empty when n
   assert.equal(o.city, '');
   assert.equal(o.address, '');
 });
+
+/* ---------- delivery method ---------- */
+test('orderFromChat: Алматы -> own courier, other city -> delivery left empty', { skip }, async () => {
+  const a = await seedChat('77011110003', 'Анна WA', ['Иванова Анна Сергеевна', 'г. Алматы, мкр Самал-2, д. 33, кв 12']);
+  const oa = await orderOf((await (await admin('POST', '/api/chats/' + a + '/order', {})).json()).id);
+  assert.equal(oa.city, 'Алматы');
+  assert.equal(oa.delivery, 'Курьер');
+  const b = await seedChat('77011110004', 'Айгуль WA', ['Серикова Айгуль Булатовна', 'Астана, пр. Туран 37, кв. 55']);
+  const ob = await orderOf((await (await admin('POST', '/api/chats/' + b + '/order', {})).json()).id);
+  assert.equal(ob.city, 'Астана');
+  assert.equal(ob.delivery, '');
+});
+
+async function mkOrder(extra) {
+  const r = await admin('POST', '/api/orders', Object.assign({ name: 'Тест', phone: '+77010000000' }, extra));
+  const j = await r.json();
+  return { status: r.status, id: String(j.id), body: j };
+}
+test('delivery is saved on a non-sent order (create and patch), empty value allowed', { skip }, async () => {
+  const c = await mkOrder({ delivery: 'СДЭК' });
+  assert.equal(c.status, 201);
+  assert.equal((await orderOf(c.id)).delivery, 'СДЭК');
+  let r = await admin('PATCH', '/api/orders/' + c.id, { delivery: 'Казпочта' });
+  assert.equal(r.status, 200);
+  const o = await orderOf(c.id);
+  assert.equal(o.delivery, 'Казпочта');
+  assert.equal(o.status, 'new');
+  r = await admin('PATCH', '/api/orders/' + c.id, { delivery: '' });
+  assert.equal(r.status, 200);
+  assert.equal((await orderOf(c.id)).delivery, '');
+  r = await admin('PATCH', '/api/orders/' + c.id, { delivery: 'Голубь' });
+  assert.equal(r.status, 400);
+});
+test('status sent: delivery required, track required for СДЭК/Казпочта but not for Курьер', { skip }, async () => {
+  const c = await mkOrder({});
+  let r = await admin('PATCH', '/api/orders/' + c.id, { status: 'sent' });
+  assert.equal(r.status, 400); // no delivery
+  r = await admin('PATCH', '/api/orders/' + c.id, { status: 'sent', delivery: 'СДЭК' });
+  assert.equal(r.status, 400); // no track
+  r = await admin('PATCH', '/api/orders/' + c.id, { status: 'sent', delivery: 'СДЭК', track: 'CDEK123' });
+  assert.equal(r.status, 200);
+  const d = await mkOrder({});
+  r = await admin('PATCH', '/api/orders/' + d.id, { status: 'sent', delivery: 'Курьер' });
+  assert.equal(r.status, 200);
+  assert.equal((await orderOf(d.id)).status, 'sent');
+});
