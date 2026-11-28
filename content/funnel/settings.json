@@ -1,4 +1,5 @@
 {
+ "threads_paused": true,
  "whatsapp": "77712478726",
  "max_words": 5,
  "lookback_posts": 15,

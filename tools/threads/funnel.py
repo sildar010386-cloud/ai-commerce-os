@@ -39,6 +39,9 @@ def new_leads():
 
 
 def main(dry):
+    if CFG.get("threads_paused"):  # owner 2026-11-28: paused until the replies speak as Ildar, not the shop
+        print("paused (content/funnel/settings.json threads_paused)")
+        return
     wa = f"wa.me/{CFG['whatsapp']}"
     leads = new_leads()
     for i, c in enumerate(leads):
